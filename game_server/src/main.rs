@@ -8,6 +8,7 @@ use std::collections::HashSet;
 async fn main() {
     let mut clients:HashSet<std::net::SocketAddr> = HashSet::new();
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
+    // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
     let udp_socket = create_reusable_udp_socket(address);
 
     let mut buf_udp = [0u8; 1024];
@@ -30,12 +31,16 @@ fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net:
 {
     tokio::spawn(async move {
         let child_socket : std::net::UdpSocket = create_reusable_udp_socket(address);
+        println!("create child socket");
         child_socket.connect(from_address).unwrap();
         let mut child_buff = [0u8; 1024];
         loop {
             let result = child_socket.recv(&mut child_buff);
             if let Ok(size) = result {
                 println!("Child: {:?} bytes received on child process for {}", size, from_address);
+            }
+            else {
+              println!("error on child socket");
             }
         }
     });
@@ -47,6 +52,7 @@ fn create_reusable_udp_socket(address :std::net::SocketAddr) -> std::net::UdpSoc
     socket.set_reuse_port(true).unwrap();
     socket.set_reuse_address(true).unwrap();
     socket.bind(&address.into()).unwrap();
+    // socket.set_nonblocking(nonblocking)
     let udp_socket: std::net::UdpSocket = socket.into();
     udp_socket
 }
