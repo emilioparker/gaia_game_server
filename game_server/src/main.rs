@@ -3,6 +3,8 @@ use socket2::Type;
 use tokio::time::sleep;
 use tokio::time::Duration;
 use std::collections::HashSet;
+use std::convert::TryInto;
+use std::thread::yield_now;
 
 #[tokio::main]
 async fn main() {
@@ -13,7 +15,7 @@ async fn main() {
 
     let mut buf_udp = [0u8; 1024];
     loop {
-        let result = udp_socket.recv_from(&mut buf_udp);
+        let result = udp_socket.recv_from(&mut buf_udp).await;
         if let Ok((size, from_address)) = result {
             println!("Parent: {:?} bytes received from {}", size, from_address);
             if !clients.contains(&from_address)
@@ -30,23 +32,24 @@ async fn main() {
 fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net::SocketAddr)
 {
     tokio::spawn(async move {
-        let child_socket : std::net::UdpSocket = create_reusable_udp_socket(address);
+        let child_socket : tokio::net::UdpSocket = create_reusable_udp_socket(address);
         println!("create child socket");
-        child_socket.connect(from_address).unwrap();
+        child_socket.connect(from_address).await.unwrap();
         let mut child_buff = [0u8; 1024];
         loop {
-            let result = child_socket.recv(&mut child_buff);
+            let result = child_socket.recv(&mut child_buff).await;
             if let Ok(size) = result {
                 println!("Child: {:?} bytes received on child process for {}", size, from_address);
             }
             else {
               println!("error on child socket");
             }
+            // tokio::task::yield_now();
         }
     });
 }
 
-fn create_reusable_udp_socket(address :std::net::SocketAddr) -> std::net::UdpSocket
+fn create_reusable_udp_socket(address :std::net::SocketAddr) -> tokio::net::UdpSocket
 {
     let socket = Socket::new(socket2::Domain::IPV4, Type::DGRAM, None).unwrap();
     socket.set_reuse_port(true).unwrap();
@@ -54,7 +57,7 @@ fn create_reusable_udp_socket(address :std::net::SocketAddr) -> std::net::UdpSoc
     socket.bind(&address.into()).unwrap();
     // socket.set_nonblocking(nonblocking)
     let udp_socket: std::net::UdpSocket = socket.into();
-    udp_socket
+    udp_socket.try_into().unwrap()
 }
 
 
