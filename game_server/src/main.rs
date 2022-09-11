@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::convert::TryInto;
 use std::thread::yield_now;
 
-#[tokio::main]
+#[tokio::main(worker_threads = 1)]
 async fn main() {
     let mut clients:HashSet<std::net::SocketAddr> = HashSet::new();
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
@@ -33,7 +33,6 @@ fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net:
 {
     tokio::spawn(async move {
         let child_socket : tokio::net::UdpSocket = create_reusable_udp_socket(address);
-        println!("create child socket");
         child_socket.connect(from_address).await.unwrap();
         let mut child_buff = [0u8; 1024];
         loop {
@@ -44,7 +43,7 @@ fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net:
             else {
               println!("error on child socket");
             }
-            // tokio::task::yield_now();
+            // tokio::task::yield_now().await;
         }
     });
 }
@@ -55,7 +54,7 @@ fn create_reusable_udp_socket(address :std::net::SocketAddr) -> tokio::net::UdpS
     socket.set_reuse_port(true).unwrap();
     socket.set_reuse_address(true).unwrap();
     socket.bind(&address.into()).unwrap();
-    // socket.set_nonblocking(nonblocking)
+    socket.set_nonblocking(true).unwrap();
     let udp_socket: std::net::UdpSocket = socket.into();
     udp_socket.try_into().unwrap()
 }
