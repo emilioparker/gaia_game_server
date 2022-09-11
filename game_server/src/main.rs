@@ -1,52 +1,82 @@
 use socket2::Socket;
 use socket2::Type;
+use tokio::time;
 use tokio::time::sleep;
 use tokio::time::Duration;
 use std::collections::HashSet;
 use std::convert::TryInto;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 use std::thread::yield_now;
 
-#[tokio::main(worker_threads = 1)]
+// #[tokio::main(worker_threads = 1)]
+#[tokio::main]
 async fn main() {
+    
+    let (tx, mut rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
     let mut clients:HashSet<std::net::SocketAddr> = HashSet::new();
+
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
     // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
     let udp_socket = create_reusable_udp_socket(address);
 
     let mut buf_udp = [0u8; 1024];
     loop {
-        let result = udp_socket.recv_from(&mut buf_udp).await;
-        if let Ok((size, from_address)) = result {
-            println!("Parent: {:?} bytes received from {}", size, from_address);
-            if !clients.contains(&from_address)
-            {
-                println!("--- create child!");
-                clients.insert(from_address);
-                spawn_client_process(address, from_address);
+        let socket_receive = udp_socket.recv_from(&mut buf_udp);
+
+        tokio::select! {
+            result = socket_receive => {
+                if let Ok((size, from_address)) = result {
+                    println!("Parent: {:?} bytes received from {}", size, from_address);
+                    if !clients.contains(&from_address)
+                    {
+                        println!("--- create child!");
+                        clients.insert(from_address);
+
+                        let tx = tx.clone();
+                        spawn_client_process(address, from_address, tx);
+                    }
+                }
             }
+            Some(res) = rx.recv() => {
+                println!("removing entry from hash set");
+                clients.remove(&res);
+            }
+            
         }
     }   
 }
 
-
-fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net::SocketAddr)
+fn spawn_client_process(address : std::net::SocketAddr, from_address : std::net::SocketAddr, channel_tx : tokio::sync::mpsc::Sender<std::net::SocketAddr>)
 {
     tokio::spawn(async move {
         let child_socket : tokio::net::UdpSocket = create_reusable_udp_socket(address);
         child_socket.connect(from_address).await.unwrap();
         let mut child_buff = [0u8; 1024];
-        loop {
-            let result = child_socket.recv(&mut child_buff).await;
-            if let Ok(size) = result {
-                println!("Child: {:?} bytes received on child process for {}", size, from_address);
+        'main_loop : loop {
+            let socket_receive = child_socket.recv(&mut child_buff);
+            let time_out = time::sleep(Duration::from_secs_f32(10.0)); 
+            tokio::select! {
+                result = socket_receive => {
+                    println!("we did it");
+                    if let Ok(size) = result {
+                        println!("Child: {:?} bytes received on child process for {}", size, from_address);
+                        let len = child_socket.send(&child_buff[..size]).await.unwrap();
+                        println!("{:?} bytes sent", len);
+                    }
+                }
+                _ = time_out => {
+                    println!("we couldn't wait any longer sorry!");
+                    break 'main_loop;
+                }
             }
-            else {
-              println!("error on child socket");
-            }
-            // tokio::task::yield_now().await;
         }
+
+        // if we are here, this task expired and we need to remove the key from the hashset
+        channel_tx.send(from_address).await.unwrap();
     });
 }
+
 
 fn create_reusable_udp_socket(address :std::net::SocketAddr) -> tokio::net::UdpSocket
 {
@@ -64,7 +94,23 @@ fn create_reusable_udp_socket(address :std::net::SocketAddr) -> tokio::net::UdpS
 
 
 
+        // if let Some(message_type) = buf.get(0)
+        // {
+        //     println!("got a message of type at 0 {message_type}");
+        // }
+        // // if let Some(message_type) = buf.get(1)
+        // // {
+        // //     println!("got a message of type at 1 {message_type}");
+        // // }
 
+        // // let content_type_bytes = [buf[1], buf[2]];
+
+        // let num = u16::from_le_bytes(buf[1..=2].try_into().unwrap());
+        // println!("the message is an {num}");
+
+
+        // let len = sock.send_to(&buf[..len], addr).await.unwrap();
+        // println!("{:?} bytes sent", len);
 
 
 
