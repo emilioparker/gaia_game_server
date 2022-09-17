@@ -1,8 +1,17 @@
 use std::collections::HashSet;
 
+use client_handler::ClientAction;
+
 mod packet_router;
 mod utils;
 mod client_handler;
+mod ping_protocol;
+mod movement_protocol;
+mod client_state_system;
+mod player_state;
+
+
+
 
 #[tokio::main(worker_threads = 1)]
 // #[tokio::main]
@@ -12,6 +21,16 @@ async fn main() {
 
     let initial_value = [0u8; 508];
     let (main_data_tx, childs_rx) = tokio::sync::watch::channel(initial_value);
+
+    let (client_action_tx, client_action_rx ) = tokio::sync::mpsc::channel::<ClientAction>(1000);
+
+
+    // this function will process all user actions and send to all players the global state
+    // this looks inocent but will do a lot of work.
+    // ---------------------------------------------------
+    client_state_system::process_player_action(client_action_rx, main_data_tx);
+    // ---------------------------------------------------
+
 
     let mut clients:HashSet<std::net::SocketAddr> = HashSet::new();
 
@@ -33,7 +52,7 @@ async fn main() {
                         clients.insert(from_address);
 
                         let tx = from_client_to_world_tx.clone();
-                        client_handler::spawn_client_process(address, from_address, tx, childs_rx.clone(), buf_udp).await;
+                        client_handler::spawn_client_process(address, from_address, tx, childs_rx.clone(), client_action_tx.clone(), buf_udp).await;
                     }
                 }
             }

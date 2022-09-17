@@ -1,26 +1,32 @@
 
 
 use tokio::net::UdpSocket;
+use tokio::sync::mpsc::Sender;
+
+use crate::client_handler::ClientAction;
+use crate::{ping_protocol, movement_protocol};
 
 
-const PING: u8 = 1;
-const POSITION: u8 = 2;
+pub const PING: u8 = 1;
+pub const POSITION: u8 = 2; 
+pub const GLOBAL_STATE: u8 = 3;
 
-pub async fn route_packet(socket: &UdpSocket, data : &[u8; 508]){
+    
+pub async fn route_packet(
+    socket: &UdpSocket,
+    data : &[u8; 508],
+    channel_tx : &Sender<ClientAction>){
+
     match data.get(0) {
         Some(protocol) if *protocol == PING => {
-            // ping
-            // let num = u16::from_le_bytes(data[1..=2].try_into().unwrap());
-            // println!("the message is an {num}");
-            let len = socket.send(data).await.unwrap();
-            println!("{:?} bytes sent", len);
+            ping_protocol::process_ping(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == POSITION => {
+            movement_protocol::process_movement(socket, data, channel_tx).await;
             // ping
             // let num = u16::from_le_bytes(data[1..=2].try_into().unwrap());
             // prinln!("the message is an {num}");
         },
         _ => {}
     }
-
 }

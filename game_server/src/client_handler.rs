@@ -4,16 +4,27 @@
 use std::sync::Arc;
 use tokio::time;
 use tokio::time::Duration;
+use tokio::sync::mpsc;
+use tokio::sync::watch;
 
 use crate::{utils, packet_router};
 
+#[derive(Debug)]
+pub struct ClientAction {
+    pub player_id: u64,
+    pub position: [f32;3],
+    pub direction: [f32;3],
+    pub action:u32,
+}
+
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
-    channel_tx : tokio::sync::mpsc::Sender<std::net::SocketAddr>,
-    channel_rx : tokio::sync::watch::Receiver<[u8;508]>,
+    channel_tx : mpsc::Sender<std::net::SocketAddr>,
+    channel_rx : watch::Receiver<[u8;508]>,
+    channel_action_tx : mpsc::Sender<ClientAction>,
     initial_data : [u8; 508])
 {
-    let (kill_tx, mut kill_rx) = tokio::sync::mpsc::channel::<u8>(2);
+    let (kill_tx, mut kill_rx) = mpsc::channel::<u8>(2);
 
     let child_socket : tokio::net::UdpSocket = utils::create_reusable_udp_socket(address);
     child_socket.connect(from_address).await.unwrap();
@@ -33,6 +44,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Ok(_) = external_rx_future  =>{
+                    println!("sending global state to client");
                     let data = *external_rx.borrow();
                     // just send everything to the client.
                     let _len = socket_global_send_instance.send(&data).await.unwrap();
@@ -45,7 +57,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     tokio::spawn(async move {
 
         //handle the first package
-        packet_router::route_packet(&socket_local_instance, &initial_data).await;
+        packet_router::route_packet(&socket_local_instance, &initial_data, &channel_action_tx).await;
 
         let mut child_buff = [0u8; 508];
         'main_loop : loop {
@@ -55,7 +67,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                 result = socket_receive => {
                     if let Ok(size) = result {
                         println!("Child: {:?} bytes received on child process for {}", size, from_address);
-                        packet_router::route_packet(&socket_local_instance, &child_buff).await;
+                        packet_router::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
                     }
                 }
                 _ = time_out => {
