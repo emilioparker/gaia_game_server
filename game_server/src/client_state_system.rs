@@ -21,7 +21,7 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
         loop {
 
             let message = receiver.recv().await.unwrap();
-            println!("player action received {:?}", message);
+            // println!("player action received {:?}", message);
 
             sequence_number = sequence_number + 1;
             // I think this should be the entire state of the client, is it moving ? is it choppoing wood, is it attacking?, etc.
@@ -52,6 +52,8 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
                 action : message.action
             };
 
+            // println!("player pos {:?}", message.position);
+
             let old = data.get(&message.player_id);
             match old {
                 Some(previous_record) => {
@@ -68,13 +70,13 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
     tokio::spawn(async move {
         let mut buffer = [0u8; 508];
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_millis(9000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
             let data = processor_lock.lock().await;
             if data.len() <= 0 {
                 continue;
             }
-            println!("sending global state {}", data.len());
+            // println!("sending global state {}", data.len());
 
             buffer[0] = packet_router::GLOBAL_STATE;
             buffer[1] = data.len() as u8;
@@ -82,8 +84,8 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
             let size: usize = 36;
             let mut start: usize = 2;
 
-            // todo: we need to support more than 14 client, if we get more than that, this will crash!
-            // in that case we need to send more than one package.
+            let mut stored_bytes:u32 = 0;
+            let mut stored_states:u8 = 0;
 
             for item in data.iter()
             {
@@ -92,9 +94,25 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
                 buffer[start..next].copy_from_slice(&player_id_bytes);
                 start = next;
 
+                stored_bytes = stored_bytes + 36;
+                stored_states = stored_states + 1;
+
+                if stored_bytes + 36 > 500
+                {
+                    buffer[1] = stored_states;
+                    players.send(buffer).unwrap();
+
+                    start = 2;
+                    stored_states = 0;
+                    stored_bytes = 0;
+                }
             }
 
-            players.send(buffer).unwrap();
+            if stored_states > 0
+            {
+                players.send(buffer).unwrap();
+            }
+
         }
     });
 

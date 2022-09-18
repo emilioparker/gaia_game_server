@@ -13,8 +13,8 @@ mod player_state;
 
 
 
-#[tokio::main(worker_threads = 1)]
-// #[tokio::main]
+// #[tokio::main(worker_threads = 1)]
+#[tokio::main]
 async fn main() {
     
     let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);

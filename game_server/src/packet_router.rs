@@ -23,9 +23,6 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == POSITION => {
             movement_protocol::process_movement(socket, data, channel_tx).await;
-            // ping
-            // let num = u16::from_le_bytes(data[1..=2].try_into().unwrap());
-            // prinln!("the message is an {num}");
         },
         _ => {}
     }

@@ -33,6 +33,8 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     let socket_global_send_instance = shareable_socket.clone();
     let socket_local_instance = shareable_socket.clone();
 
+    let mut sequence_count = 0;
+
     // messages from the server to the client, like the global state of the world.
     tokio::spawn(async move {
         let mut external_rx = channel_rx;
@@ -44,7 +46,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Ok(_) = external_rx_future  =>{
-                    println!("sending global state to client");
+                    // println!("sending global state to client");
                     let data = *external_rx.borrow();
                     // just send everything to the client.
                     let _len = socket_global_send_instance.send(&data).await.unwrap();
@@ -66,7 +68,9 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
             tokio::select! {
                 result = socket_receive => {
                     if let Ok(size) = result {
-                        println!("Child: {:?} bytes received on child process for {}", size, from_address);
+                        // println!("seq count {:?}", sequence_count);
+                        sequence_count = sequence_count + 1;
+                        // println!("Child: {:?} bytes received on child process for {}", size, from_address);
                         packet_router::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
                     }
                 }
