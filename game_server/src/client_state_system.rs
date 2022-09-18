@@ -14,6 +14,8 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
 
+    let mut seq = 0;
+
     //task that will handle receiving and updating the state.
     tokio::spawn(async move {
 
@@ -52,7 +54,8 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
                 action : message.action
             };
 
-            // println!("player pos {:?}", message.position);
+            println!("player {} pos {:?}",seq, message.position);
+            seq = seq + 1;
 
             let old = data.get(&message.player_id);
             match old {
