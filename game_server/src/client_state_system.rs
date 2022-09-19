@@ -1,4 +1,4 @@
-use std::{sync::Arc, borrow::Borrow, iter::OnceWith};
+use std::{sync::Arc, borrow::Borrow, iter::OnceWith, f32::MAX};
 
 use crate::{client_handler::ClientAction, player_state::PlayerState, packet_router};
 use tokio::sync::Mutex;
@@ -54,7 +54,7 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
                 action : message.action
             };
 
-            println!("player {} pos {:?}",seq, message.position);
+            // println!("player {} pos {:?}",seq, message.position);
             seq = seq + 1;
 
             let old = data.get(&message.player_id);
@@ -73,9 +73,10 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
     tokio::spawn(async move {
         let mut buffer = [0u8; 508];
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+            // assuming 30 fps.
+            tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
 
-            let data = processor_lock.lock().await;
+            let mut data = processor_lock.lock().await;
             if data.len() <= 0 {
                 continue;
             }
@@ -90,8 +91,11 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
             let mut stored_bytes:u32 = 0;
             let mut stored_states:u8 = 0;
 
+            let mut max_seq = 0;
+
             for item in data.iter()
             {
+                max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
                 let player_id_bytes = item.1.to_bytes(); // 36 bytes
                 let next = start + size;
                 buffer[start..next].copy_from_slice(&player_id_bytes);
@@ -100,10 +104,12 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
                 stored_bytes = stored_bytes + 36;
                 stored_states = stored_states + 1;
 
-                if stored_bytes + 36 > 500
+                if stored_bytes + 36 > 100
                 {
                     buffer[1] = stored_states;
                     players.send(buffer).unwrap();
+
+                    // println!("send intermediate package with {} states ", stored_states);
 
                     start = 2;
                     stored_states = 0;
@@ -113,9 +119,15 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
 
             if stored_states > 0
             {
+                buffer[1] = stored_states;
                 players.send(buffer).unwrap();
+                // println!("send final package with {} states ", stored_states);
             }
 
+            if max_seq > 500
+            {
+                data.retain(|_, v| v.sequence_number > (max_seq - 500));
+            }
         }
     });
 
