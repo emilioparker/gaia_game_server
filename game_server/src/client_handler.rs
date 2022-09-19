@@ -49,7 +49,13 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     // println!("sending global state to client");
                     let data = *external_rx.borrow();
                     // just send everything to the client.
-                    let _len = socket_global_send_instance.send(&data).await.unwrap();
+                    let len = socket_global_send_instance.send(&data).await;
+                    if let Ok(_) = len {
+
+                    }
+                    else {
+                        println!("send error");
+                    }
                 }
             }
         }
