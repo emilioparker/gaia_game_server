@@ -3,8 +3,7 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::client_handler::ClientAction;
-use crate::{ping_protocol, movement_protocol};
+use crate::{ping_protocol, movement_protocol, player_action::ClientAction};
 
 
 pub const PING: u8 = 1;

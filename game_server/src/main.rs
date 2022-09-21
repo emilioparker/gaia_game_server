@@ -1,17 +1,5 @@
 use std::collections::HashSet;
-
-use client_handler::ClientAction;
-
-mod packet_router;
-mod utils;
-mod client_handler;
-mod ping_protocol;
-mod movement_protocol;
-mod client_state_system;
-mod player_state;
-
-
-
+use game_server::{player_action::ClientAction, client_state_system, utils, client_handler};
 
 // #[tokio::main(worker_threads = 1)]
 #[tokio::main]
@@ -19,7 +7,7 @@ async fn main() {
     
     let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
-    let initial_value = [0u8; 508];
+    let initial_value =vec![];
     let (main_data_tx, childs_rx) = tokio::sync::watch::channel(initial_value);
 
     let (client_action_tx, client_action_rx ) = tokio::sync::mpsc::channel::<ClientAction>(1000);

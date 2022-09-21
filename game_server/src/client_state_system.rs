@@ -1,12 +1,12 @@
 use std::{sync::Arc, borrow::Borrow, iter::OnceWith, f32::MAX};
 
-use crate::{client_handler::ClientAction, player_state::PlayerState, packet_router};
+use crate::{player_state::PlayerState, packet_router, player_action::ClientAction};
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 
 
 
-pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAction>, players : tokio::sync::watch::Sender<[u8;508]>)
+pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAction>, players : tokio::sync::watch::Sender<Vec<PlayerState>>)
 {
     let mut all_players = HashMap::<u64,PlayerState>::new();
     let mut data_mutex = Arc::new(Mutex::new(all_players));
@@ -72,6 +72,7 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
 
     tokio::spawn(async move {
         let mut buffer = [0u8; 508];
+        let mut players_summary = Vec::new();
         loop {
             // assuming 30 fps.
             tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
@@ -80,49 +81,56 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
             if data.len() <= 0 {
                 continue;
             }
-            // println!("sending global state {}", data.len());
+            // println!("sendng global state {}", data.len());
 
-            buffer[0] = packet_router::GLOBAL_STATE;
-            buffer[1] = data.len() as u8;
+            // buffer[0] = packet_router::GLOBAL_STATE;
+            // buffer[1] = data.len() as u8;
 
-            let size: usize = 36;
-            let mut start: usize = 2;
+            // let size: usize = 36;
+            // let mut start: usize = 2;
 
-            let mut stored_bytes:u32 = 0;
-            let mut stored_states:u8 = 0;
+            // let mut stored_bytes:u32 = 0;
+            // let mut stored_states:u8 = 0;
 
             let mut max_seq = 0;
+            // println!("clients {}", data.len() );
 
             for item in data.iter()
             {
+                let cloned_data = item.1.to_owned();
+                players_summary.push(cloned_data);
                 max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
-                let player_id_bytes = item.1.to_bytes(); // 36 bytes
-                let next = start + size;
-                buffer[start..next].copy_from_slice(&player_id_bytes);
-                start = next;
+                // let player_state_bytes = item.1.to_bytes(); // 36 bytes
+                // let next = start + size;
+                // buffer[start..next].copy_from_slice(&player_state_bytes);
+                // start = next;
 
-                stored_bytes = stored_bytes + 36;
-                stored_states = stored_states + 1;
+                // stored_bytes = stored_bytes + 36;
+                // stored_states = stored_states + 1;
 
-                if stored_bytes + 36 > 100
-                {
-                    buffer[1] = stored_states;
-                    players.send(buffer).unwrap();
+                // if stored_bytes + 36 > 100
+                // {
+                //     buffer[1] = stored_states;
+                //     players.send(buffer).unwrap();
 
-                    // println!("send intermediate package with {} states ", stored_states);
+                //     println!("send intermediate package with {} states ", stored_states);
 
-                    start = 2;
-                    stored_states = 0;
-                    stored_bytes = 0;
-                }
+                //     start = 2;
+                //     stored_states = 0;
+                //     stored_bytes = 0;
+                // }
             }
 
-            if stored_states > 0
-            {
-                buffer[1] = stored_states;
-                players.send(buffer).unwrap();
-                // println!("send final package with {} states ", stored_states);
-            }
+            // if stored_states > 0
+            // {
+            //     buffer[1] = stored_states;
+            //     players.send(buffer).unwrap();
+            //     println!("send final package with {} states ", stored_states);
+            // }
+
+            // buffer[1] = stored_states;
+            players.send(players_summary.clone()).unwrap();
+            players_summary.clear();
 
             if max_seq > 500
             {

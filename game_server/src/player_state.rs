@@ -1,6 +1,7 @@
 
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct PlayerState {
     pub sequence_number: u64,
     pub player_id: u64,
