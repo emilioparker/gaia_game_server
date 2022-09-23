@@ -6,8 +6,10 @@ use std::collections::HashMap;
 
 
 
-pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAction>, players : tokio::sync::watch::Sender<Vec<PlayerState>>)
-{
+pub fn process_player_action(
+    mut receiver : tokio::sync::mpsc::Receiver<ClientAction>,
+    players : Arc<Mutex<HashMap<std::net::SocketAddr,tokio::sync::mpsc::Sender<Vec<PlayerState>>>>>){
+
     let mut all_players = HashMap::<u64,PlayerState>::new();
     let mut data_mutex = Arc::new(Mutex::new(all_players));
 
@@ -81,55 +83,23 @@ pub fn process_player_action(mut receiver : tokio::sync::mpsc::Receiver<ClientAc
             if data.len() <= 0 {
                 continue;
             }
-            // println!("sendng global state {}", data.len());
-
-            // buffer[0] = packet_router::GLOBAL_STATE;
-            // buffer[1] = data.len() as u8;
-
-            // let size: usize = 36;
-            // let mut start: usize = 2;
-
-            // let mut stored_bytes:u32 = 0;
-            // let mut stored_states:u8 = 0;
 
             let mut max_seq = 0;
-            // println!("clients {}", data.len() );
 
             for item in data.iter()
             {
                 let cloned_data = item.1.to_owned();
                 players_summary.push(cloned_data);
                 max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
-                // let player_state_bytes = item.1.to_bytes(); // 36 bytes
-                // let next = start + size;
-                // buffer[start..next].copy_from_slice(&player_state_bytes);
-                // start = next;
+            }
+            // we should easily get this lock, since only new clients would trigger a lock on the other side.
+            let clients_data = players.lock().await;
 
-                // stored_bytes = stored_bytes + 36;
-                // stored_states = stored_states + 1;
-
-                // if stored_bytes + 36 > 100
-                // {
-                //     buffer[1] = stored_states;
-                //     players.send(buffer).unwrap();
-
-                //     println!("send intermediate package with {} states ", stored_states);
-
-                //     start = 2;
-                //     stored_states = 0;
-                //     stored_bytes = 0;
-                // }
+            for client in clients_data.iter()
+            {
+                client.1.send(players_summary.clone()).await.unwrap();
             }
 
-            // if stored_states > 0
-            // {
-            //     buffer[1] = stored_states;
-            //     players.send(buffer).unwrap();
-            //     println!("send final package with {} states ", stored_states);
-            // }
-
-            // buffer[1] = stored_states;
-            players.send(players_summary.clone()).unwrap();
             players_summary.clear();
 
             if max_seq > 500

@@ -16,7 +16,7 @@ use crate::{utils, packet_router};
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    channel_rx : watch::Receiver<Vec<PlayerState>>,
+    mut channel_rx : mpsc::Receiver<Vec<PlayerState>>,
     channel_action_tx : mpsc::Sender<ClientAction>,
     initial_data : [u8; 508])
 {
@@ -33,17 +33,18 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 
     // messages from the server to the client, like the global state of the world.
     tokio::spawn(async move {
-        let mut external_rx = channel_rx;
+        // let mut external_rx = channel_rx;
+            // let message = receiver.recv().await.unwrap();
         'receive_loop : loop {
-            let external_rx_future = external_rx.changed();
+            // let external_rx_future = external_rx.changed();
             tokio::select! {
                 _ = kill_rx.recv() => {
                     println!("killed read task");
                     break 'receive_loop;
                 }
-                Ok(_) = external_rx_future  =>{
+                Some(data) = channel_rx.recv()  =>{
                     // println!("sending global state to client");
-                    let data = external_rx.borrow().clone();
+                    // let data = external_rx.borrow().clone();
 
                     // let real_data = data
                     // just send everything to the client.
