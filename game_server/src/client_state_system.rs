@@ -1,17 +1,17 @@
-use std::{sync::Arc, borrow::Borrow, iter::OnceWith, f32::MAX};
+use std::{sync::Arc, borrow::Borrow};
 
-use crate::{player_state::PlayerState, packet_router, player_action::ClientAction};
+use crate::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 
 
 
 pub fn process_player_action(
-    mut receiver : tokio::sync::mpsc::Receiver<ClientAction>,
-    players : Arc<Mutex<HashMap<std::net::SocketAddr,tokio::sync::mpsc::Sender<Vec<PlayerState>>>>>){
+    mut receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
+    players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>){
 
-    let mut all_players = HashMap::<u64,PlayerState>::new();
-    let mut data_mutex = Arc::new(Mutex::new(all_players));
+    let all_players = HashMap::<u64,PlayerState>::new();
+    let data_mutex = Arc::new(Mutex::new(all_players));
 
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
@@ -52,7 +52,7 @@ pub fn process_player_action(
                 sequence_number,
                 player_id : message.player_id,
                 position : message.position,
-                direction : message.direction,
+                second_position : message.direction,
                 action : message.action
             };
 
@@ -61,7 +61,7 @@ pub fn process_player_action(
 
             let old = data.get(&message.player_id);
             match old {
-                Some(previous_record) => {
+                Some(_previous_record) => {
                     data.insert(message.player_id, new_client_state);
                 }
                 _ => {
@@ -73,7 +73,7 @@ pub fn process_player_action(
 
 
     tokio::spawn(async move {
-        let mut buffer = [0u8; 508];
+        // let buffer = [0u8; 508];
         let mut players_summary = Vec::new();
         loop {
             // assuming 30 fps.
@@ -93,12 +93,19 @@ pub fn process_player_action(
                 max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
             }
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
-            let clients_data = players.lock().await;
+            let mut clients_data = players.lock().await;
 
-            for client in clients_data.iter()
+            for client in clients_data.iter_mut()
             {
-                client.1.send(players_summary.clone()).await.unwrap();
+                let filtered_summary = players_summary.iter().filter(|p| {
+                    p.sequence_number > client.1.sequence_number
+                })
+                .map(|p| p.clone())
+                .collect();
+                client.1.tx.send(filtered_summary).await.unwrap();
+                client.1.sequence_number = max_seq;
             }
+
 
             players_summary.clear();
 

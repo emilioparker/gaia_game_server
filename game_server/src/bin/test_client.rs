@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use game_server::player_action::ClientAction;
+use game_server::player_action::PlayerAction;
 use tokio::net::UdpSocket;
 
 
@@ -44,7 +44,7 @@ async fn spawn_test_client(client_id : u64) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
-            let client_action = ClientAction{
+            let client_action = PlayerAction{
                 player_id:client_id,
                 position:[10.1,1.3,45.0],
                 direction:[10.1,1.3,45.0],
@@ -64,7 +64,7 @@ async fn spawn_test_client(client_id : u64) {
     tokio::spawn(async move {
         loop {
             let mut data = vec![0u8; 508];
-            let len = rec_socket.recv(&mut data).await.unwrap();
+            let _len = rec_socket.recv(&mut data).await.unwrap();
             // println!("got some data from server {}", len);
         }
     });

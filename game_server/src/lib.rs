@@ -6,3 +6,4 @@ pub mod movement_protocol;
 pub mod client_state_system;
 pub mod player_state;
 pub mod player_action;
+pub mod player_entity;

@@ -1,14 +1,14 @@
 
 
 #[derive(Debug)]
-pub struct ClientAction {
+pub struct PlayerAction {
     pub player_id: u64,
     pub position: [f32;3],
     pub direction: [f32;3],
     pub action:u32,
 }
 
-impl ClientAction {
+impl PlayerAction {
     pub fn to_bytes(&self) -> [u8;36] {
         let mut buffer = [0u8; 36];
 
@@ -30,6 +30,8 @@ impl ClientAction {
     }
 
     pub fn from_bytes(data: &[u8;508]) -> Self {
+
+        // we are ignoring the first byte because of the protocol
         let mut start = 1;
         let mut end = start + 8;
 
@@ -49,7 +51,7 @@ impl ClientAction {
 
         let action = u32::from_le_bytes(data[start..(start + 4)].try_into().unwrap());
 
-        let client_action = ClientAction {
+        let client_action = PlayerAction {
             player_id,
             position,
             direction,

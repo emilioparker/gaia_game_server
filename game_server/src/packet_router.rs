@@ -3,7 +3,7 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::{ping_protocol, movement_protocol, player_action::ClientAction};
+use crate::{ping_protocol, movement_protocol, player_action::PlayerAction};
 
 
 pub const PING: u8 = 1;
@@ -14,7 +14,7 @@ pub const GLOBAL_STATE: u8 = 3;
 pub async fn route_packet(
     socket: &UdpSocket,
     data : &[u8; 508],
-    channel_tx : &Sender<ClientAction>){
+    channel_tx : &Sender<PlayerAction>){
 
     match data.get(0) {
         Some(protocol) if *protocol == PING => {

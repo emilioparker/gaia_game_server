@@ -5,10 +5,8 @@ use std::sync::Arc;
 use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::mpsc;
-use tokio::sync::watch;
 
-use crate::player_action::ClientAction;
-use crate::player_state;
+use crate::player_action::PlayerAction;
 use crate::player_state::PlayerState;
 use crate::{utils, packet_router};
 
@@ -17,7 +15,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     mut channel_rx : mpsc::Receiver<Vec<PlayerState>>,
-    channel_action_tx : mpsc::Sender<ClientAction>,
+    channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
 {
     let (kill_tx, mut kill_rx) = mpsc::channel::<u8>(2);
@@ -43,12 +41,9 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
-                    // println!("sending global state to client");
-                    // let data = external_rx.borrow().clone();
-
-                    // let real_data = data
-                    // just send everything to the client.
-
+                    // here we have a vec of player state. should we filter before getting it here. Or should we handle the view of the players.
+                    // I think we shouldn't receive old data, just new state.
+                    // but it is easier to handle it here.
 
                     let mut buffer = [0u8; 508];
                     buffer[0] = packet_router::GLOBAL_STATE;
@@ -70,7 +65,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                         stored_bytes = stored_bytes + 36;
                         stored_states = stored_states + 1;
 
-                        if stored_bytes + 36 > 100
+                        if stored_bytes + 36 > 500
                         {
                             buffer[1] = stored_states;
 
@@ -122,7 +117,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                 result = socket_receive => {
 
                     match result{
-                        Ok(size) => {
+                        Ok(_size) => {
                             sequence_count = sequence_count + 1;
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
                             packet_router::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
