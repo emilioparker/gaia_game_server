@@ -3,6 +3,7 @@
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct PlayerState {
+    pub current_time: u64,
     pub sequence_number: u64,
     pub player_id: u64,
     pub position: [f32;3],

@@ -1,4 +1,4 @@
-use std::{sync::Arc, borrow::Borrow};
+use std::{sync::Arc, borrow::Borrow, time::SystemTime};
 
 use crate::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
 use tokio::sync::Mutex;
@@ -25,6 +25,15 @@ pub fn process_player_action(
         loop {
 
             let message = receiver.recv().await.unwrap();
+
+            let mut current_time = 0;
+            let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+            if let Ok(elapsed) = result {
+                current_time = elapsed.as_secs();
+            }
+
+    // Ok(n) => println!("1970-01-01 00:00:00 UTC was {} seconds ago!", n.as_secs()),
+    // Err(_) => panic!("SystemTime before UNIX EPOCH!"),
             // println!("player action received {:?}", message);
 
             sequence_number = sequence_number + 1;
@@ -49,6 +58,7 @@ pub fn process_player_action(
             // here we have access to the players data;
 
             let new_client_state = PlayerState{
+                current_time,
                 sequence_number,
                 player_id : message.player_id,
                 position : message.position,
@@ -108,12 +118,11 @@ pub fn process_player_action(
 
             players_summary.clear();
 
-            if max_seq > 500
-            {
-                data.retain(|_, v| v.sequence_number > (max_seq - 500));
+            let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+            if let Ok(elapsed) = result {
+                let current_time = elapsed.as_secs();
+                data.retain(|_, v| (current_time - v.current_time) < 20);
             }
         }
     });
-
-
 }
