@@ -73,7 +73,6 @@ pub fn process_player_action(
 
 
     tokio::spawn(async move {
-        // let buffer = [0u8; 508];
         let mut players_summary = Vec::new();
         loop {
             // assuming 30 fps.

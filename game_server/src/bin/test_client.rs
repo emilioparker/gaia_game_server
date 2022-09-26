@@ -6,8 +6,6 @@ use tokio::net::UdpSocket;
 
 #[tokio::main]
 async fn main() {
-    
-
     for i in 0..100
     {
         spawn_test_client(i as u64).await;
@@ -21,8 +19,8 @@ async fn main() {
 
 async fn spawn_test_client(client_id : u64) {
 
-    // let remote_addr: std::net::SocketAddr = "3.141.30.82:11004".parse().unwrap();
-    let remote_addr: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
+    let remote_addr: std::net::SocketAddr = "3.141.30.82:11004".parse().unwrap();
+    // let remote_addr: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
 
     let local_addr: std::net::SocketAddr = if remote_addr.is_ipv4() {
             "0.0.0.0:0"
