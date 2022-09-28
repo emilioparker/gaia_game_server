@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use game_server::player_action::PlayerAction;
+use game_server::player_action::{PlayerAction, PlayerActivity};
 use tokio::net::UdpSocket;
 
 
@@ -42,12 +42,14 @@ async fn spawn_test_client(client_id : u64) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
-            let client_action = PlayerAction{
+            let client_activity = PlayerActivity { 
                 player_id:client_id,
                 position:[10.1,1.3,45.0],
                 direction:[10.1,1.3,45.0],
                 action:2
             };
+            let client_action = PlayerAction::Activity(client_activity);
+
             let bytes = client_action.to_bytes();
             let mut buffer = [0u8; 37];
             buffer[0] = 2;

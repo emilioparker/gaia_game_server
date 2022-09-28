@@ -107,7 +107,8 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     tokio::spawn(async move {
 
         //handle the first package
-        packet_router::route_packet(&socket_local_instance, &initial_data, &channel_action_tx).await;
+        // I think the first package doesn't matter.
+        // packet_router::route_packet(&socket_local_instance, &initial_data, &channel_action_tx).await;
 
         let mut child_buff = [0u8; 508];
         'main_loop : loop {

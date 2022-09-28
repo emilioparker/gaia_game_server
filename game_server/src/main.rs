@@ -17,7 +17,7 @@ async fn main() {
     // this function will process all user actions and send to all players the global state
     // this looks inocent but will do a lot of work.
     // ---------------------------------------------------
-    client_state_system::process_player_action(client_action_rx, process_lock);
+    client_state_system::process_player_action(client_action_rx,  process_lock);
     // ---------------------------------------------------
 
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();

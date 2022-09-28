@@ -1,20 +1,26 @@
 use std::{sync::Arc, borrow::Borrow, time::SystemTime};
 
-use crate::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
-use tokio::sync::Mutex;
+use crate::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity, tetrahedron_id::TetrahedronId};
+use tokio::{sync::Mutex, select};
 use std::collections::HashMap;
 
 
 
 pub fn process_player_action(
-    mut receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
+    mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
     players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>){
 
+    //players
     let all_players = HashMap::<u64,PlayerState>::new();
     let data_mutex = Arc::new(Mutex::new(all_players));
-
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
+
+    // tiles
+    let all_tiles = HashMap::<TetrahedronId,u32>::new();
+    let tiles_mutex = Arc::new(Mutex::new(all_tiles));
+    let tiles_processor_lock = tiles_mutex.clone();
+    let tiles_agregator_lock = tiles_mutex.clone();
 
     let mut seq = 0;
 
@@ -23,8 +29,7 @@ pub fn process_player_action(
 
         let mut sequence_number:u64 = 101;
         loop {
-
-            let message = receiver.recv().await.unwrap();
+            let message = action_receiver.recv().await.unwrap();
 
             let mut current_time = 0;
             let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -32,52 +37,43 @@ pub fn process_player_action(
                 current_time = elapsed.as_secs();
             }
 
-    // Ok(n) => println!("1970-01-01 00:00:00 UTC was {} seconds ago!", n.as_secs()),
-    // Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-            // println!("player action received {:?}", message);
 
             sequence_number = sequence_number + 1;
-            // I think this should be the entire state of the client, is it moving ? is it choppoing wood, is it attacking?, etc.
-            // and then I just store the current state and if it doesn't change, no problem. If it changes(as it should) we update the state and send again.
-            // we can't assume someone receive the message, so we send everything continously.
-            
-            // we could filter what the client gets based on some version number that the client sends to tell us how up to date it is.
-            // we should create one batch of data for everyone, but probably we can make a group of packages based on how old the data is.
-            // and then we send the packages based on that version number.
-            //packages will have ranges of version.
-            // each time we get an action we update the number version++ and give it to the stored data.
-            // this could be a simple queue that we can crunch. And we should delete old data if new data is available.
-            // so it should be a dictionary.
-            // we should try to send new data first and we go back in time removing or ignoring old data. while we recreate a new queue with cleaned data.
-            // all that process when making the consolidation.
-            
-            // but since we only send the consolidated state to each client, each client has to filter before sending.
 
             let mut data = agregator_lock.lock().await;
             
             // here we have access to the players data;
+            match message 
+            {
+                PlayerAction::Activity(activity) =>
+                {
+                    let new_client_state = PlayerState{
+                        current_time,
+                        sequence_number,
+                        player_id : activity.player_id,
+                        position : activity.position,
+                        second_position : activity.direction,
+                        action : activity.action
+                    };
 
-            let new_client_state = PlayerState{
-                current_time,
-                sequence_number,
-                player_id : message.player_id,
-                position : message.position,
-                second_position : message.direction,
-                action : message.action
-            };
+                    // println!("player {} pos {:?}",seq, message.position);
+                    seq = seq + 1;
 
-            // println!("player {} pos {:?}",seq, message.position);
-            seq = seq + 1;
+                    let old = data.get(&activity.player_id);
+                    match old {
+                        Some(_previous_record) => {
+                            data.insert(activity.player_id, new_client_state);
+                        }
+                        _ => {
+                            data.insert(activity.player_id, new_client_state);
+                        }
+                    }
+                },
+                PlayerAction::Interaction(_) => {
 
-            let old = data.get(&message.player_id);
-            match old {
-                Some(_previous_record) => {
-                    data.insert(message.player_id, new_client_state);
-                }
-                _ => {
-                    data.insert(message.player_id, new_client_state);
                 }
             }
+
         }
     });
 
