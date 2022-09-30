@@ -1,11 +1,6 @@
-pub mod packet_router;
-pub mod utils;
-pub mod client_handler;
-pub mod ping_protocol;
-pub mod movement_protocol;
+pub mod protocols;
 pub mod client_state_system;
-pub mod player_state;
-pub mod player_action;
-pub mod player_entity;
-pub mod interaction_protocol;
-pub mod tetrahedron_id;
+pub mod player;
+pub mod map;
+pub mod web_service;
+pub mod real_time_service;

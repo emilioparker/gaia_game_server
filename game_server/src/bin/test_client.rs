@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use game_server::player_action::{PlayerAction, PlayerActivity};
+use game_server::player::player_action::{PlayerAction, PlayerActivity};
 use tokio::net::UdpSocket;
 
 

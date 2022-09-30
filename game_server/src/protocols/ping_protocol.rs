@@ -1,6 +1,6 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use crate::player_action::PlayerAction;
+use crate::player::player_action::PlayerAction;
 
 pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &Sender<PlayerAction>)
 {

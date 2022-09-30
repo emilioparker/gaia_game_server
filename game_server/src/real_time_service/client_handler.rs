@@ -6,9 +6,9 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::mpsc;
 
-use crate::player_action::PlayerAction;
-use crate::player_state::PlayerState;
-use crate::{utils, packet_router};
+use crate::player::player_action::PlayerAction;
+use crate::player::player_state::PlayerState;
+use crate::protocols;
 
 
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
@@ -20,7 +20,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 {
     let (kill_tx, mut kill_rx) = mpsc::channel::<u8>(2);
 
-    let child_socket : tokio::net::UdpSocket = utils::create_reusable_udp_socket(address);
+    let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
     child_socket.connect(from_address).await.unwrap();
 
     let shareable_socket = Arc::new(child_socket);
@@ -46,7 +46,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     // but it is easier to handle it here.
 
                     let mut buffer = [0u8; 508];
-                    buffer[0] = packet_router::GLOBAL_STATE;
+                    buffer[0] = protocols::Protocol::GlobalState as u8;
                     buffer[1] = data.len() as u8;
 
                     let size: usize = 36;
@@ -121,7 +121,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                         Ok(_size) => {
                             sequence_count = sequence_count + 1;
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
-                            packet_router::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
+                            protocols::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
                         }
                         Err(error) => {
                             println!("we got an error {:?}", error);

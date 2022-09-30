@@ -1,4 +1,4 @@
-use crate::player_state::PlayerState;
+use super::player_state::PlayerState;
 
 pub struct PlayerEntity {
     pub sequence_number: u64,

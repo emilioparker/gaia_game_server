@@ -1,7 +1,8 @@
 use std::{sync::Arc, borrow::Borrow, time::SystemTime};
 
-use crate::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity, tetrahedron_id::TetrahedronId};
-use tokio::{sync::Mutex, select};
+use crate::player::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
+use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
+use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
 
@@ -16,11 +17,6 @@ pub fn process_player_action(
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
 
-    // tiles
-    let all_tiles = HashMap::<TetrahedronId,u32>::new();
-    let tiles_mutex = Arc::new(Mutex::new(all_tiles));
-    let tiles_processor_lock = tiles_mutex.clone();
-    let tiles_agregator_lock = tiles_mutex.clone();
 
     let mut seq = 0;
 

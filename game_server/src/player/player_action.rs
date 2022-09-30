@@ -1,8 +1,10 @@
-use crate::tetrahedron_id::TetrahedronId;
+use crate::map::tetrahedron_id::TetrahedronId;
 
-
-pub const PLAYER_ACTIVITY_CODE: u8 = 1;
-pub const PLAYER_INTERACTION_CODE: u8 = 2; 
+pub enum Code
+{
+    PlayerActivity = 1,
+    PlayerInteraction = 2,
+}
 
 #[derive(Debug)]
 pub enum PlayerAction {
@@ -11,10 +13,19 @@ pub enum PlayerAction {
 }
 
 #[derive(Debug)]
+pub enum InteractionTypes
+{
+    Create = 1,
+    Damage = 2
+}
+
+#[derive(Debug)]
 pub struct PlayerEntityInteraction {
     pub player_id: u64,
     pub tile_id: TetrahedronId,
-    pub damage:u16,
+    pub action: InteractionTypes, //daniar, crear, heal
+    pub prop: u16,
+    pub value:u16,
 }
 
 #[derive(Debug)]
@@ -40,7 +51,7 @@ impl PlayerAction {
                 start = end;
                 end = start + 1;
 
-                buffer[start] = PLAYER_ACTIVITY_CODE;
+                buffer[start] = Code::PlayerActivity as u8;
                 start = end;
 
                 float_into_buffer(&mut buffer, data.position[0], &mut start, end);
@@ -72,7 +83,7 @@ impl PlayerAction {
                 start = end;
                 end = start + 1;
 
-                buffer[start] = PLAYER_INTERACTION_CODE;
+                buffer[start] = Code::PlayerInteraction as u8;
                 start = end;
 
                 end = start + 6;
@@ -82,7 +93,7 @@ impl PlayerAction {
                 start = end;
 
                 end = start + 2;
-                let damage_bytes = u16::to_le_bytes(data.damage); // 2 bytes
+                let damage_bytes = u16::to_le_bytes(data.value); // 2 bytes
                 buffer[start..end].copy_from_slice(&damage_bytes);
 
                 buffer
@@ -109,7 +120,7 @@ impl PlayerAction {
         let action_code = data[start];
         start = end;
 
-        if action_code == PLAYER_ACTIVITY_CODE
+        if action_code == Code::PlayerActivity as u8
         {
             // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
             end = start + 4;
@@ -155,7 +166,9 @@ impl PlayerAction {
             let client_action = PlayerEntityInteraction {
                 player_id,
                 tile_id,
-                damage
+                action : InteractionTypes::Create,
+                prop : 0,
+                value:damage
             };
 
             PlayerAction::Interaction(client_action)

@@ -1,7 +1,7 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::player_action::PlayerAction;
+use crate::player::player_action::PlayerAction;
 
 
 pub async fn process_movement(_socket:&UdpSocket, data : &[u8; 508], channel_tx : &Sender<PlayerAction>)
