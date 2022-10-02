@@ -14,11 +14,12 @@ async fn main() {
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
     let all_tiles = HashMap::<TetrahedronId,MapEntity>::new();
     let tiles_mutex = Arc::new(Mutex::new(all_tiles));
-    let tiles_processor_lock = tiles_mutex.clone();
-    let tiles_agregator_lock = tiles_mutex.clone();
+    let realtime_tiles_service_lock = tiles_mutex.clone();
+    let webservice_tiles_lock = tiles_mutex.clone();
 
-    real_time_service::start_server();
-    web_service::start_server();
+    let (web_service_tx, real_time_service_rx ) = tokio::sync::mpsc::channel::<TetrahedronId>(20);
+    real_time_service::start_server(realtime_tiles_service_lock, real_time_service_rx);
+    web_service::start_server(webservice_tiles_lock, web_service_tx);
 
     loop{
         tokio::task::yield_now().await;

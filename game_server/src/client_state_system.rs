@@ -20,7 +20,7 @@ pub fn process_player_action(
 
     let mut seq = 0;
 
-    //task that will handle receiving and updating the state.
+    //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
 
         let mut sequence_number:u64 = 101;
@@ -74,6 +74,7 @@ pub fn process_player_action(
     });
 
 
+    // task that will perdiodically send dta to all clients
     tokio::spawn(async move {
         let mut players_summary = Vec::new();
         loop {
@@ -96,6 +97,8 @@ pub fn process_player_action(
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
             let mut clients_data = players.lock().await;
 
+            // Sending summary to all clients.
+
             for client in clients_data.iter_mut()
             {
                 let filtered_summary = players_summary.iter().filter(|p| {
@@ -103,6 +106,7 @@ pub fn process_player_action(
                 })
                 .map(|p| p.clone())
                 .collect();
+                // here we send data to the client
                 client.1.tx.send(filtered_summary).await.unwrap();
                 client.1.sequence_number = max_seq;
             }
