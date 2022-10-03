@@ -90,7 +90,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
             })
             .and_then(process_request);
     
-        warp::serve(promote).run(([127, 0, 0, 1], 3030)).await
+            warp::serve(promote).run(([127, 0, 0, 1], 3030)).await
         }
     });
 }

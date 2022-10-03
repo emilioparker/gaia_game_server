@@ -88,6 +88,7 @@ pub fn process_player_action(
         let mut sequence_number:u64 = 101;
         loop {
             let message = tile_changed_receiver.recv().await.unwrap();
+            // println!("got a tile change data {}", message.id);
 
             // let mut current_time = 0;
             // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -120,7 +121,8 @@ pub fn process_player_action(
             tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
 
             let mut data = processor_lock.lock().await;
-            if data.len() <= 0 {
+            let mut tiles_data = tiles_processor_lock.lock().await;
+            if data.len() <= 0  && tiles_data.len() <= 0{
                 continue;
             }
 
@@ -133,7 +135,6 @@ pub fn process_player_action(
                 max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
             }
 
-            let mut tiles_data = tiles_processor_lock.lock().await;
 
             let mut tiles_summary = Vec::new();
             // since I am clearing the hashmap, maybe there is a way to extract the value to avoid
@@ -159,9 +160,12 @@ pub fn process_player_action(
 
                 filtered_summary.extend(tiles_state_update.clone());
 
-                // here we send data to the client
-                client.1.tx.send(filtered_summary).await.unwrap();
-                client.1.sequence_number = max_seq;
+                if filtered_summary.len() > 0
+                {
+                    // here we send data to the client
+                    client.1.tx.send(filtered_summary).await.unwrap();
+                    client.1.sequence_number = max_seq;
+                }
             }
 
 

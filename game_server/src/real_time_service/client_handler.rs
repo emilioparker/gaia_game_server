@@ -54,6 +54,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
+                    // println!("got some data {:?}", data);
                     // here we have a vec of player state. should we filter before getting it here. Or should we handle the view of the players.
                     // I think we shouldn't receive old data, just new state.
                     // but it is easier to handle it here.
@@ -63,7 +64,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     // buffer[1] = data.len() as u8;
 
                     let player_state_size: usize = 36;
-                    let tile_state_size: usize = 36;
+                    let tile_state_size: usize = 18;
                     let mut start: usize = 1;
 
                     let mut stored_bytes:u32 = 0;
