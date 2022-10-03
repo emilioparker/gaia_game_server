@@ -6,11 +6,12 @@ use std::{collections::HashMap};
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::player::{player_action::PlayerAction, player_state::PlayerState, player_entity::PlayerEntity};
+use crate::real_time_service::client_handler::StateUpdate;
 use crate::{client_state_system, web_service};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver};
 
-pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_tx : Receiver<TetrahedronId>) {
+pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Receiver<MapEntity>) {
     tokio::spawn(async move {
         let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
@@ -29,7 +30,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
         // this function will process all user actions and send to all players the global state
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
-        client_state_system::process_player_action(client_action_rx,  process_lock);
+        client_state_system::process_player_action(client_action_rx, tile_changed_rx,  process_lock);
         // ---------------------------------------------------
 
 
@@ -62,7 +63,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
                             let tx = from_client_to_world_tx.clone();
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
-                            let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Vec<PlayerState>>(20);
+                            let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Vec<StateUpdate>>(20);
                             let player_entity = PlayerEntity{
                                 sequence_number : 0,
                                 player_id : player_id, // we need to get this data from the packet

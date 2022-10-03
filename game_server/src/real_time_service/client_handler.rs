@@ -6,15 +6,28 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::mpsc;
 
+use crate::map::map_entity::MapEntity;
 use crate::player::player_action::PlayerAction;
 use crate::player::player_state::PlayerState;
 use crate::protocols;
 
+pub enum DataType
+{
+    NoData = 0,
+    PlayerState = 1,
+    TileState = 2,
+}
+
+#[derive(Debug)]
+pub enum StateUpdate {
+    PlayerState(PlayerState),
+    TileState(MapEntity),
+}
 
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    mut channel_rx : mpsc::Receiver<Vec<PlayerState>>,
+    mut channel_rx : mpsc::Receiver<Vec<StateUpdate>>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
 {
@@ -47,27 +60,45 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 
                     let mut buffer = [0u8; 508];
                     buffer[0] = protocols::Protocol::GlobalState as u8;
-                    buffer[1] = data.len() as u8;
+                    // buffer[1] = data.len() as u8;
 
-                    let size: usize = 36;
-                    let mut start: usize = 2;
+                    let player_state_size: usize = 36;
+                    let tile_state_size: usize = 36;
+                    let mut start: usize = 1;
 
                     let mut stored_bytes:u32 = 0;
                     let mut stored_states:u8 = 0;
 
-                    for player_state in data
+                    for state_update in data
                     {
-                        let player_state_bytes = player_state.to_bytes();
-                        let next = start + size;
-                        buffer[start..next].copy_from_slice(&player_state_bytes);
-                        start = next;
+                        match state_update{
+                            StateUpdate::PlayerState(player_state) => {
+                                buffer[start] = DataType::PlayerState as u8;
+                                start += 1;
 
-                        stored_bytes = stored_bytes + 36;
-                        stored_states = stored_states + 1;
+                                let player_state_bytes = player_state.to_bytes(); //36
+                                let next = start + player_state_size;
+                                buffer[start..next].copy_from_slice(&player_state_bytes);
+                                stored_bytes = stored_bytes + 36 + 1;
+                                stored_states = stored_states + 1;
+                                start = next;
+                            },
+                            StateUpdate::TileState(tile_state) => {
+                                buffer[start] = DataType::TileState as u8;
+                                start += 1;
+
+                                let tile_state_bytes = tile_state.to_bytes(); //18
+                                let next = start + tile_state_size;
+                                buffer[start..next].copy_from_slice(&tile_state_bytes);
+                                stored_bytes = stored_bytes + 36 + 1;
+                                stored_states = stored_states + 1;
+                                start = next;
+                            },
+                        }
 
                         if stored_bytes + 36 > 500
                         {
-                            buffer[1] = stored_states;
+                            buffer[start] = DataType::NoData as u8;
 
                             let len = socket_global_send_instance.send(&buffer.clone()).await;
                             if let Ok(_) = len {
@@ -79,7 +110,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 
                             // println!("send intermediate package with {} states ", stored_states);
 
-                            start = 2;
+                            start = 1;
                             stored_states = 0;
                             stored_bytes = 0;
                         }
@@ -87,7 +118,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 
                     if stored_states > 0
                     {
-                        buffer[1] = stored_states;
+                        buffer[start] = DataType::NoData as u8;
                         let len = socket_global_send_instance.send(&buffer).await;
                         if let Ok(_) = len {
 

@@ -1,7 +1,9 @@
+use std::mem;
 use std::{sync::Arc, borrow::Borrow, time::SystemTime};
 
 use crate::player::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
+use crate::real_time_service::client_handler::StateUpdate;
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
@@ -9,6 +11,7 @@ use std::collections::HashMap;
 
 pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
+    mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapEntity>,
     players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>){
 
     //players
@@ -17,6 +20,12 @@ pub fn process_player_action(
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
 
+    //tiles
+    let modified_tiles = HashMap::<TetrahedronId,MapEntity>::new();
+    let tiles_data_mutex = Arc::new(Mutex::new(modified_tiles));
+
+    let tiles_processor_lock = tiles_data_mutex.clone();
+    let tiles_agregator_lock = tiles_data_mutex.clone();
 
     let mut seq = 0;
 
@@ -73,6 +82,35 @@ pub fn process_player_action(
         }
     });
 
+    // task that gathers world changes into a list.
+    tokio::spawn(async move {
+
+        let mut sequence_number:u64 = 101;
+        loop {
+            let message = tile_changed_receiver.recv().await.unwrap();
+
+            // let mut current_time = 0;
+            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+            // if let Ok(elapsed) = result {
+            //     current_time = elapsed.as_secs();
+            // }
+
+
+            sequence_number = sequence_number + 1;
+
+            let mut data = tiles_agregator_lock.lock().await;
+            
+            let old = data.get(&message.id);
+            match old {
+                Some(_previous_record) => {
+                    data.insert(message.id.clone(), message);
+                }
+                _ => {
+                    data.insert(message.id.clone(), message);
+                }
+            }
+        }
+    });
 
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move {
@@ -94,6 +132,18 @@ pub fn process_player_action(
                 players_summary.push(cloned_data);
                 max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
             }
+
+            let mut tiles_data = tiles_processor_lock.lock().await;
+
+            let mut tiles_summary = Vec::new();
+            // since I am clearing the hashmap, maybe there is a way to extract the value to avoid
+            for tile in tiles_data.iter()
+            {
+                tiles_summary.push(tile.1.clone());
+            }
+            tiles_data.clear();
+            let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
+
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
             let mut clients_data = players.lock().await;
 
@@ -101,11 +151,14 @@ pub fn process_player_action(
 
             for client in clients_data.iter_mut()
             {
-                let filtered_summary = players_summary.iter().filter(|p| {
+                let mut filtered_summary = players_summary.iter().filter(|p| {
                     p.sequence_number > client.1.sequence_number
                 })
-                .map(|p| p.clone())
-                .collect();
+                .map(|p| StateUpdate::PlayerState(p.clone()))
+                .collect::<Vec<StateUpdate>>();
+
+                filtered_summary.extend(tiles_state_update.clone());
+
                 // here we send data to the client
                 client.1.tx.send(filtered_summary).await.unwrap();
                 client.1.sequence_number = max_seq;

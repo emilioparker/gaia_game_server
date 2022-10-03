@@ -1,6 +1,6 @@
-use std::{fmt};
+use std::{fmt, clone};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TetrahedronId {
     pub area : u8,
     pub id : u32,

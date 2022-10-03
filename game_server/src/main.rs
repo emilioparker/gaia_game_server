@@ -17,7 +17,7 @@ async fn main() {
     let realtime_tiles_service_lock = tiles_mutex.clone();
     let webservice_tiles_lock = tiles_mutex.clone();
 
-    let (web_service_tx, real_time_service_rx ) = tokio::sync::mpsc::channel::<TetrahedronId>(20);
+    let (web_service_tx, real_time_service_rx ) = tokio::sync::mpsc::channel::<MapEntity>(20);
     real_time_service::start_server(realtime_tiles_service_lock, real_time_service_rx);
     web_service::start_server(webservice_tiles_lock, web_service_tx);
 
