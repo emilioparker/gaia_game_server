@@ -59,7 +59,7 @@ async fn process_request(data : (PlayerRequest, Sender<MapEntity>, Arc<Mutex<Has
                 id: tile_id.clone(),
                 last_update: 13,
                 health: 23,
-                prop: 2,
+                prop: data.0.prop,
             };
             tiles.insert(tile_id.clone(), tile.clone());
             let _ = sender.send(tile).await;
