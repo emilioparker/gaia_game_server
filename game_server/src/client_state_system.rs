@@ -8,7 +8,6 @@ use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
 
-
 pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
     mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapEntity>,
@@ -41,7 +40,6 @@ pub fn process_player_action(
             if let Ok(elapsed) = result {
                 current_time = elapsed.as_secs();
             }
-
 
             sequence_number = sequence_number + 1;
 
@@ -126,13 +124,11 @@ pub fn process_player_action(
                 continue;
             }
 
-            let mut max_seq = 0;
 
             for item in data.iter()
             {
                 let cloned_data = item.1.to_owned();
                 players_summary.push(cloned_data);
-                max_seq = std::cmp::max(max_seq, item.1.borrow().sequence_number);
             }
 
 
@@ -150,21 +146,24 @@ pub fn process_player_action(
 
             // Sending summary to all clients.
 
+            let mut filtered_summary = players_summary.iter()
+            // .filter(|p| {
+            //     p.sequence_number > client.1.sequence_number
+            // })
+            .map(|p| StateUpdate::PlayerState(p.clone()))
+            .collect::<Vec<StateUpdate>>();
+
+            filtered_summary.extend(tiles_state_update.clone());
+
+            // the data that will be sent to each client is not copied.
+            let arc_summary = Arc::new(filtered_summary);
+
             for client in clients_data.iter_mut()
             {
-                let mut filtered_summary = players_summary.iter().filter(|p| {
-                    p.sequence_number > client.1.sequence_number
-                })
-                .map(|p| StateUpdate::PlayerState(p.clone()))
-                .collect::<Vec<StateUpdate>>();
-
-                filtered_summary.extend(tiles_state_update.clone());
-
-                if filtered_summary.len() > 0
+                if arc_summary.len() > 0
                 {
                     // here we send data to the client
-                    client.1.tx.send(filtered_summary).await.unwrap();
-                    client.1.sequence_number = max_seq;
+                    client.1.tx.send(arc_summary.clone()).await.unwrap();
                 }
             }
 

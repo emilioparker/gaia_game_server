@@ -63,9 +63,8 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
                             let tx = from_client_to_world_tx.clone();
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
-                            let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Vec<StateUpdate>>(20);
+                            let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<StateUpdate>>>(20);
                             let player_entity = PlayerEntity{
-                                sequence_number : 0,
                                 player_id : player_id, // we need to get this data from the packet
                                 tx : server_state_tx
                             };

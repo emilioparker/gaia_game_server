@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use crate::map::map_entity::MapEntity;
 use crate::player::player_action::PlayerAction;
 use crate::player::player_state::PlayerState;
-use crate::protocols;
+use crate::{protocols, player};
 
 pub enum DataType
 {
@@ -27,7 +27,7 @@ pub enum StateUpdate {
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    mut channel_rx : mpsc::Receiver<Vec<StateUpdate>>,
+    mut channel_rx : mpsc::Receiver<Arc<Vec<StateUpdate>>>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
 {
@@ -40,7 +40,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     let socket_global_send_instance = shareable_socket.clone();
     let socket_local_instance = shareable_socket.clone();
 
-    let mut sequence_count = 0;
+    let mut max_seq = 0;
 
     // messages from the server to the client, like the global state of the world.
     tokio::spawn(async move {
@@ -70,10 +70,13 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     let mut stored_bytes:u32 = 0;
                     let mut stored_states:u8 = 0;
 
-                    for state_update in data
+
+                    // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
+                    for state_update in data.iter()
                     {
                         match state_update{
-                            StateUpdate::PlayerState(player_state) => {
+                            StateUpdate::PlayerState(player_state) if player_state.sequence_number > max_seq => {
+                                
                                 buffer[start] = DataType::PlayerState as u8;
                                 start += 1;
 
@@ -83,6 +86,8 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                                 stored_bytes = stored_bytes + 36 + 1;
                                 stored_states = stored_states + 1;
                                 start = next;
+
+                                max_seq = std::cmp::max(max_seq, player_state.sequence_number);
                             },
                             StateUpdate::TileState(tile_state) => {
                                 buffer[start] = DataType::TileState as u8;
@@ -95,6 +100,9 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                                 stored_states = stored_states + 1;
                                 start = next;
                             },
+                            _ => {
+                                // skip
+                            }
                         }
 
                         if stored_bytes + 36 > 500
@@ -151,7 +159,6 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
 
                     match result{
                         Ok(_size) => {
-                            sequence_count = sequence_count + 1;
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
                         }

@@ -85,7 +85,9 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
             // Only accept bodies smaller than 16kb...
             .and(warp::body::content_length_limit(1024 * 16))
             .and(warp::body::json())
-            .map(move |player_request|{
+            
+            .map(move |player_request : PlayerRequest|{
+                // warp::reply::json(&2u32)
                 (player_request, rx.clone(), lock.clone())
             })
             .and_then(process_request);
