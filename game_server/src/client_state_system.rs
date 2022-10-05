@@ -76,7 +76,6 @@ pub fn process_player_action(
 
                 }
             }
-
         }
     });
 
@@ -124,7 +123,6 @@ pub fn process_player_action(
                 continue;
             }
 
-
             for item in data.iter()
             {
                 let cloned_data = item.1.to_owned();
@@ -147,9 +145,6 @@ pub fn process_player_action(
             // Sending summary to all clients.
 
             let mut filtered_summary = players_summary.iter()
-            // .filter(|p| {
-            //     p.sequence_number > client.1.sequence_number
-            // })
             .map(|p| StateUpdate::PlayerState(p.clone()))
             .collect::<Vec<StateUpdate>>();
 
@@ -163,7 +158,12 @@ pub fn process_player_action(
                 if arc_summary.len() > 0
                 {
                     // here we send data to the client
-                    client.1.tx.send(arc_summary.clone()).await.unwrap();
+                    if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
+
+                    }
+                    else {
+                        println!("Error sending summary to client");
+                    }
                 }
             }
 
@@ -173,7 +173,7 @@ pub fn process_player_action(
             let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
             if let Ok(elapsed) = result {
                 let current_time = elapsed.as_secs();
-                data.retain(|_, v| (current_time - v.current_time) < 20);
+                data.retain(|_, v| (current_time - v.current_time) < 5);
             }
         }
     });
