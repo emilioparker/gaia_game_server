@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{sync::{Mutex, mpsc::{Receiver, Sender}}, time::error::Elapsed};
 use warp::Filter;
 
-use crate::{map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity}, player};
+use crate::{map::{tetrahedron_id::TetrahedronId, map_entity::{MapEntity, MapCommand, MapCommandInfo}}, player};
 
 #[derive(Deserialize, Serialize, Debug)]
 struct PlayerRequest {
@@ -22,7 +22,7 @@ struct PlayerResponse {
 }
 
 
-async fn process_request(data : (PlayerRequest, Sender<MapEntity>, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>)) -> Result<impl warp::Reply, warp::Rejection> {
+async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>)) -> Result<impl warp::Reply, warp::Rejection> {
     let tile_id = TetrahedronId::from_string(&data.0.tile_id);
     // tile_id.area = 19;
     // here we should set the data and indicate that a tile changed so other players can see the change
@@ -49,7 +49,12 @@ async fn process_request(data : (PlayerRequest, Sender<MapEntity>, Arc<Mutex<Has
 
             *tile_data = tile;
 
-            let _ = sender.send(tile_data.clone()).await;
+            let map_command = MapCommand {
+                id : tile_data.id.clone(),
+                info : MapCommandInfo::Touch()
+            };
+
+            let _ = sender.send(map_command).await;
 
 
             Ok(warp::reply::json(&player_response))
@@ -62,7 +67,13 @@ async fn process_request(data : (PlayerRequest, Sender<MapEntity>, Arc<Mutex<Has
                 prop: data.0.prop,
             };
             tiles.insert(tile_id.clone(), tile.clone());
-            let _ = sender.send(tile).await;
+
+            let map_command = MapCommand {
+                id : tile.id.clone(),
+                info : MapCommandInfo::Touch()
+            };
+
+            let _ = sender.send(map_command).await;
 
             let player_response = PlayerResponse {
                 tile_id :tile_id.to_string(),
@@ -73,7 +84,7 @@ async fn process_request(data : (PlayerRequest, Sender<MapEntity>, Arc<Mutex<Has
     }
 }
 
-pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Sender<MapEntity>) {
+pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Sender<MapCommand>) {
     tokio::spawn(async move {
 
         'receive_loop : loop {

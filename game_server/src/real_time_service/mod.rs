@@ -3,15 +3,17 @@ pub mod utils;
 
 use std::sync::Arc;
 use std::{collections::HashMap};
-use crate::map::map_entity::MapEntity;
+use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::player::{player_action::PlayerAction, player_state::PlayerState, player_entity::PlayerEntity};
 use crate::real_time_service::client_handler::StateUpdate;
 use crate::{client_state_system, web_service};
 use tokio::sync::Mutex;
-use tokio::sync::mpsc::{Receiver};
+use tokio::sync::mpsc::{Receiver, Sender};
 
-pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Receiver<MapEntity>) {
+pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
+    tile_changed_tx: Sender<MapCommand>,
+    tile_changed_rx : Receiver<MapCommand>) {
     tokio::spawn(async move {
         let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
@@ -30,7 +32,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
         // this function will process all user actions and send to all players the global state
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
-        client_state_system::process_player_action(client_action_rx, tile_changed_rx,  process_lock);
+        client_state_system::process_player_action(client_action_rx, tile_changed_rx, tiles_lock, process_lock);
         // ---------------------------------------------------
 
 
@@ -77,7 +79,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, t
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
                             // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(address, from_address, tx, client_state_rx, client_action_tx.clone(), buf_udp).await;
+                            client_handler::spawn_client_process(address, from_address, tx, client_state_rx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
                         }
                         else
                         {

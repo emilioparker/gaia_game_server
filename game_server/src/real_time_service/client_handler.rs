@@ -6,7 +6,7 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::mpsc;
 
-use crate::map::map_entity::MapEntity;
+use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_action::PlayerAction;
 use crate::player::player_state::PlayerState;
 use crate::{protocols, player};
@@ -28,6 +28,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     mut channel_rx : mpsc::Receiver<Arc<Vec<StateUpdate>>>,
+    channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
 {
@@ -160,7 +161,7 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     match result{
                         Ok(_size) => {
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
-                            protocols::route_packet(&socket_local_instance, &child_buff, &channel_action_tx).await;
+                            protocols::route_packet(&socket_local_instance, &child_buff, &channel_action_tx, &channel_map_action_tx).await;
                         }
                         Err(error) => {
                             println!("we got an error {:?}", error);

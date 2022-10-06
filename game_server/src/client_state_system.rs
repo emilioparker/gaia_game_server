@@ -1,6 +1,7 @@
 use std::mem;
 use std::{sync::Arc, borrow::Borrow, time::SystemTime};
 
+use crate::map::map_entity::{MapCommand, MapCommandInfo};
 use crate::player::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
@@ -10,7 +11,9 @@ use std::collections::HashMap;
 
 pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
-    mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapEntity>,
+    // mut tile_changed_sender : tokio::sync::mpsc::Sender<MapCommand>,
+    mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
+    tiles : Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
     players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>){
 
     //players
@@ -19,12 +22,14 @@ pub fn process_player_action(
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
 
-    //tiles
-    let modified_tiles = HashMap::<TetrahedronId,MapEntity>::new();
-    let tiles_data_mutex = Arc::new(Mutex::new(modified_tiles));
 
-    let tiles_processor_lock = tiles_data_mutex.clone();
-    let tiles_agregator_lock = tiles_data_mutex.clone();
+    //tile commands, this means that many players might hit the same tile, but only one every 30 ms will apply, this is really cool
+    //should I add luck to improve the probability of someones actions to hit the tile ?
+    let tile_commands = HashMap::<TetrahedronId,MapCommand>::new();
+    let tile_commands_mutex = Arc::new(Mutex::new(tile_commands));
+
+    let tile_commands_processor_lock = tile_commands_mutex.clone();
+    let tile_commands_agregator_lock = tile_commands_mutex.clone();
 
     let mut seq = 0;
 
@@ -45,35 +50,25 @@ pub fn process_player_action(
 
             let mut data = agregator_lock.lock().await;
             
-            // here we have access to the players data;
-            match message 
-            {
-                PlayerAction::Activity(activity) =>
-                {
-                    let new_client_state = PlayerState{
-                        current_time,
-                        sequence_number,
-                        player_id : activity.player_id,
-                        position : activity.position,
-                        second_position : activity.direction,
-                        action : activity.action
-                    };
+            let new_client_state = PlayerState{
+                current_time,
+                sequence_number,
+                player_id : message.player_id,
+                position : message.position,
+                second_position : message.direction,
+                action : message.action
+            };
 
-                    // println!("player {} pos {:?}",seq, message.position);
-                    seq = seq + 1;
+            // println!("player {} pos {:?}",seq, message.position);
+            seq = seq + 1;
 
-                    let old = data.get(&activity.player_id);
-                    match old {
-                        Some(_previous_record) => {
-                            data.insert(activity.player_id, new_client_state);
-                        }
-                        _ => {
-                            data.insert(activity.player_id, new_client_state);
-                        }
-                    }
-                },
-                PlayerAction::Interaction(_) => {
-
+            let old = data.get(&message.player_id);
+            match old {
+                Some(_previous_record) => {
+                    data.insert(message.player_id, new_client_state);
+                }
+                _ => {
+                    data.insert(message.player_id, new_client_state);
                 }
             }
         }
@@ -96,11 +91,12 @@ pub fn process_player_action(
 
             sequence_number = sequence_number + 1;
 
-            let mut data = tiles_agregator_lock.lock().await;
+            let mut data = tile_commands_agregator_lock.lock().await;
             
             let old = data.get(&message.id);
             match old {
                 Some(_previous_record) => {
+                    // this command will be lost for this tile, check if it is important ??
                     data.insert(message.id.clone(), message);
                 }
                 _ => {
@@ -118,8 +114,8 @@ pub fn process_player_action(
             tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
 
             let mut data = processor_lock.lock().await;
-            let mut tiles_data = tiles_processor_lock.lock().await;
-            if data.len() <= 0  && tiles_data.len() <= 0{
+            let mut tile_commands_data = tile_commands_processor_lock.lock().await;
+            if data.len() <= 0  && tile_commands_data.len() <= 0{
                 continue;
             }
 
@@ -129,14 +125,32 @@ pub fn process_player_action(
                 players_summary.push(cloned_data);
             }
 
+            let mut tiles = tiles.lock().await;
 
-            let mut tiles_summary = Vec::new();
-            // since I am clearing the hashmap, maybe there is a way to extract the value to avoid
-            for tile in tiles_data.iter()
+            let mut tiles_summary : Vec<MapEntity>= Vec::new();
+
+            for tile_command in tile_commands_data.iter()
             {
-                tiles_summary.push(tile.1.clone());
+                match tiles.get_mut(tile_command.0) {
+                    Some(tile) => {
+                        let mut updated_tile = tile.clone();
+                        // in theory we do something cool here with the tile!!!!
+                        match tile_command.1.info {
+                            MapCommandInfo::Touch() => {
+                                tiles_summary.push(updated_tile);
+                            },
+                            MapCommandInfo::ChangeHealth(value) => {
+                                updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
+                                tiles_summary.push(updated_tile.clone());
+                                *tile = updated_tile;
+                            }
+                        }
+                    }
+                    _ => (),
+                }
             }
-            tiles_data.clear();
+
+            tile_commands_data.clear();
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
             // we should easily get this lock, since only new clients would trigger a lock on the other side.

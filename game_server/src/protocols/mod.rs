@@ -6,6 +6,7 @@ pub mod interaction_protocol;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
+use crate::map::map_entity::MapCommand;
 use crate::player::player_action::PlayerAction;
 
 
@@ -19,7 +20,8 @@ pub enum Protocol{
 pub async fn route_packet(
     socket: &UdpSocket,
     data : &[u8; 508],
-    channel_tx : &Sender<PlayerAction>
+    channel_tx : &Sender<PlayerAction>,
+    channel_map_tx : &Sender<MapCommand>
 ){
 
     match data.get(0) {
@@ -30,8 +32,10 @@ pub async fn route_packet(
             movement_protocol::process_movement(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Interaction as u8 => {
-            interaction_protocol::process_interaction(socket, data, channel_tx).await;
+            interaction_protocol::process_interaction(socket, data, channel_map_tx).await;
         },
-        _ => {}
+        _ => {
+            println!("unknown protocol");
+        }
     }
 }
