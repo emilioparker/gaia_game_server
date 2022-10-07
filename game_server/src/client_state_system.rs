@@ -150,6 +150,10 @@ pub fn process_player_action(
                 }
             }
 
+            // we want to free the lock as soon as possible.
+            // I am not sure if rust automatically releases de lock once there are no more references.
+            drop(tiles);
+
             tile_commands_data.clear();
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
