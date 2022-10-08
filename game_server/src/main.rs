@@ -12,6 +12,7 @@ use game_server::web_service;
 #[tokio::main]
 async fn main() {
 
+    //console_subscriber::init();
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
     let all_tiles = HashMap::<TetrahedronId,MapEntity>::new();
     let tiles_mutex = Arc::new(Mutex::new(all_tiles));

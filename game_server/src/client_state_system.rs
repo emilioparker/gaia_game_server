@@ -155,6 +155,11 @@ pub fn process_player_action(
             drop(tiles);
 
             tile_commands_data.clear();
+            data.clear();
+
+            drop(tile_commands_data);
+            drop(data);
+
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
@@ -188,11 +193,11 @@ pub fn process_player_action(
 
             players_summary.clear();
 
-            let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            if let Ok(elapsed) = result {
-                let current_time = elapsed.as_secs();
-                data.retain(|_, v| (current_time - v.current_time) < 5);
-            }
+            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+            // if let Ok(elapsed) = result {
+            //     let current_time = elapsed.as_secs();
+            //     data.retain(|_, v| (current_time - v.current_time) < 5);
+            // }
         }
     });
 }
