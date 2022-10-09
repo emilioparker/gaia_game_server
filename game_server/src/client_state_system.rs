@@ -111,7 +111,7 @@ pub fn process_player_action(
         let mut players_summary = Vec::new();
         loop {
             // assuming 30 fps.
-            tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
             let mut data = processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
