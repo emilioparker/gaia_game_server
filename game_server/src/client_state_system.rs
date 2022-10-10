@@ -33,7 +33,7 @@ pub fn process_player_action(
 
     let mut seq = 0;
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(30));
+    // let mut interval = tokio::time::interval(std::time::Duration::from_millis(30));
 
     //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
@@ -108,99 +108,99 @@ pub fn process_player_action(
         }
     });
 
-    // task that will perdiodically send dta to all clients
-    tokio::spawn(async move {
-        let mut players_summary = Vec::new();
-        loop {
-            // assuming 30 fps.
-            // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
-            interval.tick().await;
+    // // task that will perdiodically send dta to all clients
+    // tokio::spawn(async move {
+    //     let mut players_summary = Vec::new();
+    //     loop {
+    //         // assuming 30 fps.
+    //         // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    //         interval.tick().await;
 
-            let mut data = processor_lock.lock().await;
-            let mut tile_commands_data = tile_commands_processor_lock.lock().await;
-            if data.len() <= 0  && tile_commands_data.len() <= 0{
-                continue;
-            }
+    //         let mut data = processor_lock.lock().await;
+    //         let mut tile_commands_data = tile_commands_processor_lock.lock().await;
+    //         if data.len() <= 0  && tile_commands_data.len() <= 0{
+    //             continue;
+    //         }
 
-            for item in data.iter()
-            {
-                let cloned_data = item.1.to_owned();
-                players_summary.push(cloned_data);
-            }
+    //         for item in data.iter()
+    //         {
+    //             let cloned_data = item.1.to_owned();
+    //             players_summary.push(cloned_data);
+    //         }
 
-            let mut tiles = tiles.lock().await;
+    //         let mut tiles = tiles.lock().await;
 
-            let mut tiles_summary : Vec<MapEntity>= Vec::new();
+    //         let mut tiles_summary : Vec<MapEntity>= Vec::new();
 
-            for tile_command in tile_commands_data.iter()
-            {
-                match tiles.get_mut(tile_command.0) {
-                    Some(tile) => {
-                        let mut updated_tile = tile.clone();
-                        // in theory we do something cool here with the tile!!!!
-                        match tile_command.1.info {
-                            MapCommandInfo::Touch() => {
-                                tiles_summary.push(updated_tile);
-                            },
-                            MapCommandInfo::ChangeHealth(value) => {
-                                updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
-                                tiles_summary.push(updated_tile.clone());
-                                *tile = updated_tile;
-                            }
-                        }
-                    }
-                    _ => (),
-                }
-            }
+    //         for tile_command in tile_commands_data.iter()
+    //         {
+    //             match tiles.get_mut(tile_command.0) {
+    //                 Some(tile) => {
+    //                     let mut updated_tile = tile.clone();
+    //                     // in theory we do something cool here with the tile!!!!
+    //                     match tile_command.1.info {
+    //                         MapCommandInfo::Touch() => {
+    //                             tiles_summary.push(updated_tile);
+    //                         },
+    //                         MapCommandInfo::ChangeHealth(value) => {
+    //                             updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
+    //                             tiles_summary.push(updated_tile.clone());
+    //                             *tile = updated_tile;
+    //                         }
+    //                     }
+    //                 }
+    //                 _ => (),
+    //             }
+    //         }
 
-            // we want to free the lock as soon as possible.
-            // I am not sure if rust automatically releases de lock once there are no more references.
-            drop(tiles);
+    //         // we want to free the lock as soon as possible.
+    //         // I am not sure if rust automatically releases de lock once there are no more references.
+    //         drop(tiles);
 
-            tile_commands_data.clear();
-            data.clear();
+    //         tile_commands_data.clear();
+    //         data.clear();
 
-            drop(tile_commands_data);
-            drop(data);
+    //         drop(tile_commands_data);
+    //         drop(data);
 
-            let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
+    //         let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
-            // we should easily get this lock, since only new clients would trigger a lock on the other side.
-            let mut clients_data = players.lock().await;
+    //         // we should easily get this lock, since only new clients would trigger a lock on the other side.
+    //         let mut clients_data = players.lock().await;
 
-            // Sending summary to all clients.
+    //         // Sending summary to all clients.
 
-            let mut filtered_summary = players_summary.iter()
-            .map(|p| StateUpdate::PlayerState(p.clone()))
-            .collect::<Vec<StateUpdate>>();
+    //         let mut filtered_summary = players_summary.iter()
+    //         .map(|p| StateUpdate::PlayerState(p.clone()))
+    //         .collect::<Vec<StateUpdate>>();
 
-            filtered_summary.extend(tiles_state_update.clone());
+    //         filtered_summary.extend(tiles_state_update.clone());
 
-            // the data that will be sent to each client is not copied.
-            let arc_summary = Arc::new(filtered_summary);
+    //         // the data that will be sent to each client is not copied.
+    //         let arc_summary = Arc::new(filtered_summary);
 
-            for client in clients_data.iter_mut()
-            {
-                if arc_summary.len() > 0
-                {
-                    // here we send data to the client
-                    if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
+    //         for client in clients_data.iter_mut()
+    //         {
+    //             if arc_summary.len() > 0
+    //             {
+    //                 // here we send data to the client
+    //                 if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
 
-                    }
-                    else {
-                        println!("Error sending summary to client");
-                    }
-                }
-            }
+    //                 }
+    //                 else {
+    //                     println!("Error sending summary to client");
+    //                 }
+    //             }
+    //         }
 
 
-            players_summary.clear();
+    //         players_summary.clear();
 
-            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            // if let Ok(elapsed) = result {
-            //     let current_time = elapsed.as_secs();
-            //     data.retain(|_, v| (current_time - v.current_time) < 5);
-            // }
-        }
-    });
+    //         // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+    //         // if let Ok(elapsed) = result {
+    //         //     let current_time = elapsed.as_secs();
+    //         //     data.retain(|_, v| (current_time - v.current_time) < 5);
+    //         // }
+    //     }
+    // });
 }
