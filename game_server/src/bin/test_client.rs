@@ -2,18 +2,20 @@ use std::sync::Arc;
 
 use game_server::player::player_action::{PlayerAction};
 use tokio::net::UdpSocket;
+use glam::{Vec3, vec3};
+use rand::{rngs::StdRng, Rng};
 
 
 #[tokio::main]
 async fn main() {
-    for i in 0..10
+    for i in 0..20
     {
         spawn_test_client(i as u64).await;
     }
     // spawn_test_client(2).await;
 
     loop{
-        tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(30000)).await;
     }
 }
 
@@ -40,13 +42,51 @@ async fn spawn_test_client(client_id : u64) {
     let rec_socket = shareable_socket.clone();
     //send
     tokio::spawn(async move {
+        let mut position = Vec3::new(-15.52, 33.74, -297.19);
+        let radius = 300f32;
+
+        
+
+        let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+        //-15.52, 33.74, -297.19) 299.5 target (-14.51, 35.16, -297.07)
+
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
+            let x =  random_generator.gen::<f32>();
+            let y =  random_generator.gen::<f32>();
+            let z =  random_generator.gen::<f32>();
+
+            let direction = vec3(x, y, z).normalize();
+
+            let second_position = position + direction * 1f32;
+            let second_position = second_position.normalize() * radius;
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+            println!("send data {} " ,position);
+
             let client_action = PlayerAction { 
                 player_id:client_id,
-                position:[10.1,1.3,45.0],
-                direction:[10.1,1.3,45.0],
-                action:2
+                position:[position.x, position.y, position.z],
+                second_position:[second_position.x, second_position.y, second_position.z],
+                action:1
+            };
+
+            position = second_position;
+
+            let bytes = client_action.to_bytes();
+            let mut buffer = [0u8; 37];
+            buffer[0] = 2;
+            buffer[1..37].copy_from_slice(&bytes);
+
+            send_socket.send(&buffer).await.unwrap();
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+
+            let client_action = PlayerAction { 
+                player_id:client_id,
+                position:[position.x, position.y, position.z],
+                second_position:[second_position.x, second_position.y, second_position.z],
+                action:0
             };
 
             let bytes = client_action.to_bytes();

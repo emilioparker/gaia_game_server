@@ -72,11 +72,13 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     let mut stored_states:u8 = 0;
 
 
+
+
                     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
                     for state_update in data.iter()
                     {
                         match state_update{
-                            StateUpdate::PlayerState(player_state) if player_state.sequence_number > max_seq => {
+                            StateUpdate::PlayerState(player_state) => {
                                 
                                 buffer[start] = DataType::PlayerState as u8;
                                 start += 1;

@@ -6,33 +6,11 @@ pub enum Code
     PlayerInteraction = 2,
 }
 
-// #[derive(Debug)]
-// pub enum PlayerAction {
-//     Activity(PlayerActivity),
-//     Interaction(PlayerEntityInteraction),
-// }
-
-// #[derive(Debug)]
-// pub enum InteractionTypes
-// {
-//     Create = 1,
-//     Damage = 2
-// }
-
-// #[derive(Debug)]
-// pub struct PlayerEntityInteraction {
-//     pub player_id: u64,
-//     pub tile_id: TetrahedronId,
-//     pub action: InteractionTypes, //daniar, crear, heal
-//     pub prop: u16,
-//     pub value:u16,
-// }
-
 #[derive(Debug)]
 pub struct PlayerAction {
     pub player_id: u64,
     pub position: [f32;3],
-    pub direction: [f32;3],
+    pub second_position: [f32;3],
     pub action:u32,
 }
 
@@ -56,11 +34,11 @@ impl PlayerAction {
         float_into_buffer(&mut buffer, self.position[2], &mut start, end);
         end = start + 4;
 
-        float_into_buffer(&mut buffer, self.direction[0], &mut start, end);
+        float_into_buffer(&mut buffer, self.second_position[0], &mut start, end);
         end = start + 4;
-        float_into_buffer(&mut buffer, self.direction[1], &mut start, end);
+        float_into_buffer(&mut buffer, self.second_position[1], &mut start, end);
         end = start + 4;
-        float_into_buffer(&mut buffer, self.direction[2], &mut start, end);
+        float_into_buffer(&mut buffer, self.second_position[2], &mut start, end);
 
         end = start + 4;
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
@@ -105,7 +83,7 @@ impl PlayerAction {
         let client_action = PlayerAction {
             player_id,
             position,
-            direction,
+            second_position: direction,
             action
         };
 
