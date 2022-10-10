@@ -9,7 +9,7 @@ use game_server::real_time_service;
 use game_server::web_service;
 
 // #[tokio::main(worker_threads = 1)]
-#[tokio::main]
+#[tokio::main()]
 async fn main() {
 
     let (tx, mut rx) = tokio::sync::watch::channel("hello");

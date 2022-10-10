@@ -13,9 +13,9 @@ use crate::{protocols, player};
 
 pub enum DataType
 {
-    NoData = 0,
-    PlayerState = 1,
-    TileState = 2,
+    NoData = 25,
+    PlayerState = 26,
+    TileState = 27,
 }
 
 #[derive(Debug)]
