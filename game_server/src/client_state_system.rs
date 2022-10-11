@@ -186,6 +186,7 @@ pub fn process_player_action(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
+            println!("sending a bunch of packages {}", arc_summary.len());
 
             for client in clients_data.iter_mut()
             {
