@@ -56,8 +56,8 @@ pub async fn spawn_client_process(
                     }
                     for packet in data.iter()
                     {
-                        let len = socket_global_send_instance.send(packet).await;
                         if player_id == 31415 {
+                            let len = socket_global_send_instance.send(packet).await;
                             println!("send result {:?}", len);
                         }
                     }
