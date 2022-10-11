@@ -51,15 +51,16 @@ pub async fn spawn_client_process(
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
-                    if player_id == 31415 {
-                        println!("sending data for player {} ", data.len());
-                    }
+                    // if player_id == 31415 {
+                    //     println!("sending data for player {} ", data.len());
+                    // }
                     for packet in data.iter()
                     {
-                        if player_id == 31415 {
-                            let len = socket_global_send_instance.send(packet).await;
-                            println!("send result {:?}", len);
-                        }
+                        // if player_id == 31415 {
+                        //     let len = socket_global_send_instance.send(packet).await;
+                        //     println!("send result {:?}", len);
+                        // }
+                        let len = socket_global_send_instance.send(packet).await;
                     }
 
                 }

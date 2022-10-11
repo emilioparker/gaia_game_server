@@ -189,7 +189,6 @@ pub fn process_player_action(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
-            println!("sending a bunch of packages {}", arc_summary.len());
 
             for client in clients_data.iter_mut()
             {
@@ -270,7 +269,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
 
         if stored_bytes + 36 > 499 // 1 byte for protocol, 8 bytes for the sequence number 
         {
-            println!("send mid package {} with {} states ",packet_number, stored_states);
+            // println!("send mid package {} with {} states ",packet_number, stored_states);
             buffer[start] = DataType::NoData as u8;
             packets.push(buffer); // this is a copy!
             start = 1;
@@ -291,7 +290,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     {
         buffer[start] = DataType::NoData as u8;
         packets.push(buffer); // this is a copy!
-        println!("send final package {} with {} states ",packet_number, stored_states);
+        // println!("send final package {} with {} states ",packet_number, stored_states);
     }
 
     packets
