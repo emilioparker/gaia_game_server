@@ -1,6 +1,7 @@
 
 // mod create:utils;
 
+use std::os::macos::raw::stat;
 use std::sync::Arc;
 use tokio::time;
 use tokio::time::Duration;
@@ -11,12 +12,6 @@ use crate::player::player_action::PlayerAction;
 use crate::player::player_state::PlayerState;
 use crate::{protocols, player};
 
-pub enum DataType
-{
-    NoData = 25,
-    PlayerState = 26,
-    TileState = 27,
-}
 
 #[derive(Debug)]
 pub enum StateUpdate {
@@ -27,7 +22,7 @@ pub enum StateUpdate {
 pub async fn spawn_client_process(address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    mut channel_rx : mpsc::Receiver<Arc<Vec<StateUpdate>>>,
+    mut channel_rx : mpsc::Receiver<Arc<Vec<[u8;508]>>>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
@@ -55,92 +50,11 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
-                    // println!("got some data {:?}", data);
-                    // here we have a vec of player state. should we filter before getting it here. Or should we handle the view of the players.
-                    // I think we shouldn't receive old data, just new state.
-                    // but it is easier to handle it here.
-
-                    let mut buffer = [0u8; 508];
-                    buffer[0] = protocols::Protocol::GlobalState as u8;
-                    // buffer[1] = data.len() as u8;
-
-                    let player_state_size: usize = 36;
-                    let tile_state_size: usize = 18;
-                    let mut start: usize = 1;
-
-                    let mut stored_bytes:u32 = 0;
-                    let mut stored_states:u8 = 0;
-
-
-
-
-                    // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
-                    for state_update in data.iter()
+                    for packet in data.iter()
                     {
-                        match state_update{
-                            StateUpdate::PlayerState(player_state) => {
-                                
-                                buffer[start] = DataType::PlayerState as u8;
-                                start += 1;
-
-                                let player_state_bytes = player_state.to_bytes(); //36
-                                let next = start + player_state_size;
-                                buffer[start..next].copy_from_slice(&player_state_bytes);
-                                stored_bytes = stored_bytes + 36 + 1;
-                                stored_states = stored_states + 1;
-                                start = next;
-
-                                max_seq = std::cmp::max(max_seq, player_state.sequence_number);
-                            },
-                            StateUpdate::TileState(tile_state) => {
-                                buffer[start] = DataType::TileState as u8;
-                                start += 1;
-
-                                let tile_state_bytes = tile_state.to_bytes(); //18
-                                let next = start + tile_state_size;
-                                buffer[start..next].copy_from_slice(&tile_state_bytes);
-                                stored_bytes = stored_bytes + 36 + 1;
-                                stored_states = stored_states + 1;
-                                start = next;
-                            },
-                            _ => {
-                                // skip
-                            }
-                        }
-
-                        if stored_bytes + 36 > 500
-                        {
-                            buffer[start] = DataType::NoData as u8;
-
-                            let len = socket_global_send_instance.send(&buffer.clone()).await;
-                            if let Ok(_) = len {
-
-                            }
-                            else {
-                                println!("send error");
-                            }
-
-                            // println!("send intermediate package with {} states ", stored_states);
-
-                            start = 1;
-                            stored_states = 0;
-                            stored_bytes = 0;
-                        }
+                        let len = socket_global_send_instance.send(packet).await;
                     }
 
-                    if stored_states > 0
-                    {
-                        buffer[start] = DataType::NoData as u8;
-                        let len = socket_global_send_instance.send(&buffer).await;
-                        if let Ok(_) = len {
-
-                        }
-                        else {
-                            println!("send error");
-                        }
-
-                        // println!("send final package with {} states ", stored_states);
-                    }
                 }
             }
         }

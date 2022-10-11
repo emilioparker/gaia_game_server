@@ -8,6 +8,12 @@ use crate::real_time_service::client_handler::StateUpdate;
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
+pub enum DataType
+{
+    NoData = 25,
+    PlayerState = 26,
+    TileState = 27,
+}
 
 pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
@@ -111,6 +117,7 @@ pub fn process_player_action(
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move {
         let mut players_summary = Vec::new();
+        let mut packet_number = 1u64;
         loop {
             // assuming 30 fps.
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
@@ -175,9 +182,10 @@ pub fn process_player_action(
             .collect::<Vec<StateUpdate>>();
 
             filtered_summary.extend(tiles_state_update.clone());
+            let packages = create_data_packets(filtered_summary, &mut packet_number);
 
             // the data that will be sent to each client is not copied.
-            let arc_summary = Arc::new(filtered_summary);
+            let arc_summary = Arc::new(packages);
 
             for client in clients_data.iter_mut()
             {
@@ -194,6 +202,7 @@ pub fn process_player_action(
             }
 
 
+
             players_summary.clear();
 
             // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -203,4 +212,82 @@ pub fn process_player_action(
             // }
         }
     });
+}
+
+pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<[u8;508]> {
+    *packet_number += 1u64;
+
+    let mut buffer = [0u8; 508];
+    let mut start: usize = 1;
+    buffer[0] = crate::protocols::Protocol::GlobalState as u8;
+
+    let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
+
+    let end: usize = start + 8;
+    buffer[start..end].copy_from_slice(&packet_number_bytes);
+    start = end;
+
+    let player_state_size: usize = 36;
+    let tile_state_size: usize = 18;
+
+    let mut stored_bytes:u32 = 0;
+    let mut stored_states:u8 = 0;
+
+
+    let mut packets = Vec::<[u8;508]>::new();
+    // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
+    for state_update in data.iter()
+    {
+        match state_update{
+            StateUpdate::PlayerState(player_state) => {
+                
+                buffer[start] = DataType::PlayerState as u8;
+                start += 1;
+
+                let player_state_bytes = player_state.to_bytes(); //36
+                let next = start + player_state_size;
+                buffer[start..next].copy_from_slice(&player_state_bytes);
+                stored_bytes = stored_bytes + 36 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::TileState(tile_state) => {
+                buffer[start] = DataType::TileState as u8;
+                start += 1;
+
+                let tile_state_bytes = tile_state.to_bytes(); //18
+                let next = start + tile_state_size;
+                buffer[start..next].copy_from_slice(&tile_state_bytes);
+                stored_bytes = stored_bytes + 36 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            }
+        }
+
+        if stored_bytes + 36 > 499 // 1 byte for protocol, 8 bytes for the sequence number 
+        {
+            buffer[start] = DataType::NoData as u8;
+            packets.push(buffer); // this is a copy!
+            start = 1;
+            stored_states = 0;
+            stored_bytes = 0;
+
+
+            //a new packet with a new sequence number
+            *packet_number += 1u64;
+            let end: usize = start + 8;
+            let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
+            buffer[start..end].copy_from_slice(&packet_number_bytes);
+            start = end;
+        }
+    }
+
+    if stored_states > 0
+    {
+        buffer[start] = DataType::NoData as u8;
+        packets.push(buffer); // this is a copy!
+        // println!("send final package with {} states ", stored_states);
+    }
+
+    packets
 }
