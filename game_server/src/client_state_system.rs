@@ -179,13 +179,11 @@ pub fn process_player_action(
 
             let mut filtered_summary = Vec::new();
 
-            let mut player_state_updates = players_summary.iter()
+            let player_state_updates = players_summary.iter()
             .map(|p| StateUpdate::PlayerState(p.clone()));
             // .collect::<Vec<StateUpdate>>();
 
-            for i in 0..100{
-                filtered_summary.extend(player_state_updates.clone());
-            }
+            filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
             let packages = create_data_packets(filtered_summary, &mut packet_number);
 
