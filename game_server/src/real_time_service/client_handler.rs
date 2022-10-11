@@ -18,7 +18,9 @@ pub enum StateUpdate {
     TileState(MapEntity),
 }
 
-pub async fn spawn_client_process(address : std::net::SocketAddr, 
+pub async fn spawn_client_process(
+    player_id : u64,
+    address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     mut channel_rx : mpsc::Receiver<Arc<Vec<[u8;508]>>>,
@@ -49,9 +51,15 @@ pub async fn spawn_client_process(address : std::net::SocketAddr,
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
+                    if player_id == 31415 {
+                        println!("sending data for player {} ", data.len());
+                    }
                     for packet in data.iter()
                     {
                         let len = socket_global_send_instance.send(packet).await;
+                        if player_id == 31415 {
+                            println!("send result {:?}", len);
+                        }
                     }
 
                 }

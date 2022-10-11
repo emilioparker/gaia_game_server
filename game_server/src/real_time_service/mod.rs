@@ -79,7 +79,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
                             // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(address, from_address, tx, client_state_rx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
+                            client_handler::spawn_client_process(player_id, address, from_address, tx, client_state_rx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
                         }
                         else
                         {
