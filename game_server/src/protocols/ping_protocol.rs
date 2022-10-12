@@ -2,8 +2,9 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use crate::player::player_action::PlayerAction;
 
-pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &Sender<PlayerAction>)
+pub async fn process_ping(data : &[u8; 508], channel_tx : &Sender<[u8;508]>)
 {
+    // println!("process ping??");
     let mut start = 1;
     let mut end = start + 8;
 
@@ -15,7 +16,8 @@ pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &S
     let _num = u16::from_le_bytes(data[start..end].try_into().unwrap());
 
 
+    channel_tx.send(*data).await.unwrap();
     // println!("the message is an {num}");
-    let _len = socket.send(data).await.unwrap();
+    // let _len = socket.send(data).await.unwrap();
     // println!("{:?} bytes sent", len);
 }

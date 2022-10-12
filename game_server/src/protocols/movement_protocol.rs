@@ -4,7 +4,7 @@ use tokio::sync::mpsc::Sender;
 use crate::player::player_action::PlayerAction;
 
 
-pub async fn process_movement(_socket:&UdpSocket, data : &[u8; 508], channel_tx : &Sender<PlayerAction>)
+pub async fn process_movement(data : &[u8; 508], channel_tx : &Sender<PlayerAction>)
 {
     let client_action = PlayerAction::from_bytes(data);
     // println!("got a {:?}", client_action.position);
