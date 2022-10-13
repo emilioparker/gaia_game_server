@@ -61,8 +61,12 @@ pub async fn spawn_client_process(
                         //     println!("send result {:?}", len);
                         // }
                         let len = socket_global_send_instance.send(packet).await;
+                        match len
+                        {
+                            Ok(_) => {},
+                            Err(error) => println!("error sending data {:?}", error )
+                        }
                     }
-
                 }
             }
         }

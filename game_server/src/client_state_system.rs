@@ -196,7 +196,7 @@ pub fn process_player_action(
                 {
                     // here we send data to the client
 
-                    println!("is channel full ?  cap:{} max_cap:{}", client.1.tx.capacity(), client.1.tx.max_capacity());
+                    // println!("is channel full ?  cap:{} max_cap:{}", client.1.tx.capacity(), client.1.tx.max_capacity());
                     if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
 
                     }
