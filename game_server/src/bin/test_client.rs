@@ -113,6 +113,4 @@ async fn spawn_test_client(client_id : u64) {
             }
         }
     });
-
-
 }
