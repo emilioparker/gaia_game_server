@@ -10,6 +10,7 @@ use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_action::PlayerAction;
 use crate::player::player_state::PlayerState;
 use crate::{protocols, player};
+use rand::{rngs::StdRng, Rng};
 
 
 #[derive(Debug)]
@@ -41,6 +42,7 @@ pub async fn spawn_client_process(
 
     // messages from the server to the client, like the global state of the world.
     tokio::spawn(async move {
+        let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
         // let mut external_rx = channel_rx;
             // let message = receiver.recv().await.unwrap();
         'receive_loop : loop {
@@ -51,14 +53,18 @@ pub async fn spawn_client_process(
                     break 'receive_loop;
                 }
                 Some(data) = channel_rx.recv()  =>{
+                    let some_time =  random_generator.gen::<f32>();
+                    // println!("some time {}", some_time);
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(some_time as u64 * 200)).await;
                     for packet in data.iter()
                     {
-                        if player_id == 0 {
-                            let first_byte = packet[0]; // this is the protocol
-                            let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
+                        // if player_id == 0 {
+                        //     let first_byte = packet[0]; // this is the protocol
+                        //     let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
 
-                            println!("sending packet {} for player {} ",packet_sequence_number, data.len());
-                        }
+                        //     // println!("sending packet {} for player {} ",packet_sequence_number, data.len());
+                        // }
                         // if player_id == 31415 {
                         //     let len = socket_global_send_instance.send(packet).await;
                         //     println!("send result {:?}", len);
