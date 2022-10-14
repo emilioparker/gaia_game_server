@@ -14,33 +14,64 @@ use tokio::sync::mpsc::{Receiver, Sender};
 pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
     tile_changed_tx: Sender<MapCommand>,
     tile_changed_rx : Receiver<MapCommand>) {
+
+    let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(200);
+    let clients:HashMap<std::net::SocketAddr, PlayerEntity> = HashMap::new();
+    let clients_mutex = std::sync::Arc::new(Mutex::new(clients));
+
+    let server_lock = clients_mutex.clone();
+    let server_send_to_clients_lock = clients_mutex.clone();
+
+    let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
+    // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
+    let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
+    // let udp_socket = tokio::net::UdpSocket::bind(address).await.unwrap();
+
+    let send_udp_socket = udp_socket.clone();
+    // let read_udp_socket = udp_socket.clone();
     tokio::spawn(async move {
+        loop {
+            if let Some(packet_list) = client_state_rx.recv().await {
+                let mut clients_data = server_send_to_clients_lock.lock().await;
+                for client in clients_data.iter_mut()
+                {
+                    for packet in packet_list.iter(){
+                        if client.1.player_id == 0 {
+                            // let first_byte = packet[0]; // this is the protocol
+                            let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
+                            println!("sending {}", packet_sequence_number);
+                        }
+                        let result = send_udp_socket.send_to(packet, client.0).await;
+                        match result {
+                            Ok(_) => {},
+                            Err(_) => println!("error sending data through socket"),
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    tokio::spawn(async move {
+        let read_udp_socket = udp_socket.clone();
         let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
         // each client has a client_action_tx where it can send updates to its own state
         // the consumer is the client state system, the system will summarize the requests and send them to each client.
         let (client_action_tx, client_action_rx ) = tokio::sync::mpsc::channel::<PlayerAction>(1000);
 
-        let clients:HashMap<std::net::SocketAddr, PlayerEntity> = HashMap::new();
-        let clients_mutex = std::sync::Arc::new(Mutex::new(clients));
 
         // the first lock on clients data is used by the server to add and remove clients.
-        let server_lock = clients_mutex.clone();
 
         // the second lock on clients_data is used for the client state system to send data to everyclient 
         // let process_lock = clients_mutex.clone();
         // this function will process all user actions and send to all players the global state
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
-        let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(200);
         client_state_system::process_player_action(client_action_rx, tile_changed_rx, tiles_lock, server_state_tx);
         // ---------------------------------------------------
 
 
-        let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
-        // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
-        let udp_socket = utils::create_reusable_udp_socket(address);
-        // let udp_socket = tokio::net::UdpSocket::bind(address).await.unwrap();
 
         let mut buf_udp = [0u8; 508];
         loop {
@@ -88,19 +119,6 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
                             println!("rejected");
                         }
                     }
-                }
-                Some(packet_list) = client_state_rx.recv() => {
-                        let mut clients_data = server_lock.lock().await;
-                        for client in clients_data.iter_mut()
-                        {
-                            for packet in packet_list.iter(){
-                                let result = udp_socket.send_to(packet, client.0).await;
-                                match result {
-                                    Ok(_) => {},
-                                    Err(_) => println!("error sending data through socket"),
-                                }
-                            }
-                        }
                 }
                 Some(res) = from_client_task_to_parent_rx.recv() => {
                     println!("removing entry from hash set");

@@ -8,7 +8,7 @@ use rand::{rngs::StdRng, Rng};
 
 #[tokio::main]
 async fn main() {
-    for i in 0..100
+    for i in 0..200
     {
         spawn_test_client(i as u64).await;
     }
