@@ -24,7 +24,7 @@ pub async fn spawn_client_process(
     address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    mut channel_rx : mpsc::Receiver<Arc<Vec<[u8;508]>>>,
+    // mut channel_rx : mpsc::Receiver<Arc<Vec<[u8;508]>>>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
@@ -35,51 +35,51 @@ pub async fn spawn_client_process(
     child_socket.connect(from_address).await.unwrap();
 
     let shareable_socket = Arc::new(child_socket);
-    let socket_global_send_instance = shareable_socket.clone();
+    // let socket_global_send_instance = shareable_socket.clone();
     let socket_local_instance = shareable_socket.clone();
 
-    let mut max_seq = 0;
+    // let mut max_seq = 0;
 
     // messages from the server to the client, like the global state of the world.
-    tokio::spawn(async move {
-        let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
-        // let mut external_rx = channel_rx;
-            // let message = receiver.recv().await.unwrap();
-        'receive_loop : loop {
-            // let external_rx_future = external_rx.changed();
-            tokio::select! {
-                _ = kill_rx.recv() => {
-                    println!("killed read task");
-                    break 'receive_loop;
-                }
-                Some(data) = channel_rx.recv()  =>{
-                    let some_time =  random_generator.gen::<f32>();
-                    // println!("some time {}", some_time);
+    // tokio::spawn(async move {
+    //     let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+    //     // let mut external_rx = channel_rx;
+    //         // let message = receiver.recv().await.unwrap();
+    //     'receive_loop : loop {
+    //         // let external_rx_future = external_rx.changed();
+    //         tokio::select! {
+    //             _ = kill_rx.recv() => {
+    //                 println!("killed read task");
+    //                 break 'receive_loop;
+    //             }
+    //             // Some(data) = channel_rx.recv()  =>{
+    //             //     let some_time =  random_generator.gen::<f32>();
+    //             //     // println!("some time {}", some_time);
 
-                    tokio::time::sleep(tokio::time::Duration::from_millis(some_time as u64 * 200)).await;
-                    for packet in data.iter()
-                    {
-                        // if player_id == 0 {
-                        //     let first_byte = packet[0]; // this is the protocol
-                        //     let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
+    //             //     tokio::time::sleep(tokio::time::Duration::from_millis(some_time as u64 * 200)).await;
+    //             //     for packet in data.iter()
+    //             //     {
+    //             //         // if player_id == 0 {
+    //             //         //     let first_byte = packet[0]; // this is the protocol
+    //             //         //     let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
 
-                        //     // println!("sending packet {} for player {} ",packet_sequence_number, data.len());
-                        // }
-                        // if player_id == 31415 {
-                        //     let len = socket_global_send_instance.send(packet).await;
-                        //     println!("send result {:?}", len);
-                        // }
-                        let len = socket_global_send_instance.send(packet).await;
-                        match len
-                        {
-                            Ok(_) => {},
-                            Err(error) => println!("error sending data {:?}", error )
-                        }
-                    }
-                }
-            }
-        }
-    });
+    //             //         //     // println!("sending packet {} for player {} ",packet_sequence_number, data.len());
+    //             //         // }
+    //             //         // if player_id == 31415 {
+    //             //         //     let len = socket_global_send_instance.send(packet).await;
+    //             //         //     println!("send result {:?}", len);
+    //             //         // }
+    //             //         let len = socket_global_send_instance.send(packet).await;
+    //             //         match len
+    //             //         {
+    //             //             Ok(_) => {},
+    //             //             Err(error) => println!("error sending data {:?}", error )
+    //             //         }
+    //             //     }
+    //             // }
+    //         }
+    //     }
+    // });
 
     //messages from the client to the server, like an updated position
     tokio::spawn(async move {

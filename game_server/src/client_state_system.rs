@@ -20,7 +20,9 @@ pub fn process_player_action(
     // mut tile_changed_sender : tokio::sync::mpsc::Sender<MapCommand>,
     mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
     tiles : Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
-    players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>){
+    // players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>,
+    tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
+){
 
     //players
     let all_players = HashMap::<u64,PlayerState>::new();
@@ -173,7 +175,7 @@ pub fn process_player_action(
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
-            let mut clients_data = players.lock().await;
+            // let mut clients_data = players.lock().await;
 
             // Sending summary to all clients.
 
@@ -189,21 +191,22 @@ pub fn process_player_action(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
+            tx.send(arc_summary).await.unwrap();
 
-            for client in clients_data.iter_mut()
-            {
-                if arc_summary.len() > 0
-                {
-                    // here we send data to the client
-                    // println!("is channel full ?  cap:{} max_cap:{}", client.1.tx.capacity(), client.1.tx.max_capacity());
-                    if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
+            // for client in clients_data.iter_mut()
+            // {
+            //     if arc_summary.len() > 0
+            //     {
+            //         // here we send data to the client
+            //         // println!("is channel full ?  cap:{} max_cap:{}", client.1.tx.capacity(), client.1.tx.max_capacity());
+            //         // if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
 
-                    }
-                    else {
-                        println!("Error sending summary to client");
-                    }
-                }
-            }
+            //         // }
+            //         // else {
+            //         //     println!("Error sending summary to client");
+            //         // }
+            //     }
+            // }
 
 
 

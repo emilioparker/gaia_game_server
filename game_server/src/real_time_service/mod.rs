@@ -28,17 +28,19 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
         let server_lock = clients_mutex.clone();
 
         // the second lock on clients_data is used for the client state system to send data to everyclient 
-        let process_lock = clients_mutex.clone();
+        // let process_lock = clients_mutex.clone();
         // this function will process all user actions and send to all players the global state
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
-        client_state_system::process_player_action(client_action_rx, tile_changed_rx, tiles_lock, process_lock);
+        let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(200);
+        client_state_system::process_player_action(client_action_rx, tile_changed_rx, tiles_lock, server_state_tx);
         // ---------------------------------------------------
 
 
         let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
         // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
         let udp_socket = utils::create_reusable_udp_socket(address);
+        // let udp_socket = tokio::net::UdpSocket::bind(address).await.unwrap();
 
         let mut buf_udp = [0u8; 508];
         loop {
@@ -65,10 +67,10 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
                             let tx = from_client_to_world_tx.clone();
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
-                            let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
+                            // let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
                             let player_entity = PlayerEntity{
                                 player_id : player_id, // we need to get this data from the packet
-                                tx : server_state_tx
+                                // tx : server_state_tx
                             };
 
                             clients_data.insert(from_address, player_entity);
@@ -79,13 +81,26 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
                             // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(player_id, address, from_address, tx, client_state_rx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
+                            client_handler::spawn_client_process(player_id, address, from_address, tx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
                         }
                         else
                         {
                             println!("rejected");
                         }
                     }
+                }
+                Some(packet_list) = client_state_rx.recv() => {
+                        let mut clients_data = server_lock.lock().await;
+                        for client in clients_data.iter_mut()
+                        {
+                            for packet in packet_list.iter(){
+                                let result = udp_socket.send_to(packet, client.0).await;
+                                match result {
+                                    Ok(_) => {},
+                                    Err(_) => println!("error sending data through socket"),
+                                }
+                            }
+                        }
                 }
                 Some(res) = from_client_task_to_parent_rx.recv() => {
                     println!("removing entry from hash set");
