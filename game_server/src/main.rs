@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use game_server::long_term_storage_service;
 use game_server::map::map_entity::MapCommand;
 use game_server::map::map_entity::MapEntity;
 use game_server::map::tetrahedron_id::TetrahedronId;
@@ -17,13 +18,25 @@ async fn main() {
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
     let all_tiles = HashMap::<TetrahedronId,MapEntity>::new();
     let tiles_mutex = Arc::new(Mutex::new(all_tiles));
+
     let realtime_tiles_service_lock = tiles_mutex.clone();
     let webservice_tiles_lock = tiles_mutex.clone();
+
+    // tiles mirrow image
+    let (tile_update_tx, tile_update_rx ) = tokio::sync::mpsc::channel::<MapEntity>(100);
 
     let (map_command_tx, real_time_service_rx ) = tokio::sync::mpsc::channel::<MapCommand>(20);
     let web_service_map_commands_tx = map_command_tx.clone();
     let client_map_commands_tx = map_command_tx.clone();
-    real_time_service::start_server(realtime_tiles_service_lock, client_map_commands_tx, real_time_service_rx);
+
+    long_term_storage_service::start_server(tile_update_rx);
+
+    real_time_service::start_server(
+        realtime_tiles_service_lock, 
+        client_map_commands_tx, 
+        real_time_service_rx,
+        tile_update_tx,
+    );
 
     web_service::start_server(webservice_tiles_lock, web_service_map_commands_tx);
 

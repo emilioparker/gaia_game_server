@@ -8,6 +8,33 @@ pub struct TetrahedronId {
 }
 
 impl TetrahedronId {
+
+    // public static bool IsParentOf(TetrahedronId parent, TetrahedronId child)
+    // {
+    //     var factor = (uint)Mathf.Pow(4, parent.Lod);
+    //     // Debug.LogError("factor " + factor);
+    //     var substraction = child.Id - parent.Id;
+    //     // Debug.LogError("subs " + substraction);
+    //     // Debug.LogError(parent.Area == child.Area);
+    //     // Debug.LogError( parent.Lod > child.Lod );
+    //     // Debug.LogError(substraction % factor == 0);
+    //     return parent.Area == child.Area && parent.Lod < child.Lod && (substraction % factor == 0);
+    // }
+
+
+
+    pub fn is_parent(&self, child : &TetrahedronId) -> bool
+    {
+        let factor = 4u32.pow(self.lod as u32);
+        let substraction = child.id - self.id;
+        return self.area == child.area && self.lod < child.lod && (substraction % factor == 0)
+    }
+
+    pub fn subdivide(&self, child_index : u8) -> TetrahedronId
+    {
+        TetrahedronId { area: 1, id: 15, lod: 2 }
+    }
+
     pub fn to_bytes(&self) -> [u8;6] {
         let mut buffer = [0u8; 6];
         let mut start : usize = 0;
@@ -135,5 +162,36 @@ mod tests {
         let tile_2 = TetrahedronId::from_bytes(&bin_data);
         println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_id,tile_2);
+    }
+
+    #[test]
+    fn is_parent()
+    {
+        let tile_human_id = "k23333331";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let child_human_id = "k233333310";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id));
+
+        let child_human_id = "k233333311";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id));
+
+        let child_human_id = "k233333312";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id));
+
+        let child_human_id = "k233333313";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id));
+
+        let child_human_id = "k233333323";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id) == false);
+
+        let child_human_id = "k23333331";
+        let child_tile_id = TetrahedronId::from_string(child_human_id);
+        assert!(tile_id.is_parent(&child_tile_id) == false);
     }
 }

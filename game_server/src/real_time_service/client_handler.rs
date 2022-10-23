@@ -29,7 +29,7 @@ pub async fn spawn_client_process(
     channel_action_tx : mpsc::Sender<PlayerAction>,
     initial_data : [u8; 508])
 {
-    let (kill_tx, mut kill_rx) = mpsc::channel::<u8>(2);
+    // let (kill_tx, mut kill_rx) = mpsc::channel::<u8>(2);
 
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
     child_socket.connect(from_address).await.unwrap();
@@ -116,8 +116,13 @@ pub async fn spawn_client_process(
         // if we are here, this task expired and we need to remove the key from the hashset
         channel_tx.send(from_address).await.unwrap();
 
-        // we also need to kill the send task.
-        kill_tx.send(0).await.unwrap();
+        // // we also need to kill the send task.
+        // let kill_send_result = kill_tx.send(0).await;
+        // match kill_send_result {
+        //     Ok(_) => {},
+        //     Err(_) => println!("kill switch didn't work"),
+        // }
+
     });
     // borrowed_socket
 }

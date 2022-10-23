@@ -23,6 +23,7 @@ struct PlayerResponse {
 
 
 async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>)) -> Result<impl warp::Reply, warp::Rejection> {
+
     let tile_id = TetrahedronId::from_string(&data.0.tile_id);
     // tile_id.area = 19;
     // here we should set the data and indicate that a tile changed so other players can see the change
@@ -40,6 +41,10 @@ async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<Ha
                 last_update: tile_data.last_update,
                 health: tile_data.health,
                 prop: data.0.prop,
+                heights: [0,1,2],
+                normal_a: [1.2,1.1,1.5],
+                normal_b: [1.2,1.1,1.6],
+                normal_c: [1.2,1.1,1.7],
             };
 
             let player_response = PlayerResponse {
@@ -65,6 +70,10 @@ async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<Ha
                 last_update: 13,
                 health: 23,
                 prop: data.0.prop,
+                heights: [0,1,2],
+                normal_a: [1.2,1.1,1.5],
+                normal_b: [1.2,1.1,1.6],
+                normal_c: [1.2,1.1,1.7],
             };
             tiles.insert(tile_id.clone(), tile.clone());
 
@@ -83,6 +92,7 @@ async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<Ha
         }
     }
 }
+
 
 pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Sender<MapCommand>) {
     tokio::spawn(async move {

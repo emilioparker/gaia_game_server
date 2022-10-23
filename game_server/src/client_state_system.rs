@@ -17,10 +17,9 @@ pub enum DataType
 
 pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
-    // mut tile_changed_sender : tokio::sync::mpsc::Sender<MapCommand>,
+    tile_changed_tx : tokio::sync::mpsc::Sender<MapEntity>,
     mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
     tiles : Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
-    // players : Arc<Mutex<HashMap<std::net::SocketAddr,PlayerEntity>>>,
     tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
 ){
 
@@ -90,7 +89,7 @@ pub fn process_player_action(
         let mut sequence_number:u64 = 101;
         loop {
             let message = tile_changed_receiver.recv().await.unwrap();
-            // println!("got a tile change data {}", message.id);
+            println!("got a tile change data {}", message.id);
 
             // let mut current_time = 0;
             // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -113,6 +112,7 @@ pub fn process_player_action(
                     data.insert(message.id.clone(), message);
                 }
             }
+
         }
     });
 
@@ -150,11 +150,14 @@ pub fn process_player_action(
                         match tile_command.1.info {
                             MapCommandInfo::Touch() => {
                                 tiles_summary.push(updated_tile);
+                                tile_changed_tx.send(tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(value) => {
                                 updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
                                 tiles_summary.push(updated_tile.clone());
                                 *tile = updated_tile;
+                                // sending the updated tile somewhere.
+                                tile_changed_tx.send(tile.clone()).await.unwrap();
                             }
                         }
                     }

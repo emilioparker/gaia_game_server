@@ -5,15 +5,17 @@ use std::sync::Arc;
 use std::{collections::HashMap};
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::player::{player_action::PlayerAction, player_state::PlayerState, player_entity::PlayerEntity};
-use crate::real_time_service::client_handler::StateUpdate;
+use crate::player::{player_action::PlayerAction, player_entity::PlayerEntity};
 use crate::{client_state_system, web_service};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
-    tile_changed_tx: Sender<MapCommand>,
-    tile_changed_rx : Receiver<MapCommand>) {
+pub fn start_server(
+    tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
+    tile_command_tx: Sender<MapCommand>,
+    tile_command_from_outside_rx : Receiver<MapCommand>,
+    tile_changed_tx: Sender<MapEntity>,
+) {
 
     let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(200);
     let clients:HashMap<std::net::SocketAddr, PlayerEntity> = HashMap::new();
@@ -68,7 +70,12 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
         // this function will process all user actions and send to all players the global state
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
-        client_state_system::process_player_action(client_action_rx, tile_changed_rx, tiles_lock, server_state_tx);
+        client_state_system::process_player_action(
+            client_action_rx,
+            tile_changed_tx,
+            tile_command_from_outside_rx,
+            tiles_lock,
+            server_state_tx);
         // ---------------------------------------------------
 
 
@@ -112,7 +119,7 @@ pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
                             // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(player_id, address, from_address, tx, tile_changed_tx.clone(), client_action_tx.clone(), buf_udp).await;
+                            client_handler::spawn_client_process(player_id, address, from_address, tx, tile_command_tx.clone(), client_action_tx.clone(), buf_udp).await;
                         }
                         else
                         {
