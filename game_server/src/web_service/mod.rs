@@ -1,11 +1,19 @@
 
-use std::{sync::Arc, collections::HashMap};
+use std::{sync::Arc};
 
+use hyper::{Request, body, server::conn::AddrStream};
+use hyper_static::serve::static_file;
 use serde::{Deserialize, Serialize};
-use tokio::{sync::{Mutex, mpsc::{Receiver, Sender}}, time::error::Elapsed};
-use warp::Filter;
+use tokio::sync::mpsc::Sender;
 
-use crate::{map::{tetrahedron_id::TetrahedronId, map_entity::{MapEntity, MapCommand, MapCommandInfo}}, player};
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use hyper::{Body, Response, Server};
+use hyper::service::{make_service_fn, service_fn};
+
+use crate::map::GameMap;
+use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
+use crate::map::tetrahedron_id::TetrahedronId;
 
 #[derive(Deserialize, Serialize, Debug)]
 struct PlayerRequest {
@@ -21,16 +29,21 @@ struct PlayerResponse {
     success: String,
 }
 
+#[derive(Clone)]
+struct AppContext {
+    game_map : Arc<GameMap>,
+    map_command_sender : Sender<MapCommand>
+}
 
-async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>)) -> Result<impl warp::Reply, warp::Rejection> {
+async fn handle(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, Infallible> {
 
-    let tile_id = TetrahedronId::from_string(&data.0.tile_id);
-    // tile_id.area = 19;
-    // here we should set the data and indicate that a tile changed so other players can see the change
-
-    let mut tiles = data.2.lock().await;
-
-    let sender = data.1;
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let data: PlayerRequest = serde_json::from_slice(&data).unwrap();
+    println!("handling request {:?}", data);
+    let tile_id = TetrahedronId::from_string(&data.tile_id);
+    let region = context.game_map.get_region_from_child(&tile_id);
+    let mut tiles = region.lock().await;
     let tile_data = tiles.get_mut(&tile_id);
 
     match tile_data {
@@ -40,11 +53,11 @@ async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<Ha
                 id: tile_data.id.clone(),
                 last_update: tile_data.last_update,
                 health: tile_data.health,
-                prop: data.0.prop,
-                heights: [0,1,2],
-                normal_a: [1.2,1.1,1.5],
-                normal_b: [1.2,1.1,1.6],
-                normal_c: [1.2,1.1,1.7],
+                prop: data.prop,
+                heights:tile_data.heights,
+                normal_a: tile_data.normal_a, 
+                normal_b: tile_data.normal_b,
+                normal_c: tile_data.normal_c
             };
 
             let player_response = PlayerResponse {
@@ -59,61 +72,99 @@ async fn process_request(data : (PlayerRequest, Sender<MapCommand>, Arc<Mutex<Ha
                 info : MapCommandInfo::Touch()
             };
 
-            let _ = sender.send(map_command).await;
+            let _ = context.map_command_sender.send(map_command).await;
 
 
-            Ok(warp::reply::json(&player_response))
+            let response = serde_json::to_vec(&player_response).unwrap();
+            Ok(Response::new(Body::from(response)))
         },
         None => {
-            let tile = MapEntity{
-                id: tile_id.clone(),
-                last_update: 13,
-                health: 23,
-                prop: data.0.prop,
-                heights: [0,1,2],
-                normal_a: [1.2,1.1,1.5],
-                normal_b: [1.2,1.1,1.6],
-                normal_c: [1.2,1.1,1.7],
-            };
-            tiles.insert(tile_id.clone(), tile.clone());
-
-            let map_command = MapCommand {
-                id : tile.id.clone(),
-                info : MapCommandInfo::Touch()
-            };
-
-            let _ = sender.send(map_command).await;
 
             let player_response = PlayerResponse {
                 tile_id :tile_id.to_string(),
-                success : "new tile added".to_owned()
+                success : "tile doesn't exist".to_owned()
             };
-            Ok(warp::reply::json(&player_response))
+            let response = serde_json::to_vec(&player_response).unwrap();
+            Ok(Response::new(Body::from(response)))
         }
     }
 }
 
+async fn handle_file_request(req: Request<Body>) -> Result<Response<Body>, hyper::http::Error> {
 
-pub fn start_server(tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>, tile_changed_rx : Sender<MapCommand>) {
+    let uri = req.uri().to_string();
+    let mut data = uri.split("/region/");
+    let _ = data.next();
+    let region = data.next();
+    if let Some(region) = region {
+        println!("this is the region {}", region);
+        let file_path = format!("map_initial_data/world001_{}_props.bytes", region);
+        let path = std::path::Path::new(&file_path);
+        return match static_file(
+            &path,
+            Some("text/html"), // mime type
+            &req.headers(), // hyper request header map
+            65536 // buffer size
+        )
+        .await
+        {
+            Ok(v) => v, // return it
+            Err(e) => e.into(), // transform the error and return
+        };
+    }
+    else{
+        println!("bad request");
+        return Ok(Response::new(Body::from("bad request")));
+    }
+
+}
+
+pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>) {
+
+    let context = AppContext {
+        game_map : map,
+        map_command_sender : tile_changed_rx
+    };
+
+    tokio::spawn(async move {
+        let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
+        let make_service = make_service_fn(move |conn: &AddrStream| {
+            let context = context.clone();
+            let _addr = conn.remote_addr();
+            let service = service_fn(move |req| {
+                handle(context.clone(), req)
+            });
+
+            // Return the service to hyper.
+            async move { Ok::<_, Infallible>(service) }
+        });
+
+        // Then bind and serve...
+        let server = Server::bind(&addr).serve(make_service);
+
+        // And run forever...
+        if let Err(e) = server.await {
+            eprintln!("server error: {}", e);
+        }
+    });
+
+    // let context = AppContext {
+    //     game_map : map,
+    // };
+
     tokio::spawn(async move {
 
-        'receive_loop : loop {
-            let rx = tile_changed_rx.clone();
-            let lock = tiles_lock.clone();
-            let promote = warp::post()
-            .and(warp::path("process_request"))
-            // .and(warp::path::param::<u32>())
-            // Only accept bodies smaller than 16kb...
-            .and(warp::body::content_length_limit(1024 * 16))
-            .and(warp::body::json())
-            
-            .map(move |player_request : PlayerRequest|{
-                // warp::reply::json(&2u32)
-                (player_request, rx.clone(), lock.clone())
-            })
-            .and_then(process_request);
-    
-            warp::serve(promote).run(([0, 0, 0, 0], 3030)).await
-        }
+        let make_service = make_service_fn(|_| {
+            // future::ok::<_, hyper::Error>(service_fn(move |req| handle_request(req, static_.clone())))
+            let service = service_fn(move |req| {
+                handle_file_request(req)
+            });
+            async move { Ok::<_, Infallible>(service) }
+        });
+
+        let addr = ([127, 0, 0, 1], 3031).into();
+        let server = hyper::Server::bind(&addr).serve(make_service);
+        eprintln!("Doc server running on http://{}/", addr);
+        server.await.expect("Server failed");
     });
 }

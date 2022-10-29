@@ -1,8 +1,8 @@
-use std::mem;
-use std::{sync::Arc, borrow::Borrow, time::SystemTime};
+use std::{sync::Arc, time::SystemTime};
 
+use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
-use crate::player::{player_state::PlayerState, player_action::PlayerAction, player_entity::PlayerEntity};
+use crate::player::{player_state::PlayerState, player_action::PlayerAction};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
 use tokio::{sync::Mutex};
@@ -19,7 +19,7 @@ pub fn process_player_action(
     mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
     tile_changed_tx : tokio::sync::mpsc::Sender<MapEntity>,
     mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
-    tiles : Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
+    map : Arc<GameMap>,
     tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
 ){
 
@@ -137,12 +137,14 @@ pub fn process_player_action(
                 players_summary.push(cloned_data);
             }
 
-            let mut tiles = tiles.lock().await;
 
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
 
             for tile_command in tile_commands_data.iter()
             {
+                let region = map.get_region_from_child(tile_command.0);
+                let mut tiles = region.lock().await;
+
                 match tiles.get_mut(tile_command.0) {
                     Some(tile) => {
                         let mut updated_tile = tile.clone();
@@ -161,13 +163,11 @@ pub fn process_player_action(
                             }
                         }
                     }
-                    _ => (),
+                    None => println!("tile not found {}" , tile_command.0),
                 }
             }
+            println!("summary {} ", tiles_summary.len());
 
-            // we want to free the lock as soon as possible.
-            // I am not sure if rust automatically releases de lock once there are no more references.
-            drop(tiles);
 
             tile_commands_data.clear();
             data.clear();
@@ -176,6 +176,7 @@ pub fn process_player_action(
             drop(data);
 
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
+
 
             // we should easily get this lock, since only new clients would trigger a lock on the other side.
             // let mut clients_data = players.lock().await;
@@ -238,7 +239,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     start = end;
 
     let player_state_size: usize = 36;
-    let tile_state_size: usize = 18;
+    let tile_state_size: usize = 66;
 
     let mut stored_bytes:u32 = 0;
     let mut stored_states:u8 = 0;
@@ -248,6 +249,27 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
     for state_update in data.iter()
     {
+        let required_space = match state_update{
+            StateUpdate::PlayerState(_) => 37,
+            StateUpdate::TileState(_) => 67,
+        };
+
+        if stored_bytes + required_space > 500 // 1 byte for protocol, 8 bytes for the sequence number 
+        {
+            buffer[start] = DataType::NoData as u8;
+            packets.push(buffer); // this is a copy!
+            start = 1;
+            stored_states = 0;
+            stored_bytes = 0;
+
+            //a new packet with a new sequence number
+            *packet_number += 1u64;
+            let end: usize = start + 8;
+            let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
+            buffer[start..end].copy_from_slice(&packet_number_bytes);
+            start = end;
+        }
+
         match state_update{
             StateUpdate::PlayerState(player_state) => {
                 
@@ -265,39 +287,21 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 buffer[start] = DataType::TileState as u8;
                 start += 1;
 
-                let tile_state_bytes = tile_state.to_bytes(); //18
+                let tile_state_bytes = tile_state.to_bytes(); //66
                 let next = start + tile_state_size;
                 buffer[start..next].copy_from_slice(&tile_state_bytes);
-                stored_bytes = stored_bytes + 36 + 1;
+                stored_bytes = stored_bytes + 66 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             }
         }
 
-        if stored_bytes + 36 > 499 // 1 byte for protocol, 8 bytes for the sequence number 
-        {
-            // println!("send mid package {} with {} states ",packet_number, stored_states);
-            buffer[start] = DataType::NoData as u8;
-            packets.push(buffer); // this is a copy!
-            start = 1;
-            stored_states = 0;
-            stored_bytes = 0;
-
-
-            //a new packet with a new sequence number
-            *packet_number += 1u64;
-            let end: usize = start + 8;
-            let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
-            buffer[start..end].copy_from_slice(&packet_number_bytes);
-            start = end;
-        }
     }
 
     if stored_states > 0
     {
         buffer[start] = DataType::NoData as u8;
         packets.push(buffer); // this is a copy!
-        // println!("send final package {} with {} states ",packet_number, stored_states);
     }
 
     packets

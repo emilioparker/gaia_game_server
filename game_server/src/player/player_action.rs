@@ -1,5 +1,3 @@
-use crate::map::tetrahedron_id::TetrahedronId;
-
 pub enum Code
 {
     PlayerActivity = 1,

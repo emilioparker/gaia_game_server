@@ -1,7 +1,4 @@
-use serde_json::map;
-
 use super::tetrahedron_id::TetrahedronId;
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MapEntity { // 66 bytes
@@ -63,8 +60,8 @@ impl MapEntity {
     }
 
     pub fn from_bytes(data: &[u8;66]) -> Self {
-        let mut start : usize = 0;
-        let mut end : usize = 0;
+        let mut start : usize;
+        let end : usize;
 
         start = 0;
         end = start + 6;
@@ -107,8 +104,8 @@ impl MapEntity {
 
 impl MapCommand {
     pub fn from_bytes(data: &[u8;508]) -> Self {
-        let mut start : usize = 0;
-        let mut end : usize = 8;
+        let mut start : usize;
+        let mut end : usize;
 
         start = 1; // ignoring first byte
         end = start + 6;

@@ -105,7 +105,7 @@ async fn spawn_test_client(client_id : u64) {
             let mut data = vec![0u8; 508];
             let _len = rec_socket.recv(&mut data).await.unwrap();
             // println!("got some data from server {}", len);
-            let first_byte = data[0]; // this is the protocol
+            let _first_byte = data[0]; // this is the protocol
             let packet_sequence_number = u64::from_le_bytes(data[1..9].try_into().unwrap());
 
             if client_id == 0 {

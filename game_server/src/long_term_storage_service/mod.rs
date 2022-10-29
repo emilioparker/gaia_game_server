@@ -1,25 +1,41 @@
 
+use std::collections::HashSet;
 use std::sync::Arc;
-use std::{collections::HashMap};
-use crate::map::map_entity::{MapEntity, MapCommand};
+use crate::map::GameMap;
+use crate::map::map_entity::{MapEntity};
 use crate::map::tetrahedron_id::TetrahedronId;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{Receiver};
 
 pub fn start_server(
     mut tile_changes_rx : Receiver<MapEntity>,
+    map : GameMap
 ) {
-    let all_tiles = HashMap::<TetrahedronId,MapEntity>::new();
-    let tiles_update_mutex = Arc::new(Mutex::new(all_tiles));
-    let tiles_save_mutex = tiles_update_mutex.clone();
+
+    let modified_regions = HashSet::<TetrahedronId>::new();
+    let modified_regions_reference = Arc::new(Mutex::new(modified_regions));
+
+    let modified_regions_update_lock = modified_regions_reference.clone();
+    let modified_regions_reader_lock = modified_regions_reference.clone();
+
+    let map_reference = Arc::new(map);
+    let map_reader = map_reference.clone();
+    let map_updater = map_reference.clone();
+
 
     tokio::spawn(async move {
         loop {
             let message = tile_changes_rx.recv().await.unwrap();
             println!("got a tile changed {:?} ", message);
-            let mut locked_tiles = tiles_update_mutex.lock().await;
+            let region_id = message.id.get_parent(7);
+
+            let mut modified_regions = modified_regions_update_lock.lock().await;
+            modified_regions.insert(region_id.clone());
+
+            let region = map_updater.get_region(&region_id);
+            let mut locked_tiles = region.lock().await;
 
             let old = locked_tiles.get(&message.id);
             match old {
@@ -36,17 +52,26 @@ pub fn start_server(
 
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
-            let locked_tiles = tiles_save_mutex.lock().await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
+            let mut modified_regions = modified_regions_reader_lock.lock().await;
 
-            let mut file = File::create("map_1.tiles").await.unwrap();
-            for tile in locked_tiles.iter()
-            {
-                let bytes = tile.1.to_bytes();
-                file.write_all(&bytes).await.unwrap();
+            for region_id in modified_regions.iter(){
+                println!("this region was changed {}", region_id.to_string());
+                let region = map_reader.get_region(region_id);
+                let file_name = format!("map_initial_data/world001_{}_props.bytes", region_id.to_string());
+                let mut file = File::create(file_name).await.unwrap();
+                let locked_tiles = region.lock().await;
+                for tile in locked_tiles.iter()
+                {
+                    let bytes = tile.1.to_bytes();
+                    file.write_all(&bytes).await.unwrap();
+                }
+
             }
+            modified_regions.clear();
         }
     });
 }
+
 
 

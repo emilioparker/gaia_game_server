@@ -1,4 +1,4 @@
-use std::{fmt, clone};
+use std::{fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TetrahedronId {
@@ -8,21 +8,6 @@ pub struct TetrahedronId {
 }
 
 impl TetrahedronId {
-
-    // public static bool IsParentOf(TetrahedronId parent, TetrahedronId child)
-    // {
-    //     var factor = (uint)Mathf.Pow(4, parent.Lod);
-    //     // Debug.LogError("factor " + factor);
-    //     var substraction = child.Id - parent.Id;
-    //     // Debug.LogError("subs " + substraction);
-    //     // Debug.LogError(parent.Area == child.Area);
-    //     // Debug.LogError( parent.Lod > child.Lod );
-    //     // Debug.LogError(substraction % factor == 0);
-    //     return parent.Area == child.Area && parent.Lod < child.Lod && (substraction % factor == 0);
-    // }
-
-
-
     pub fn is_parent(&self, child : &TetrahedronId) -> bool
     {
         let factor = 4u32.pow(self.lod as u32);
@@ -30,15 +15,38 @@ impl TetrahedronId {
         return self.area == child.area && self.lod < child.lod && (substraction % factor == 0)
     }
 
+    pub fn get_parent(&self, times : usize) -> TetrahedronId
+    {
+        let mut current_id : u32 = self.id;
+        let mut current_lod : u8 = self.lod;
+
+        for _i in 0..times{
+            let mut div_result: u32 = current_id;
+            for _j in 0..(current_lod - 1){
+                div_result =  (div_result as f32 / 4f32).floor() as u32;
+            }
+
+            current_id = current_id - div_result * 4u32.pow(current_lod as u32 - 1);
+            current_lod = current_lod - 1;
+        }
+
+        TetrahedronId {
+            area: self.area,
+            id: current_id, 
+            lod: current_lod,
+        }
+    }
+
     pub fn subdivide(&self, child_index : u8) -> TetrahedronId
     {
-        TetrahedronId { area: 1, id: 15, lod: 2 }
+        let id = self.id  + (child_index as u32) * 4u32.pow(self.lod as u32);
+        TetrahedronId { area: self.area, id, lod: self.lod + 1 }
     }
 
     pub fn to_bytes(&self) -> [u8;6] {
         let mut buffer = [0u8; 6];
-        let mut start : usize = 0;
-        let mut end : usize = 0;
+        let start : usize;
+        let end : usize;
 
         buffer[0] = self.area;
 
@@ -98,8 +106,7 @@ impl TetrahedronId {
                 if char_vec[0] == 'q' {area = 16};
                 if char_vec[0] == 'r' {area = 17};
                 if char_vec[0] == 's' {area = 18};
-                if char_vec[0] == 'r' {area = 19};
-                if char_vec[0] == 't' {area = 20};
+                if char_vec[0] == 't' {area = 19};
             }
             else {
                 let num = char_vec[i].to_string().parse::<u32>().unwrap();
@@ -124,7 +131,8 @@ impl fmt::Display for TetrahedronId {
 
         let mut alphabetic_id = "".to_string();
         let mut result = self.id;
-        for _i in 0..(self.lod - 1)
+        let end = (self.lod as i32 - 1).max(0);
+        for _i in 0..end
         {
             let res = result % 4;
             result = result / 4;
@@ -151,6 +159,64 @@ mod tests {
         let tile_id = TetrahedronId::from_string(tile_human_id);
         println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_human_id, tile_id.to_string());
+
+        let tile_human_id = "a233";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        assert_eq!(tile_human_id, tile_id.to_string());
+
+        let tile_human_id = "a";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        assert_eq!(tile_human_id, tile_id.to_string());
+    }
+
+    #[test]
+    fn get_parent_test()
+    {
+        let tile_human_id = "k233333313";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+
+        let parent = "k23333331";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(1));
+
+        let tile_human_id = "k23333";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let parent = "k2333";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(1));
+
+        let tile_human_id = "k233333333";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let parent = "k23333333";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(1));
+
+        let tile_human_id = "a220";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let parent = "a22";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(1));
+
+        let tile_human_id = "k233333313";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let parent = "k23";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(7));
+
+        let tile_human_id = "k233333313";
+        let tile_id = TetrahedronId::from_string(tile_human_id);
+
+        let parent = "k23333";
+        let parent_tile_id = TetrahedronId::from_string(parent);
+        assert_eq!(parent_tile_id, tile_id.get_parent(4));
+
     }
 
     #[test]
@@ -190,7 +256,7 @@ mod tests {
         let child_tile_id = TetrahedronId::from_string(child_human_id);
         assert!(tile_id.is_parent(&child_tile_id) == false);
 
-        let child_human_id = "k23333331";
+        let child_human_id = "k2";
         let child_tile_id = TetrahedronId::from_string(child_human_id);
         assert!(tile_id.is_parent(&child_tile_id) == false);
     }

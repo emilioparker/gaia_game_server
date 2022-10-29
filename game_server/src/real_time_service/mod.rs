@@ -3,15 +3,15 @@ pub mod utils;
 
 use std::sync::Arc;
 use std::{collections::HashMap};
+use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
-use crate::map::tetrahedron_id::TetrahedronId;
 use crate::player::{player_action::PlayerAction, player_entity::PlayerEntity};
-use crate::{client_state_system, web_service};
+use crate::{client_state_system};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub fn start_server(
-    tiles_lock: Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>,
+    map: Arc<GameMap>,
     tile_command_tx: Sender<MapCommand>,
     tile_command_from_outside_rx : Receiver<MapCommand>,
     tile_changed_tx: Sender<MapEntity>,
@@ -55,7 +55,7 @@ pub fn start_server(
     });
 
     tokio::spawn(async move {
-        let read_udp_socket = udp_socket.clone();
+        // let read_udp_socket = udp_socket.clone();
         let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
         // each client has a client_action_tx where it can send updates to its own state
@@ -74,7 +74,7 @@ pub fn start_server(
             client_action_rx,
             tile_changed_tx,
             tile_command_from_outside_rx,
-            tiles_lock,
+            map,
             server_state_tx);
         // ---------------------------------------------------
 

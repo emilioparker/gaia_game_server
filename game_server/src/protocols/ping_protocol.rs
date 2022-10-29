@@ -7,7 +7,7 @@ pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &S
     let mut start = 1;
     let mut end = start + 8;
 
-    let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
     end = start + 2;
 
