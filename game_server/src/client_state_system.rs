@@ -40,7 +40,7 @@ pub fn process_player_action(
 
     let mut seq = 0;
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
 
     //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
