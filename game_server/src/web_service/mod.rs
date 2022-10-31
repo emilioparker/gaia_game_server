@@ -162,7 +162,7 @@ pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>) {
             async move { Ok::<_, Infallible>(service) }
         });
 
-        let addr = ([0, 0, 0, 1], 3031).into();
+        let addr = ([0, 0, 0, 0], 3031).into();
         let server = hyper::Server::bind(&addr).serve(make_service);
         eprintln!("Doc server running on http://{}/", addr);
         server.await.expect("Server failed");
