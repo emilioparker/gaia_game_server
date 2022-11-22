@@ -61,15 +61,15 @@ fn get_regions(initial : TetrahedronId, target_lod : u8, regions : &mut Vec<Tetr
 }
 
 async fn get_tiles_from_file(code : String, all_tiles : &mut HashMap<TetrahedronId, MapEntity>){
-    let file_name = format!("map_initial_data/world001_{}_props.bytes", code);
+    let file_name = format!("map_initial_data/world_002_{}_props.bytes", code);
     println!("reading file {}", file_name);
 
     let tiles = tokio::fs::read(file_name).await.unwrap();
     let size = tiles.len();
 
-    let mut buffer = [0u8;66];
+    let mut buffer = [0u8;69];
     let mut start = 0;
-    let mut end = 66;
+    let mut end = 69;
 
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
@@ -77,7 +77,7 @@ async fn get_tiles_from_file(code : String, all_tiles : &mut HashMap<Tetrahedron
         all_tiles.insert(map_entity.id.clone(), map_entity);
         // println!("{:?}", map_entity);
         start = end;
-        end = end + 66;
+        end = end + 69;
 
         if end > size
         {

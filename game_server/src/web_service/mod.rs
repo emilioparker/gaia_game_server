@@ -54,10 +54,13 @@ async fn handle(context: AppContext, mut req: Request<Body>) -> Result<Response<
                 last_update: tile_data.last_update,
                 health: tile_data.health,
                 prop: data.prop,
-                heights:tile_data.heights,
-                normal_a: tile_data.normal_a, 
-                normal_b: tile_data.normal_b,
-                normal_c: tile_data.normal_c
+                heat : tile_data.heat,
+                moisture : tile_data.moisture,
+                biome : tile_data.biome,
+                heights : tile_data.heights,
+                normal_a : tile_data.normal_a,
+                normal_b : tile_data.normal_b,
+                normal_c : tile_data.normal_c
             };
 
             let player_response = PlayerResponse {
@@ -98,7 +101,7 @@ async fn handle_file_request(req: Request<Body>) -> Result<Response<Body>, hyper
     let region = data.next();
     if let Some(region) = region {
         println!("this is the region {}", region);
-        let file_path = format!("map_initial_data/world001_{}_props.bytes", region);
+        let file_path = format!("map_initial_data/world_002_{}_props.bytes", region);
         let path = std::path::Path::new(&file_path);
         return match static_file(
             &path,
