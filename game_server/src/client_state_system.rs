@@ -319,17 +319,17 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
 
 
-        let data : &[u8] = &compressed_bytes;
-        let mut decoder = ZlibDecoder::new(data);
+        // let data : &[u8] = &compressed_bytes;
+        // let mut decoder = ZlibDecoder::new(data);
 
-        let decoded_data_result :  Result<Vec<u8>, _> = decoder.bytes().collect();
-        let decoded_data = decoded_data_result.unwrap();
-        let decoded_data_array : &[u8] = &decoded_data;
+        // let decoded_data_result :  Result<Vec<u8>, _> = decoder.bytes().collect();
+        // let decoded_data = decoded_data_result.unwrap();
+        // let decoded_data_array : &[u8] = &decoded_data;
 
-        println!("data:");
-        println!("{:#04X?}", buffer);
+        // println!("data:");
+        // println!("{:#04X?}", buffer);
 
-        println!("decoded data: {}", (buffer == *decoded_data_array));
+        // println!("decoded data: {}", (buffer == *decoded_data_array));
         packets.push(compressed_bytes); // this is a copy!
     }
 
