@@ -17,7 +17,7 @@ pub fn start_server(
     tile_changed_tx: Sender<MapEntity>,
 ) {
 
-    let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(200);
+    let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
     let clients:HashMap<std::net::SocketAddr, PlayerEntity> = HashMap::new();
     let clients_mutex = std::sync::Arc::new(Mutex::new(clients));
 
@@ -40,8 +40,9 @@ pub fn start_server(
                     for packet in packet_list.iter(){
                         if client.1.player_id == 0 {
                             // let first_byte = packet[0]; // this is the protocol
-                            let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
-                            println!("sending {}", packet_sequence_number);
+                            // the packet is compress, I can't read the sequence number
+                            // let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
+                            // println!("sending {}", packet_sequence_number);
                         }
                         let result = send_udp_socket.send_to(packet, client.0).await;
                         match result {

@@ -5,8 +5,13 @@ use crate::map::map_entity::{MapCommand, MapCommandInfo};
 use crate::player::{player_state::PlayerState, player_action::PlayerAction};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
+use flate2::read::ZlibDecoder;
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
+
+use std::io::prelude::*;
+use flate2::Compression;
+use flate2::write::ZlibEncoder;
 
 pub enum DataType
 {
@@ -20,7 +25,7 @@ pub fn process_player_action(
     tile_changed_tx : tokio::sync::mpsc::Sender<MapEntity>,
     mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
-    tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
+    tx: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
 ){
 
     //players
@@ -225,10 +230,10 @@ pub fn process_player_action(
     });
 }
 
-pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<[u8;508]> {
+pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
     *packet_number += 1u64;
 
-    let mut buffer = [0u8; 508];
+    let mut buffer = [0u8; 5000];
     let mut start: usize = 1;
     buffer[0] = crate::protocols::Protocol::GlobalState as u8;
 
@@ -244,8 +249,10 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     let mut stored_bytes:u32 = 0;
     let mut stored_states:u8 = 0;
 
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
 
-    let mut packets = Vec::<[u8;508]>::new();
+
+    let mut packets = Vec::<Vec<u8>>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
     for state_update in data.iter()
     {
@@ -254,10 +261,15 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileState(_) => 67,
         };
 
-        if stored_bytes + required_space > 500 // 1 byte for protocol, 8 bytes for the sequence number 
+        if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
         {
             buffer[start] = DataType::NoData as u8;
-            packets.push(buffer); // this is a copy!
+
+            encoder.write_all(buffer.as_slice()).unwrap();
+            let compressed_bytes = encoder.reset(Vec::new()).unwrap();
+            println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
+            packets.push(compressed_bytes); // this is a copy!
+
             start = 1;
             stored_states = 0;
             stored_bytes = 0;
@@ -301,8 +313,27 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     if stored_states > 0
     {
         buffer[start] = DataType::NoData as u8;
-        packets.push(buffer); // this is a copy!
+        encoder.write_all(&buffer[..(start + 1)]).unwrap();
+        // encoder.write_all(buffer.as_slice()).unwrap();
+        let compressed_bytes = encoder.reset(Vec::new()).unwrap();
+        println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
+
+
+        let data : &[u8] = &compressed_bytes;
+        let mut decoder = ZlibDecoder::new(data);
+
+        let decoded_data_result :  Result<Vec<u8>, _> = decoder.bytes().collect();
+        let decoded_data = decoded_data_result.unwrap();
+        let decoded_data_array : &[u8] = &decoded_data;
+
+        println!("data:");
+        println!("{:#04X?}", buffer);
+
+        println!("decoded data: {}", (buffer == *decoded_data_array));
+        packets.push(compressed_bytes); // this is a copy!
     }
+
+    // let all_data : Vec<u8> = packets.iter().flat_map(|d| d.clone()).collect();
 
     packets
 }

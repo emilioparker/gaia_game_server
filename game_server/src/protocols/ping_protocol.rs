@@ -16,6 +16,6 @@ pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &S
 
 
     // println!("the message is an {num}");
-    let _len = socket.send(data).await.unwrap();
+    // let _len = socket.send(data).await.unwrap();
     // println!("{:?} bytes sent", len);
 }
