@@ -101,10 +101,11 @@ async fn handle_file_request(req: Request<Body>) -> Result<Response<Body>, hyper
     let region = data.next();
     if let Some(region) = region {
         println!("this is the region {}", region);
-        let file_path = format!("map_initial_data/world_002_{}_props.bytes", region);
+        let file_path = format!("map_working_data/world_002_{}_props.bytes", region);
         let path = std::path::Path::new(&file_path);
         return match static_file(
             &path,
+            // Some("application/octet-stream"), // mime type
             Some("text/html"), // mime type
             &req.headers(), // hyper request header map
             65536 // buffer size

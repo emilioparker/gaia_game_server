@@ -1,13 +1,16 @@
 
 use std::collections::HashSet;
+use std::io::Write;
 use std::sync::Arc;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity};
 use crate::map::tetrahedron_id::TetrahedronId;
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver};
+use flate2::Compression;
+use flate2::write::ZlibEncoder;
 
 pub fn start_server(
     mut tile_changes_rx : Receiver<MapEntity>,
@@ -52,20 +55,25 @@ pub fn start_server(
 
     tokio::spawn(async move {
         loop {
+            let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
             tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
             let mut modified_regions = modified_regions_reader_lock.lock().await;
 
             for region_id in modified_regions.iter(){
                 println!("this region was changed {}", region_id.to_string());
                 let region = map_reader.get_region(region_id);
-                let file_name = format!("map_initial_data/world001_{}_props.bytes", region_id.to_string());
+                let file_name = format!("map_working_data/world_002_{}_props.bytes", region_id.to_string());
                 let mut file = File::create(file_name).await.unwrap();
+
                 let locked_tiles = region.lock().await;
                 for tile in locked_tiles.iter()
                 {
                     let bytes = tile.1.to_bytes();
-                    file.write_all(&bytes).await.unwrap();
+                    encoder.write(&bytes).unwrap();
                 }
+
+                let compressed_bytes = encoder.reset(Vec::new()).unwrap();
+                file.write_all(&compressed_bytes).await.unwrap();
 
             }
             modified_regions.clear();

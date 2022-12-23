@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 use std::sync::Arc;
 
 use game_server::long_term_storage_service;
@@ -8,6 +9,10 @@ use game_server::map::map_entity::MapEntity;
 use game_server::map::tetrahedron_id::TetrahedronId;
 use game_server::real_time_service;
 use game_server::web_service;
+use flate2::Compression;
+use flate2::write::ZlibEncoder;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 // #[tokio::main(worker_threads = 1)]
 #[tokio::main()]
@@ -17,8 +22,8 @@ async fn main() {
     //console_subscriber::init();
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
     // let all_tiles = HashMap::<TetrahedronId,MapEntity>::new();
-    let working_tiles = load_files().await;
-    let storage_tiles = load_files().await;
+    let working_tiles = load_files(true).await;
+    let storage_tiles = load_files(false).await;
 
     let working_tiles_reference= Arc::new(working_tiles);
 
@@ -60,8 +65,9 @@ fn get_regions(initial : TetrahedronId, target_lod : u8, regions : &mut Vec<Tetr
     }
 }
 
-async fn get_tiles_from_file(code : String, all_tiles : &mut HashMap<TetrahedronId, MapEntity>){
-    let file_name = format!("map_initial_data/world_002_{}_props.bytes", code);
+async fn get_tiles_from_file(region_id : String, all_tiles : &mut HashMap<TetrahedronId, MapEntity>, save_compressed : bool){
+    let file_name = format!("map_initial_data/world_002_{}_props.bytes", region_id);
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
     println!("reading file {}", file_name);
 
     let tiles = tokio::fs::read(file_name).await.unwrap();
@@ -73,6 +79,9 @@ async fn get_tiles_from_file(code : String, all_tiles : &mut HashMap<Tetrahedron
 
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
+        if save_compressed {
+            encoder.write(&buffer).unwrap();
+        }
         let map_entity = MapEntity::from_bytes(&buffer);
         all_tiles.insert(map_entity.id.clone(), map_entity);
         // println!("{:?}", map_entity);
@@ -84,9 +93,18 @@ async fn get_tiles_from_file(code : String, all_tiles : &mut HashMap<Tetrahedron
             break;
         }
     }
+
+
+    if save_compressed {
+        let compressed_bytes = encoder.reset(Vec::new()).unwrap();
+        let file_name = format!("map_working_data/world_002_{}_props.bytes", region_id.to_string());
+        let mut file = File::create(file_name).await.unwrap();
+        file.write_all(&compressed_bytes).await.unwrap();
+    }
+
 }
 
-async fn load_files() -> GameMap {
+async fn load_files(save_compressed : bool) -> GameMap {
 
     let encoded_areas : [char; 20] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't'];
 
@@ -108,7 +126,7 @@ async fn load_files() -> GameMap {
     {
         let mut region_tiles = HashMap::<TetrahedronId,MapEntity>::new();
         // println!("get data for region {}", region.to_string());
-        get_tiles_from_file(region.to_string(), &mut region_tiles).await;
+        get_tiles_from_file(region.to_string(), &mut region_tiles, save_compressed).await;
         regions_data.push((region, region_tiles));
     }
 
