@@ -1,6 +1,7 @@
 
 use std::{sync::Arc};
 
+use futures_util::future::OrElse;
 use hyper::{Request, body, server::conn::AddrStream};
 use hyper_static::serve::static_file;
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,7 @@ use std::net::SocketAddr;
 use hyper::{Body, Response, Server};
 use hyper::service::{make_service_fn, service_fn};
 
+use crate::long_term_storage_service::db_region::StoredRegion;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -32,7 +34,8 @@ struct PlayerResponse {
 #[derive(Clone)]
 struct AppContext {
     game_map : Arc<GameMap>,
-    map_command_sender : Sender<MapCommand>
+    map_command_sender : Sender<MapCommand>,
+    db_client : mongodb ::Client
 }
 
 async fn handle(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, Infallible> {
@@ -93,29 +96,43 @@ async fn handle(context: AppContext, mut req: Request<Body>) -> Result<Response<
     }
 }
 
-async fn handle_file_request(req: Request<Body>) -> Result<Response<Body>, hyper::http::Error> {
+async fn handle_region_request(context: AppContext, req: Request<Body>) -> Result<Response<Body>, hyper::http::Error> {
 
     let uri = req.uri().to_string();
     let mut data = uri.split("/region/");
     let _ = data.next();
     let region = data.next();
     if let Some(region) = region {
-        println!("this is the region {}", region);
-        // let file_path = format!("map_initial_data/world_002_{}_props.bytes", region);
-        let file_path = format!("map_working_data/world_002_{}_props.bytes", region);
-        let path = std::path::Path::new(&file_path);
-        return match static_file(
-            &path,
-            // Some("application/octet-stream"), // mime type
-            Some("text/html"), // mime type
-            &req.headers(), // hyper request header map
-            65536 // buffer size
-        )
-        .await
-        {
-            Ok(v) => v, // return it
-            Err(e) => e.into(), // transform the error and return
-        };
+
+        let data_collection: mongodb::Collection<StoredRegion> = context.db_client.database("game").collection::<StoredRegion>("regions");
+
+        // Look up one document:
+        let data_from_db: Option<StoredRegion> = data_collection
+        .find_one(
+            bson::doc! {
+                    "region_id": region.to_owned()
+            },
+            None,
+        ).await
+        .unwrap();
+
+        if let Some(region_from_db) = data_from_db {
+
+            let binary_data: Vec<u8> = match region_from_db.compressed_data {
+                bson::Bson::Binary(binary) => binary.bytes,
+                _ => panic!("Expected Bson::Binary"),
+            };
+
+            let response = Response::builder()
+                .status(hyper::StatusCode::OK)
+                .header("Content-Type", "application/octet-stream")
+                .body(Body::from(binary_data))
+                .expect("Failed to create response");
+            Ok(response)
+        }
+        else {
+            Ok(Response::new(Body::from("Error getting region from db")))
+        }
     }
     else{
         println!("bad request");
@@ -124,17 +141,21 @@ async fn handle_file_request(req: Request<Body>) -> Result<Response<Body>, hyper
 
 }
 
-pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>) {
+pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>, db_client : mongodb :: Client) {
 
     let context = AppContext {
         game_map : map,
-        map_command_sender : tile_changed_rx
+        map_command_sender : tile_changed_rx,
+        db_client : db_client
     };
+
+    let context_a = context.clone();
+    let context_b = context.clone();
 
     tokio::spawn(async move {
         let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
         let make_service = make_service_fn(move |conn: &AddrStream| {
-            let context = context.clone();
+            let context = context_a.clone();
             let _addr = conn.remote_addr();
             let service = service_fn(move |req| {
                 handle(context.clone(), req)
@@ -159,10 +180,11 @@ pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>) {
 
     tokio::spawn(async move {
 
-        let make_service = make_service_fn(|_| {
+        let make_service = make_service_fn(move |conn: &AddrStream| {
             // future::ok::<_, hyper::Error>(service_fn(move |req| handle_request(req, static_.clone())))
+            let context = context_b.clone();
             let service = service_fn(move |req| {
-                handle_file_request(req)
+                handle_region_request(context.clone(), req)
             });
             async move { Ok::<_, Infallible>(service) }
         });
