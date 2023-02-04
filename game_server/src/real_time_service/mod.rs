@@ -12,11 +12,12 @@ use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub fn start_server(
+    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     map: Arc<GameMap>,
     tile_command_tx: Sender<MapCommand>,
     tile_command_from_outside_rx : Receiver<MapCommand>,
     tile_changed_tx: Sender<MapEntity>,
-    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>
+    player_changed_tx: Sender<PlayerEntity>
 ) {
 
     let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);

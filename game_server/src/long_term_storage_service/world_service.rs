@@ -145,15 +145,10 @@ pub async fn check_world_state(
 }
 
 pub fn start_server(
-    world_name : &str,
-    world_id: Option<ObjectId>,
     mut tile_changes_rx : Receiver<MapEntity>,
     map : GameMap,
     db_client : Client
 ) {
-
-    let world_name = world_name.to_string();
-
     let modified_regions = HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));
 
@@ -223,8 +218,8 @@ pub fn start_server(
 
                 let data = StoredRegion {
                     id : region_object_id,
-                    world_id : world_id,
-                    world_name : world_name.to_owned(),
+                    world_id : None,
+                    world_name : "".to_owned(),
                     region_id : region_id.to_string(),
                     compressed_data : bson
                 };

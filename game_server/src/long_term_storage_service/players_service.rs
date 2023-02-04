@@ -82,7 +82,7 @@ pub async fn get_players_from_db(
 
 pub fn start_server(
     mut player_changes_rx : Receiver<PlayerEntity>,
-    players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
+    players : HashMap<u64, PlayerEntity>,
     db_client : Client
 ) {
 
@@ -92,9 +92,9 @@ pub fn start_server(
     let modified_players_update_lock = modified_players_reference.clone();
     let modified_players_reader_lock = modified_players_reference.clone();
 
-    // let players_reference = Arc::new(players);
-    let players_reader = players.clone();
-    let players_updater = players.clone();
+    let players_reference = Arc::new(Mutex::new(players));
+    let players_reader = players_reference.clone();
+    let players_updater = players_reference.clone();
 
 
     // we keep track of which players have change in a hashset

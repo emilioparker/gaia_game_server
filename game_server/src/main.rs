@@ -40,10 +40,16 @@ async fn main() {
     let mut working_tiles: Option<GameMap> = None; // load_files_into_game_map(world_name).await;
     let mut storage_tiles: Option<GameMap> = None; // load_files_into_game_map(world_name).await;
     let mut current_world_id: Option<ObjectId> = None; // load_files_into_game_map(world_name).await;
-    let mut working_clients = HashMap::<u64, PlayerEntity>::new();
-    let mut clients_reference =  Arc::new(Mutex::new(working_clients));
+
 
     let world_state = long_term_storage_service::world_service::check_world_state(world_name, db_client.clone()).await;
+    let working_players = long_term_storage_service::players_service::get_players_from_db(world_name, db_client.clone()).await;
+
+    //used and updated by the long storage system
+    let storage_players = working_players.clone();
+
+    //shared by the realtime service and the webservice
+    let mut working_players_reference =  Arc::new(Mutex::new(working_players));
 
     if let Some(world) = world_state {
         println!("Load the world from db init at {}", world.start_time);
@@ -82,21 +88,27 @@ async fn main() {
     // tiles mirrow image
     let (tile_update_tx, tile_update_rx ) = tokio::sync::mpsc::channel::<MapEntity>(100);
     let (map_command_tx, real_time_service_rx ) = tokio::sync::mpsc::channel::<MapCommand>(20);
+
+    // for players
+    let (players_update_tx, players_update_rx ) = tokio::sync::mpsc::channel::<PlayerEntity>(100);
+
     let web_service_map_commands_tx = map_command_tx.clone();
-    let client_map_commands_tx = map_command_tx.clone();
+    let client_commands_tx = map_command_tx.clone();
 
     match (working_tiles, storage_tiles) {
         (Some(working_tiles), Some(storage_tiles)) =>
         {
             let working_tiles_reference= Arc::new(working_tiles);
-            long_term_storage_service::world_service::start_server(world_name, current_world_id, tile_update_rx, storage_tiles, db_client.clone());
-            web_service::start_server(working_tiles_reference.clone(), web_service_map_commands_tx, db_client.clone());
+            long_term_storage_service::world_service::start_server(tile_update_rx, storage_tiles, db_client.clone());
+            long_term_storage_service::players_service::start_server(players_update_rx, storage_players, db_client.clone());
+            web_service::start_server(working_players_reference.clone(), working_tiles_reference.clone(), web_service_map_commands_tx, db_client.clone());
             real_time_service::start_server(
+                working_players_reference.clone(),
                 working_tiles_reference.clone(), 
-                client_map_commands_tx, 
+                client_commands_tx, 
                 real_time_service_rx,
                 tile_update_tx,
-                clients_reference.clone()
+                players_update_tx
             );
         },
         _ => {

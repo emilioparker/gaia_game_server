@@ -1,8 +1,10 @@
 
+use std::collections::HashMap;
 use std::{sync::Arc};
 
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 use tokio::sync::mpsc::Sender;
 
 use std::convert::Infallible;
@@ -14,6 +16,7 @@ use crate::long_term_storage_service::db_region::StoredRegion;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
 use crate::map::tetrahedron_id::TetrahedronId;
+use crate::player::player_entity::PlayerEntity;
 
 #[derive(Deserialize, Serialize, Debug)]
 struct PlayerRequest {
@@ -52,6 +55,7 @@ struct CharacterCreationResponse {
 
 #[derive(Clone)]
 struct AppContext {
+    players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     game_map : Arc<GameMap>,
     map_command_sender : Sender<MapCommand>,
     db_client : mongodb ::Client
@@ -202,9 +206,10 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
     }
 }
 
-pub fn start_server(map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>, db_client : mongodb :: Client) {
+pub fn start_server(players: Arc<Mutex<HashMap<u64, PlayerEntity>>>, map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>, db_client : mongodb :: Client) {
 
     let context = AppContext {
+        players: players,
         game_map : map,
         map_command_sender : tile_changed_rx,
         db_client : db_client
