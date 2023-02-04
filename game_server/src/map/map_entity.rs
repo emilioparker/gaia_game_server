@@ -1,7 +1,10 @@
+use bson::oid::ObjectId;
+
 use super::tetrahedron_id::TetrahedronId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MapEntity { // 69 bytes
+    pub object_id : Option<ObjectId>,
     pub id : TetrahedronId, // 6 bytes
     pub last_update: u32, // 4 bytes
     pub health:u32, // 4 bytes
@@ -113,7 +116,7 @@ impl MapEntity {
             decode_float(data, &mut start)
         ];
 
-        MapEntity { id, last_update, health, prop, heat, moisture, biome, heights, normal_a, normal_b, normal_c }
+        MapEntity {object_id: None, id, last_update, health, prop, heat, moisture, biome, heights, normal_a, normal_b, normal_c }
     }
 }
 
@@ -182,6 +185,7 @@ mod tests {
     {
 
         let entity = MapEntity{
+            object_id: None,
             id: TetrahedronId::from_string("a00001"),
             last_update: 1000,
             health: 14,

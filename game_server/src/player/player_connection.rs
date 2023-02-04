@@ -1,12 +1,6 @@
-use bson::oid::ObjectId;
 
-
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct PlayerEntity {
-    pub object_id: Option<ObjectId>,
+pub struct PlayerConnection {
     pub player_id: u64,
-    pub constitution: u32
     // pub tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
 }
 

@@ -1,13 +1,15 @@
 
 // mod create:utils;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::time;
 use tokio::time::Duration;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_action::PlayerAction;
+use crate::player::player_entity::PlayerEntity;
 use crate::player::player_state::PlayerState;
 use crate::{protocols};
 
@@ -23,9 +25,9 @@ pub async fn spawn_client_process(
     address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
-    // mut channel_rx : mpsc::Receiver<Arc<Vec<[u8;508]>>>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
+    all_players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     _initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
@@ -36,6 +38,9 @@ pub async fn spawn_client_process(
 
     //messages from the client to the server, like an updated position
     tokio::spawn(async move {
+
+
+        // we should try to get the player data at this point!
 
         //handle the first package
         // I think the first package doesn't matter.

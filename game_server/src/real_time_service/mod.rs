@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::{collections::HashMap};
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
+use crate::player::player_connection::PlayerConnection;
 use crate::player::{player_action::PlayerAction, player_entity::PlayerEntity};
 use crate::{client_state_system};
 use tokio::sync::Mutex;
@@ -15,14 +16,15 @@ pub fn start_server(
     tile_command_tx: Sender<MapCommand>,
     tile_command_from_outside_rx : Receiver<MapCommand>,
     tile_changed_tx: Sender<MapEntity>,
+    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>
 ) {
 
     let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
-    let clients:HashMap<std::net::SocketAddr, PlayerEntity> = HashMap::new();
-    let clients_mutex = std::sync::Arc::new(Mutex::new(clients));
+    let client_connections:HashMap<std::net::SocketAddr, PlayerConnection> = HashMap::new();
+    let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
-    let server_lock = clients_mutex.clone();
-    let server_send_to_clients_lock = clients_mutex.clone();
+    let server_lock = client_connections_mutex.clone();
+    let server_send_to_clients_lock = client_connections_mutex.clone();
 
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
     // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
@@ -44,6 +46,8 @@ pub fn start_server(
                             // let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
                             // println!("sending {}", packet_sequence_number);
                         }
+                        // todo: only send data if client is correctly validated, add state to clients_data
+                        println!("sending packet to clients ");
                         let result = send_udp_socket.send_to(packet, client.0).await;
                         match result {
                             Ok(_) => {},
@@ -99,15 +103,13 @@ pub fn start_server(
                             let start = 1;
                             let end = start + 8;
                             let player_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
-                            // start = end;
-                            // end = start + 8;
 
                             println!("--- create child for {}", player_id);
                             let tx = from_client_to_world_tx.clone();
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
                             // let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
-                            let player_entity = PlayerEntity{
+                            let player_entity = PlayerConnection{
                                 player_id : player_id, // we need to get this data from the packet
                                 // tx : server_state_tx
                             };
@@ -120,7 +122,16 @@ pub fn start_server(
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
                             // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(player_id, address, from_address, tx, tile_command_tx.clone(), client_action_tx.clone(), buf_udp).await;
+                            client_handler::spawn_client_process(
+                                player_id, 
+                                address, 
+                                from_address, 
+                                tx, 
+                                tile_command_tx.clone(), 
+                                client_action_tx.clone(), 
+                                players.clone(),
+                                buf_udp,
+                            ).await;
                         }
                         else
                         {
