@@ -2,9 +2,11 @@ use std::{sync::Arc, time::SystemTime};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
+use crate::player::player_entity::PlayerEntity;
 use crate::player::{player_state::PlayerState, player_action::PlayerAction};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
+use tokio::sync::mpsc::Receiver;
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
@@ -19,14 +21,18 @@ pub enum DataType
     TileState = 27,
 }
 
-pub fn process_player_action(
-    mut rx_pa_client_statesys : tokio::sync::mpsc::Receiver<PlayerAction>,
-    tx_me_statesys_longterm : tokio::sync::mpsc::Sender<MapEntity>,
-    mut rx_mc_client_statesys : tokio::sync::mpsc::Receiver<MapCommand>,
-    mut rx_mc_webservice_statesys : tokio::sync::mpsc::Receiver<MapCommand>,
+pub fn start_service(
+    mut rx_pa_client_game : tokio::sync::mpsc::Receiver<PlayerAction>,
+    mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
+    mut rx_mc_webservice_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
-    tx_bytes_statesys_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
-){
+    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>,
+    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
+) -> (Receiver<MapEntity>, Receiver<PlayerEntity>) {
+
+    let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
+    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<PlayerEntity>(1000);
+
     //players
     let all_players = HashMap::<u64,PlayerState>::new();
     let data_mutex = Arc::new(Mutex::new(all_players));
@@ -53,7 +59,7 @@ pub fn process_player_action(
 
         let mut sequence_number:u64 = 101;
         loop {
-            let message = rx_pa_client_statesys.recv().await.unwrap();
+            let message = rx_pa_client_game.recv().await.unwrap();
 
             let mut current_time = 0;
             let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -94,7 +100,7 @@ pub fn process_player_action(
 
         // let mut sequence_number:u64 = 101;
         loop {
-            let message = rx_mc_client_statesys.recv().await.unwrap();
+            let message = rx_mc_client_game.recv().await.unwrap();
             println!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_client_lock.lock().await;
             
@@ -117,7 +123,7 @@ pub fn process_player_action(
 
         // let mut sequence_number:u64 = 101;
         loop {
-            let message = rx_mc_webservice_statesys.recv().await.unwrap();
+            let message = rx_mc_webservice_game.recv().await.unwrap();
             println!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
             
@@ -171,14 +177,14 @@ pub fn process_player_action(
                         match tile_command.1.info {
                             MapCommandInfo::Touch() => {
                                 tiles_summary.push(updated_tile);
-                                tx_me_statesys_longterm.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(value) => {
                                 updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
                                 tiles_summary.push(updated_tile.clone());
                                 *tile = updated_tile;
                                 // sending the updated tile somewhere.
-                                tx_me_statesys_longterm.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
                             }
                         }
                     }
@@ -209,11 +215,13 @@ pub fn process_player_action(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
-            tx_bytes_statesys_socket.send(arc_summary).await.unwrap();
+            tx_bytes_game_socket.send(arc_summary).await.unwrap();
 
             players_summary.clear();
         }
     });
+
+    ( rx_me_gameplay_longterm, rx_pe_gameplay_longterm)
 }
 
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {

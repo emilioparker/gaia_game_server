@@ -5,7 +5,7 @@ use std::{sync::Arc};
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Sender, Receiver};
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -209,13 +209,14 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
 pub fn start_server(
     players: Arc<Mutex<HashMap<u64, PlayerEntity>>>, 
     map: Arc<GameMap>, 
-    tx_mc_webservice_realtime : Sender<MapCommand>,
-    db_client : mongodb :: Client) {
+    db_client : mongodb :: Client) 
+    -> Receiver<MapCommand>{
 
+    let (tx_mc_webservice_gameplay, rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let context = AppContext {
         players: players,
         game_map : map,
-        tx_mc_webservice_realtime : tx_mc_webservice_realtime,
+        tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
         db_client : db_client
     };
 
@@ -240,4 +241,6 @@ pub fn start_server(
             eprintln!("server error: {}", e);
         }
     });
+
+    rx_mc_webservice_gameplay
 }

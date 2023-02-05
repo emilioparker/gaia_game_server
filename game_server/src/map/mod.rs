@@ -2,6 +2,8 @@ use std::{collections::{HashMap}, sync::Arc};
 
 use tokio::sync::Mutex;
 
+use crate::player::player_entity::PlayerEntity;
+
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
 pub mod map_entity;
@@ -10,15 +12,8 @@ pub mod tetrahedron_id;
 
 pub struct GameMap { 
     pub region_keys : Arc<Vec<TetrahedronId>>,
-    pub regions : 
-    HashMap<
-        TetrahedronId, 
-        Arc<
-            Mutex<
-                HashMap<TetrahedronId, MapEntity>
-            >
-        >
-    > 
+    pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
+    // pub players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
 }
 
 impl GameMap {

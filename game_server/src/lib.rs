@@ -1,5 +1,5 @@
 pub mod protocols;
-pub mod client_state_system;
+pub mod gameplay_service;
 pub mod player;
 pub mod map;
 pub mod web_service;

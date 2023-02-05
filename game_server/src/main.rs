@@ -4,6 +4,7 @@ use std::io::Write;
 use std::sync::Arc;
 
 use flate2::read::ZlibDecoder;
+use game_server::gameplay_service;
 use game_server::long_term_storage_service;
 use game_server::long_term_storage_service::db_region::StoredRegion;
 use game_server::map::GameMap;
@@ -78,39 +79,44 @@ async fn main() {
         }
     }
 
-    let (tx_me_realtime_longterm, rx_me_realtime_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
-    let (tx_mc_webservice_realtime, rx_mc_webservice_realtime ) = tokio::sync::mpsc::channel::<MapCommand>(200);
-
-    let (tx_pe_realtime_longterm, rx_pe_realtime_longterm ) = tokio::sync::mpsc::channel::<PlayerEntity>(1000);
-
     match (working_tiles, storage_tiles) {
         (Some(working_tiles), Some(storage_tiles)) =>
         {
             let working_tiles_reference= Arc::new(working_tiles);
+
+            let rx_mc_webservice_gameplay = web_service::start_server(
+                working_players_reference.clone(), 
+                working_tiles_reference.clone(), 
+                db_client.clone()
+            );
+
+            let (rx_mc_client_gameplay,
+                rx_pa_client_gameplay, 
+                tx_bytes_gameplay_socket 
+            ) =  real_time_service::start_server();
+
+            let (rx_me_gameplay_longterm,
+                rx_pe_gameplay_longterm
+            ) = gameplay_service::start_service(
+                rx_pa_client_gameplay,
+                rx_mc_client_gameplay,
+                rx_mc_webservice_gameplay,
+                working_tiles_reference.clone(), 
+                working_players_reference.clone(),
+                tx_bytes_gameplay_socket);
+
             // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
             long_term_storage_service::world_service::start_server(
-                rx_me_realtime_longterm,
+                rx_me_gameplay_longterm,
                 storage_tiles, 
                 db_client.clone()
             );
             long_term_storage_service::players_service::start_server(
-                rx_pe_realtime_longterm,
+                rx_pe_gameplay_longterm,
                 storage_players, 
                 db_client.clone()
             );
-            web_service::start_server(
-                working_players_reference.clone(), 
-                working_tiles_reference.clone(), 
-                tx_mc_webservice_realtime, 
-                db_client.clone()
-            );
-            real_time_service::start_server(
-                working_players_reference.clone(),
-                working_tiles_reference.clone(), 
-                rx_mc_webservice_realtime,
-                tx_me_realtime_longterm,
-                tx_pe_realtime_longterm
-            );
+        // ---------------------------------------------------
         },
         _ => {
             println!("big and horrible error with the working and storage tiles");
