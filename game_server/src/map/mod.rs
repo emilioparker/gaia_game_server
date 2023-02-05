@@ -13,11 +13,14 @@ pub mod tetrahedron_id;
 pub struct GameMap { 
     pub region_keys : Arc<Vec<TetrahedronId>>,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
-    // pub players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
+    pub players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
 }
 
 impl GameMap {
-    pub fn new(regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>) -> GameMap
+    pub fn new(
+        regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
+        players : HashMap<u64, PlayerEntity>,
+    ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
         let mut region_keys = Vec::<TetrahedronId>::new();
@@ -31,21 +34,13 @@ impl GameMap {
         GameMap{
             region_keys : Arc::new(region_keys),
             regions : arc_regions,
+            players : Arc::new(Mutex::new(players))
         }
     }
 
     fn get_parent(&self, tetrahedron_id : &TetrahedronId) -> TetrahedronId
     {
         tetrahedron_id.get_parent(7)
-        // for parent in self.region_keys.iter()
-        // {
-        //     let is_parent = parent.is_parent(tetrahedron_id);
-        //     if is_parent {
-        //         return Some(parent.clone());
-        //     }
-        // }
-
-        // return None;
     }
 
     pub fn get_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>{

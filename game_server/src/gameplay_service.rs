@@ -26,7 +26,6 @@ pub fn start_service(
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     mut rx_mc_webservice_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
-    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
 ) -> (Receiver<MapEntity>, Receiver<PlayerEntity>) {
 

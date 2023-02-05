@@ -55,7 +55,6 @@ struct CharacterCreationResponse {
 
 #[derive(Clone)]
 struct AppContext {
-    players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     game_map : Arc<GameMap>,
     tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client
@@ -207,14 +206,12 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
 }
 
 pub fn start_server(
-    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>, 
     map: Arc<GameMap>, 
     db_client : mongodb :: Client) 
     -> Receiver<MapCommand>{
 
     let (tx_mc_webservice_gameplay, rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let context = AppContext {
-        players: players,
         game_map : map,
         tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
         db_client : db_client

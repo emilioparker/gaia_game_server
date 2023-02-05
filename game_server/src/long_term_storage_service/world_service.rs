@@ -143,7 +143,7 @@ pub async fn check_world_state(
 
 pub fn start_server(
     mut rx_me_realtime_longterm : Receiver<MapEntity>,
-    map : GameMap,
+    map : Arc<GameMap>,
     db_client : Client
 ) {
     let modified_regions = HashSet::<TetrahedronId>::new();
@@ -152,10 +152,8 @@ pub fn start_server(
     let modified_regions_update_lock = modified_regions_reference.clone();
     let modified_regions_reader_lock = modified_regions_reference.clone();
 
-    let map_reference = Arc::new(map);
-    let map_reader = map_reference.clone();
-    let map_updater = map_reference.clone();
-
+    let map_reader = map.clone();
+    let map_updater = map.clone();
 
     // we keep track of what tiles have change in a hashset
     // we also save the changed tiles in the gamemap.

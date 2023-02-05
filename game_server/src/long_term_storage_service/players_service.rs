@@ -1,6 +1,7 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
+use crate::map::GameMap;
 use crate::player::player_entity::PlayerEntity;
 use bson::doc;
 use mongodb::Client;
@@ -80,7 +81,7 @@ pub async fn get_players_from_db(
 
 pub fn start_server(
     mut rx_pe_realtime_longterm : Receiver<PlayerEntity>,
-    players : HashMap<u64, PlayerEntity>,
+    map : Arc<GameMap>,
     db_client : Client
 ) {
 
@@ -90,9 +91,8 @@ pub fn start_server(
     let modified_players_update_lock = modified_players_reference.clone();
     let modified_players_reader_lock = modified_players_reference.clone();
 
-    let players_reference = Arc::new(Mutex::new(players));
-    let players_reader = players_reference.clone();
-    let players_updater = players_reference.clone();
+    let map_reader = map.clone();
+    let map_updater = map.clone();
 
 
     // we keep track of which players have change in a hashset
@@ -105,7 +105,7 @@ pub fn start_server(
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.player_id.clone());
 
-            let mut locked_players = players_updater.lock().await;
+            let mut locked_players = map_updater.players.lock().await;
 
             let old = locked_players.get(&message.player_id);
             match old {
@@ -125,7 +125,7 @@ pub fn start_server(
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
             let mut modified_player_keys = modified_players_reader_lock.lock().await;
-            let locked_players = players_reader.lock().await;
+            let locked_players = map_reader.players.lock().await;
 
             let mut modified_player_entities = Vec::<PlayerEntity>::new();
             for player_id in modified_player_keys.iter(){
