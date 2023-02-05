@@ -8,12 +8,9 @@ use crate::long_term_storage_service::db_world::StoredWorld;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity};
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::player::player_entity::PlayerEntity;
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
-use tokio::fs::File;
-use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver};
 use flate2::Compression;
@@ -145,7 +142,7 @@ pub async fn check_world_state(
 }
 
 pub fn start_server(
-    mut tile_changes_rx : Receiver<MapEntity>,
+    mut rx_me_realtime_longterm : Receiver<MapEntity>,
     map : GameMap,
     db_client : Client
 ) {
@@ -164,7 +161,7 @@ pub fn start_server(
     // we also save the changed tiles in the gamemap.
     tokio::spawn(async move {
         loop {
-            let message = tile_changes_rx.recv().await.unwrap();
+            let message = rx_me_realtime_longterm.recv().await.unwrap();
             println!("got a tile changed {:?} ", message);
             let region_id = message.id.get_parent(7);
 

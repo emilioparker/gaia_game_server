@@ -3,8 +3,6 @@ use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
 use crate::player::player_entity::PlayerEntity;
 use bson::doc;
-use bson::oid::ObjectId;
-use futures_util::lock;
 use mongodb::Client;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver};
@@ -81,7 +79,7 @@ pub async fn get_players_from_db(
 }
 
 pub fn start_server(
-    mut player_changes_rx : Receiver<PlayerEntity>,
+    mut rx_pe_realtime_longterm : Receiver<PlayerEntity>,
     players : HashMap<u64, PlayerEntity>,
     db_client : Client
 ) {
@@ -101,7 +99,7 @@ pub fn start_server(
     // we also save the changed players
     tokio::spawn(async move {
         loop {
-            let message = player_changes_rx.recv().await.unwrap();
+            let message = rx_pe_realtime_longterm.recv().await.unwrap();
             println!("got a player changed {:?} ", message);
 
             let mut modified_players = modified_players_update_lock.lock().await;

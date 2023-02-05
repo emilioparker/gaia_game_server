@@ -14,13 +14,13 @@ use tokio::sync::mpsc::{Receiver, Sender};
 pub fn start_server(
     players: Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     map: Arc<GameMap>,
-    tile_command_tx: Sender<MapCommand>,
-    tile_command_from_outside_rx : Receiver<MapCommand>,
-    tile_changed_tx: Sender<MapEntity>,
-    player_changed_tx: Sender<PlayerEntity>
+    rx_mc_webservice_statesys: Receiver<MapCommand>,
+    tx_me_statesys_longterm: Sender<MapEntity>,
+    tx_pe_statesys_longterm: Sender<PlayerEntity>
 ) {
+    let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
+    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
 
-    let (server_state_tx, mut client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
     let client_connections:HashMap<std::net::SocketAddr, PlayerConnection> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
@@ -28,15 +28,12 @@ pub fn start_server(
     let server_send_to_clients_lock = client_connections_mutex.clone();
 
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
-    // let address: std::net::SocketAddr = "127.0.0.1:11004".parse().unwrap();
     let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
-    // let udp_socket = tokio::net::UdpSocket::bind(address).await.unwrap();
-
     let send_udp_socket = udp_socket.clone();
-    // let read_udp_socket = udp_socket.clone();
+
     tokio::spawn(async move {
         loop {
-            if let Some(packet_list) = client_state_rx.recv().await {
+            if let Some(packet_list) = rx_bytes_state_socket.recv().await {
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
@@ -61,12 +58,13 @@ pub fn start_server(
     });
 
     tokio::spawn(async move {
-        // let read_udp_socket = udp_socket.clone();
-        let (from_client_to_world_tx, mut from_client_task_to_parent_rx ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
+
+        //use to communicate that the client disconnected
+        let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
 
         // each client has a client_action_tx where it can send updates to its own state
         // the consumer is the client state system, the system will summarize the requests and send them to each client.
-        let (client_action_tx, client_action_rx ) = tokio::sync::mpsc::channel::<PlayerAction>(1000);
+        let (tx_pa_client_statesys, rx_pa_client_statesys) = tokio::sync::mpsc::channel::<PlayerAction>(1000);
 
 
         // the first lock on clients data is used by the server to add and remove clients.
@@ -77,13 +75,13 @@ pub fn start_server(
         // this looks inocent but will do a lot of work.
         // ---------------------------------------------------
         client_state_system::process_player_action(
-            client_action_rx,
-            tile_changed_tx,
-            tile_command_from_outside_rx,
+            rx_pa_client_statesys,
+            tx_me_statesys_longterm,
+            rx_mc_client_statesys,
+            rx_mc_webservice_statesys,
             map,
-            server_state_tx);
+            tx_bytes_statesys_socket);
         // ---------------------------------------------------
-
 
 
         let mut buf_udp = [0u8; 508];
@@ -106,7 +104,6 @@ pub fn start_server(
                             let player_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
 
                             println!("--- create child for {}", player_id);
-                            let tx = from_client_to_world_tx.clone();
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
                             // let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
@@ -127,10 +124,9 @@ pub fn start_server(
                                 player_id, 
                                 address, 
                                 from_address, 
-                                tx, 
-                                tile_command_tx.clone(), 
-                                client_action_tx.clone(), 
-                                players.clone(),
+                                tx_addr_client_realtime.clone(), 
+                                tx_mc_client_statesys.clone(), 
+                                tx_pa_client_statesys.clone(), 
                                 buf_udp,
                             ).await;
                         }
@@ -140,7 +136,7 @@ pub fn start_server(
                         }
                     }
                 }
-                Some(res) = from_client_task_to_parent_rx.recv() => {
+                Some(res) = rx_addr_client_realtime.recv() => {
                     println!("removing entry from hash set");
                     let mut clients_data = server_lock.lock().await;
                     clients_data.remove(&res);

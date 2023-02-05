@@ -5,7 +5,6 @@ use crate::map::map_entity::{MapCommand, MapCommandInfo};
 use crate::player::{player_state::PlayerState, player_action::PlayerAction};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
-use flate2::read::ZlibDecoder;
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
@@ -21,19 +20,18 @@ pub enum DataType
 }
 
 pub fn process_player_action(
-    mut action_receiver : tokio::sync::mpsc::Receiver<PlayerAction>,
-    tile_changed_tx : tokio::sync::mpsc::Sender<MapEntity>,
-    mut tile_changed_receiver : tokio::sync::mpsc::Receiver<MapCommand>,
+    mut rx_pa_client_statesys : tokio::sync::mpsc::Receiver<PlayerAction>,
+    tx_me_statesys_longterm : tokio::sync::mpsc::Sender<MapEntity>,
+    mut rx_mc_client_statesys : tokio::sync::mpsc::Receiver<MapCommand>,
+    mut rx_mc_webservice_statesys : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
-    tx: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
+    tx_bytes_statesys_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
 ){
-
     //players
     let all_players = HashMap::<u64,PlayerState>::new();
     let data_mutex = Arc::new(Mutex::new(all_players));
     let processor_lock = data_mutex.clone();
     let agregator_lock = data_mutex.clone();
-
 
     //tile commands, this means that many players might hit the same tile, but only one every 30 ms will apply, this is really cool
     //should I add luck to improve the probability of someones actions to hit the tile ?
@@ -41,7 +39,10 @@ pub fn process_player_action(
     let tile_commands_mutex = Arc::new(Mutex::new(tile_commands));
 
     let tile_commands_processor_lock = tile_commands_mutex.clone();
-    let tile_commands_agregator_lock = tile_commands_mutex.clone();
+
+    // I could use one select
+    let tile_commands_agregator_from_client_lock = tile_commands_mutex.clone();
+    let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
 
     let mut seq = 0;
 
@@ -52,7 +53,7 @@ pub fn process_player_action(
 
         let mut sequence_number:u64 = 101;
         loop {
-            let message = action_receiver.recv().await.unwrap();
+            let message = rx_pa_client_statesys.recv().await.unwrap();
 
             let mut current_time = 0;
             let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -88,24 +89,37 @@ pub fn process_player_action(
         }
     });
 
-    // task that gathers world changes into a list.
+    // task that gathers world changes comming from a client into a list.
     tokio::spawn(async move {
 
-        let mut sequence_number:u64 = 101;
+        // let mut sequence_number:u64 = 101;
         loop {
-            let message = tile_changed_receiver.recv().await.unwrap();
+            let message = rx_mc_client_statesys.recv().await.unwrap();
             println!("got a tile change data {}", message.id);
+            let mut data = tile_commands_agregator_from_client_lock.lock().await;
+            
+            let old = data.get(&message.id);
+            match old {
+                Some(_previous_record) => {
+                    // this command will be lost for this tile, check if it is important ??
+                    data.insert(message.id.clone(), message);
+                }
+                _ => {
+                    data.insert(message.id.clone(), message);
+                }
+            }
 
-            // let mut current_time = 0;
-            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            // if let Ok(elapsed) = result {
-            //     current_time = elapsed.as_secs();
-            // }
+        }
+    });
 
+    // task that gathers world changes comming from web service into a list.
+    tokio::spawn(async move {
 
-            sequence_number = sequence_number + 1;
-
-            let mut data = tile_commands_agregator_lock.lock().await;
+        // let mut sequence_number:u64 = 101;
+        loop {
+            let message = rx_mc_webservice_statesys.recv().await.unwrap();
+            println!("got a tile change data {}", message.id);
+            let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
             
             let old = data.get(&message.id);
             match old {
@@ -157,14 +171,14 @@ pub fn process_player_action(
                         match tile_command.1.info {
                             MapCommandInfo::Touch() => {
                                 tiles_summary.push(updated_tile);
-                                tile_changed_tx.send(tile.clone()).await.unwrap();
+                                tx_me_statesys_longterm.send(tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(value) => {
                                 updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
                                 tiles_summary.push(updated_tile.clone());
                                 *tile = updated_tile;
                                 // sending the updated tile somewhere.
-                                tile_changed_tx.send(tile.clone()).await.unwrap();
+                                tx_me_statesys_longterm.send(tile.clone()).await.unwrap();
                             }
                         }
                     }
@@ -182,17 +196,12 @@ pub fn process_player_action(
 
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
-
-            // we should easily get this lock, since only new clients would trigger a lock on the other side.
-            // let mut clients_data = players.lock().await;
-
             // Sending summary to all clients.
 
             let mut filtered_summary = Vec::new();
 
             let player_state_updates = players_summary.iter()
             .map(|p| StateUpdate::PlayerState(p.clone()));
-            // .collect::<Vec<StateUpdate>>();
 
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
@@ -200,32 +209,9 @@ pub fn process_player_action(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
-            tx.send(arc_summary).await.unwrap();
-
-            // for client in clients_data.iter_mut()
-            // {
-            //     if arc_summary.len() > 0
-            //     {
-            //         // here we send data to the client
-            //         // println!("is channel full ?  cap:{} max_cap:{}", client.1.tx.capacity(), client.1.tx.max_capacity());
-            //         // if let Ok(_) = client.1.tx.send(arc_summary.clone()).await {
-
-            //         // }
-            //         // else {
-            //         //     println!("Error sending summary to client");
-            //         // }
-            //     }
-            // }
-
-
+            tx_bytes_statesys_socket.send(arc_summary).await.unwrap();
 
             players_summary.clear();
-
-            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            // if let Ok(elapsed) = result {
-            //     let current_time = elapsed.as_secs();
-            //     data.retain(|_, v| (current_time - v.current_time) < 5);
-            // }
         }
     });
 }

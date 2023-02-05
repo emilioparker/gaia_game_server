@@ -1,15 +1,13 @@
 
 // mod create:utils;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::time;
 use tokio::time::Duration;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc};
 
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_action::PlayerAction;
-use crate::player::player_entity::PlayerEntity;
 use crate::player::player_state::PlayerState;
 use crate::{protocols};
 
@@ -27,7 +25,6 @@ pub async fn spawn_client_process(
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerAction>,
-    all_players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     _initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);

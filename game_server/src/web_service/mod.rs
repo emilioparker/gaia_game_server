@@ -57,7 +57,7 @@ struct CharacterCreationResponse {
 struct AppContext {
     players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
     game_map : Arc<GameMap>,
-    map_command_sender : Sender<MapCommand>,
+    tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client
 }
 
@@ -102,7 +102,7 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
                 info : MapCommandInfo::Touch()
             };
 
-            let _ = context.map_command_sender.send(map_command).await;
+            let _ = context.tx_mc_webservice_realtime.send(map_command).await;
 
 
             let response = serde_json::to_vec(&player_response).unwrap();
@@ -120,7 +120,7 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
     }
 }
 
-async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, hyper::http::Error> {
+async fn handle_create_character(_context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, hyper::http::Error> {
 
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -206,12 +206,16 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
     }
 }
 
-pub fn start_server(players: Arc<Mutex<HashMap<u64, PlayerEntity>>>, map: Arc<GameMap>, tile_changed_rx : Sender<MapCommand>, db_client : mongodb :: Client) {
+pub fn start_server(
+    players: Arc<Mutex<HashMap<u64, PlayerEntity>>>, 
+    map: Arc<GameMap>, 
+    tx_mc_webservice_realtime : Sender<MapCommand>,
+    db_client : mongodb :: Client) {
 
     let context = AppContext {
         players: players,
         game_map : map,
-        map_command_sender : tile_changed_rx,
+        tx_mc_webservice_realtime : tx_mc_webservice_realtime,
         db_client : db_client
     };
 
