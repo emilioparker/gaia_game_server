@@ -155,9 +155,14 @@ pub fn start_service(
                 continue;
             }
 
+            let mut player_entities = map.players.lock().await;
             for item in data.iter()
             {
                 let cloned_data = item.1.to_owned();
+                // something should change here for the player
+                if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
+                    tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                }
                 players_summary.push(cloned_data);
             }
 
