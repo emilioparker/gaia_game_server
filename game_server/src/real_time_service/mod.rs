@@ -7,12 +7,11 @@ use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_connection::PlayerConnection;
 use crate::player::{player_action::PlayerAction, player_entity::PlayerEntity};
-use crate::{gameplay_service};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerAction>, Sender<Arc<Vec<Vec<u8>>>>) {
-    
+
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
     let (tx_pa_client_statesys, rx_pa_client_statesys) = tokio::sync::mpsc::channel::<PlayerAction>(1000);
@@ -57,27 +56,6 @@ pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerAction>, Sender<A
 
         //use to communicate that the client disconnected
         let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
-
-        // each client has a client_action_tx where it can send updates to its own state
-        // the consumer is the client state system, the system will summarize the requests and send them to each client.
-
-
-        // the first lock on clients data is used by the server to add and remove clients.
-
-        // the second lock on clients_data is used for the client state system to send data to everyclient 
-        // let process_lock = clients_mutex.clone();
-        // this function will process all user actions and send to all players the global state
-        // this looks inocent but will do a lot of work.
-        // ---------------------------------------------------
-        // gameplay_service::start_service(
-        //     rx_pa_client_statesys,
-        //     tx_me_statesys_longterm,
-        //     rx_mc_client_statesys,
-        //     rx_mc_webservice_statesys,
-        //     map,
-        //     tx_bytes_statesys_socket);
-        // ---------------------------------------------------
-
 
         let mut buf_udp = [0u8; 508];
         loop {
