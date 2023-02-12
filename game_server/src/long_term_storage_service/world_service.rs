@@ -55,7 +55,7 @@ pub async fn preload_db(
 }
 
 pub async fn get_regions_from_db(
-    world_name : &str,
+    world_id : Option<ObjectId>,
     db_client : Client
 ) -> HashMap<TetrahedronId, StoredRegion> {
 
@@ -67,7 +67,7 @@ pub async fn get_regions_from_db(
     let mut cursor = data_collection
     .find(
         doc! {
-                "world_name": world_name.to_owned()
+                "world_id": world_id
         },
         None,
     ).await

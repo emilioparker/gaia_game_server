@@ -7,7 +7,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
 use crate::map::map_entity::MapCommand;
-use crate::player::player_action::PlayerAction;
+use crate::player::player_command::PlayerCommand;
 
 
 pub enum Protocol{
@@ -20,7 +20,7 @@ pub enum Protocol{
 pub async fn route_packet(
     socket: &UdpSocket,
     data : &[u8; 508],
-    channel_tx : &Sender<PlayerAction>,
+    channel_tx : &Sender<PlayerCommand>,
     channel_map_tx : &Sender<MapCommand>
 ){
 

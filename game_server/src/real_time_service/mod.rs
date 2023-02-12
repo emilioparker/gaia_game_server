@@ -3,18 +3,17 @@ pub mod utils;
 
 use std::sync::Arc;
 use std::{collections::HashMap};
-use crate::map::GameMap;
-use crate::map::map_entity::{MapEntity, MapCommand};
+use crate::map::map_entity::{MapCommand};
 use crate::player::player_connection::PlayerConnection;
-use crate::player::{player_action::PlayerAction, player_entity::PlayerEntity};
+use crate::player::{player_command::PlayerCommand};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerAction>, Sender<Arc<Vec<Vec<u8>>>>) {
+pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
 
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
-    let (tx_pa_client_statesys, rx_pa_client_statesys) = tokio::sync::mpsc::channel::<PlayerAction>(1000);
+    let (tx_pa_client_statesys, rx_pa_client_statesys) = tokio::sync::mpsc::channel::<PlayerCommand>(1000);
 
     let client_connections:HashMap<std::net::SocketAddr, PlayerConnection> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));

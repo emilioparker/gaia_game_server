@@ -1,10 +1,9 @@
 
-use std::collections::HashMap;
 use std::{sync::Arc};
 
+use bson::oid::ObjectId;
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Sender, Receiver};
 
 use std::convert::Infallible;
@@ -12,6 +11,7 @@ use std::net::SocketAddr;
 use hyper::{Body, Response, Server};
 use hyper::service::{make_service_fn, service_fn};
 
+use crate::long_term_storage_service::db_character::StoredCharacter;
 use crate::long_term_storage_service::db_region::StoredRegion;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
@@ -35,27 +35,34 @@ struct PlayerResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct CharacterCreationRequest {
-
     name: String, //create
-    faction: String, // tree
+    device_id: String
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct CharacterCreationResponse {
-    character_id:u32,
-    name: String, 
-    faction: String,
-    base_strenght: u32,
-    base_constitution: u32,
-    base_speed: u32,
-    base_intelligence: u32,
-    base_dexterity: u32
+    character_id:u64,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+struct JoinWithCharacterRequest {
+    device_id: String,
+    character_id:u64,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct JoinWithCharacterResponse {
+    character_id:u64,
+    pos_x: f32,
+    pos_y: f32,
+    pos_z: f32,
+    health: u32,
+}
 
 #[derive(Clone)]
 struct AppContext {
-    game_map : Arc<GameMap>,
+    working_game_map : Arc<GameMap>,
+    storage_game_map : Arc<GameMap>,
     tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client
 }
@@ -67,7 +74,7 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
     let data: PlayerRequest = serde_json::from_slice(&data).unwrap();
     println!("handling request {:?}", data);
     let tile_id = TetrahedronId::from_string(&data.tile_id);
-    let region = context.game_map.get_region_from_child(&tile_id);
+    let region = context.working_game_map.get_region_from_child(&tile_id);
     let mut tiles = region.lock().await;
     let tile_data = tiles.get_mut(&tile_id);
 
@@ -119,26 +126,97 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
     }
 }
 
-async fn handle_create_character(_context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, hyper::http::Error> {
+// TODO: Check for device_id already in use.
+
+async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, hyper::http::Error> {
 
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: CharacterCreationRequest = serde_json::from_slice(&data).unwrap();
     println!("handling request {:?}", data);
 
+
+    let generator = &context.working_game_map.id_generator;
+    let new_id = generator.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+    println!("got a {} as id base ",new_id);
+
+    let stored_character = StoredCharacter{
+        id: None,
+        world_id: context.working_game_map.world_id.clone(),
+        player_id: new_id,
+        device_id: data.device_id.clone(),
+        constitution: 11,
+    };
+
+    let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("players");
+    let result = data_collection.insert_one(stored_character, None).await.unwrap();
+
+    let object_id: Option<ObjectId> = match result.inserted_id {
+        bson::Bson::ObjectId(id) => Some(id),
+        _ => None,
+    };
+
+    let player_entity = PlayerEntity {
+        object_id: object_id,
+        // device_id: data.device_id,
+        player_id: new_id,
+        action: 0,
+        position: [0.0, 0.0, 0.0],
+        second_position: [0.0, 0.0, 0.0],
+        constitution: 11,
+    };
+
+    let mut players = context.working_game_map.players.lock().await;
+    players.insert(new_id, player_entity.clone());
+    drop(players);
+
+    let mut players = context.storage_game_map.players.lock().await;
+    players.insert(new_id, player_entity);
+
+    drop(players);
+
     let new_character = CharacterCreationResponse{
-        character_id: 1,
-        name: "parker".to_owned(),
-        faction: "maya".to_owned(),
-        base_strenght: 1,
-        base_constitution: 1,
-        base_speed: 1,
-        base_intelligence: 1,
-        base_dexterity: 1,
+        character_id: new_id,
+        // name: "parker".to_owned(),
+        // faction: "maya".to_owned(),
+        // base_strenght: 1,
+        // base_constitution: 1,
+        // base_speed: 1,
+        // base_intelligence: 1,
+        // base_dexterity: 1,
     };
 
     let response = serde_json::to_vec(&new_character).unwrap();
     Ok(Response::new(Body::from(response)))
+}
+
+async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, hyper::http::Error> {
+
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let data: JoinWithCharacterRequest = serde_json::from_slice(&data).unwrap();
+    println!("handling request {:?}", data);
+
+    let players = context.working_game_map.players.lock().await;
+
+    if let Some(player) = players.get(&data.character_id) {
+        let saved_char = JoinWithCharacterResponse{
+            character_id: player.player_id,
+            pos_x: 0f32,
+            pos_y: 0f32,
+            pos_z: 0f32,
+            health: 10,
+        };
+
+        let response = serde_json::to_vec(&saved_char).unwrap();
+        Ok(Response::new(Body::from(response)))
+    }
+    else {
+        Ok(Response::new(Body::from("error: char not found")))
+    }
+
+    
 }
 
 async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, hyper::http::Error> {
@@ -194,6 +272,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         match route {
             "region" => handle_region_request(context, rest).await,
             "character_creation" => handle_create_character(context, req).await,
+            "join_with_character" => handle_login_character(context, req).await,
             "update_map_entity" => handle_update_map_entity(context, req).await,
             _ => {
                 Ok(Response::new(Body::from("Resource not found")))
@@ -206,13 +285,15 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
 }
 
 pub fn start_server(
-    map: Arc<GameMap>, 
+    working_map: Arc<GameMap>, 
+    storage_map: Arc<GameMap>, 
     db_client : mongodb :: Client) 
     -> Receiver<MapCommand>{
 
     let (tx_mc_webservice_gameplay, rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let context = AppContext {
-        game_map : map,
+        working_game_map : working_map,
+        storage_game_map : storage_map,
         tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
         db_client : db_client
     };

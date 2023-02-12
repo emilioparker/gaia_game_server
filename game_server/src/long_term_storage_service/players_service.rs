@@ -1,78 +1,56 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
+use crate::long_term_storage_service::db_character::StoredCharacter;
 use crate::map::GameMap;
 use crate::player::player_entity::PlayerEntity;
 use bson::doc;
+use bson::oid::ObjectId;
 use mongodb::Client;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver};
 use futures_util::stream::StreamExt;
 
-use super::db_player::StoredPlayer;
-
-// data is compressed
-// pub async fn preload_db(
-//     world_name : &str,
-//     world_id: Option<ObjectId>,
-//     players_data : HashMap<u64, StoredPlayer>,
-//     db_client : Client
-// ) {
-
-//     let data_collection: mongodb::Collection<StoredPlayer> = db_client.database("game").collection::<StoredPlayer>("players");
-//     let mut stored_players = Vec::<StoredPlayer>:: new();
-
-//     for region in players_data
-//     {
-//         let bson = bson::Bson::Binary(bson::Binary {
-//             subtype: bson::spec::BinarySubtype::Generic,
-//             bytes: region.1,
-//         });
-
-//         let data = StoredRegion {
-//             id : None,
-//             world_id : world_id,
-//             world_name : world_name.to_owned(),
-//             region_id : region.0.to_string(),
-//             compressed_data : bson
-//         };
-
-//         stored_regions.push(data);
-//     }
-
-//     let insert_result = data_collection.insert_many(stored_regions, None).await.unwrap();
-//     println!("{:?}", insert_result);
-
-// }
 
 pub async fn get_players_from_db(
-    world_name : &str,
+    world_id : Option<ObjectId>,
     db_client : Client
 ) -> HashMap<u64, PlayerEntity> {
+    println!("get players from db using {:?}", world_id);
 
     let mut data = HashMap::<u64, PlayerEntity>::new();
 
-    let data_collection: mongodb::Collection<StoredPlayer> = db_client.database("game").collection::<StoredPlayer>("players");
+    let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
 
-    // Look up one document:
     let mut cursor = data_collection
     .find(
         doc! {
-                "world_name": world_name.to_owned()
+                "world_id": world_id
         },
         None,
     ).await
     .unwrap();
 
     let mut count = 0;
-    while let Some(Ok(doc)) = cursor.next().await {
-        let player =  PlayerEntity{
-            player_id: doc.player_id,
-            object_id: doc.id,
-            constitution: doc.constitution
-        };
-        count += 1;
-        data.insert(doc.player_id, player);
+    while let Some(result) = cursor.next().await {
+        match result 
+        {
+            Ok(doc) => {
+                let player =  PlayerEntity{
+                    player_id: doc.player_id,
+                    object_id: doc.id,
+                    position: [0f32, 0f32, 0f32],
+                    second_position: [0f32, 0f32, 0f32],
+                    action: 0,
+                    constitution: doc.constitution
+                };
+                count += 1;
+                data.insert(doc.player_id, player);
+            },
+            Err(error_details) => {
+                println!("error getting player from db with {:?}", error_details);
+            },
+        }
     }
     println!("Got {} players from database", count);
 
@@ -100,7 +78,6 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_pe_realtime_longterm.recv().await.unwrap();
-            println!("got a player changed {:?} ", message);
 
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.player_id.clone());
@@ -139,7 +116,7 @@ pub fn start_server(
             drop(modified_player_keys);
             drop(locked_players);
 
-            let data_collection: mongodb::Collection<StoredPlayer> = db_client.database("game").collection::<StoredPlayer>("players");
+            let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
 
             for player in modified_player_entities {
                 let update_result = data_collection.update_one(
@@ -152,7 +129,7 @@ pub fn start_server(
                     None
                 ).await;
 
-                println!("updated region result {:?}", update_result);
+                println!("updated player result {:?}", update_result);
             }
         }
     });

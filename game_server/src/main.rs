@@ -36,19 +36,20 @@ async fn main() {
 
     let world_state = long_term_storage_service::world_service::check_world_state(world_name, db_client.clone()).await;
 
-    let working_players = long_term_storage_service::players_service::get_players_from_db(world_name, db_client.clone()).await;
-    //used and updated by the long storage system
-    let storage_players = working_players.clone();
 
     //shared by the realtime service and the webservice
 
     if let Some(world) = world_state {
         println!("Load the world from db init at {}", world.start_time);
-        let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world_name, db_client.clone()).await;
+        let working_players = long_term_storage_service::players_service::get_players_from_db(world.id, db_client.clone()).await;
+        //used and updated by the long storage system
+        let storage_players = working_players.clone();
+
+        let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
         println!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
-        working_game_map = Some(GameMap::new(regions_data.clone(), working_players));
-        storage_game_map = Some(GameMap::new(regions_data, storage_players));
+        working_game_map = Some(GameMap::new(world.id, regions_data.clone(), working_players));
+        storage_game_map = Some(GameMap::new(world.id, regions_data, storage_players));
     }
     else{
         println!("Creating world from scratch, because it was not found in the database");
@@ -57,15 +58,19 @@ async fn main() {
         let world_id = long_term_storage_service::world_service::init_world_state(world_name, db_client.clone()).await;
         if let Some(id) = world_id{
             println!("Creating world with id {}", id);
+            let working_players = long_term_storage_service::players_service::get_players_from_db(world_id, db_client.clone()).await;
+            //used and updated by the long storage system
+            let storage_players = working_players.clone();
+
             let regions_data = load_files_into_regions_hashset(world_name).await;
             long_term_storage_service::world_service::preload_db(world_name, world_id, regions_data, db_client.clone()).await;
 
             // reading what we just created because we need the object ids!
-            let regions_data_from_db = long_term_storage_service::world_service::get_regions_from_db(world_name, db_client.clone()).await;
+            let regions_data_from_db = long_term_storage_service::world_service::get_regions_from_db(world_id, db_client.clone()).await;
 
             let regions_data = load_regions_data_into_game_map(&regions_data_from_db);
-            working_game_map = Some(GameMap::new(regions_data.clone(), working_players));
-            storage_game_map = Some(GameMap::new(regions_data, storage_players));
+            working_game_map = Some(GameMap::new(world_id, regions_data.clone(), working_players));
+            storage_game_map = Some(GameMap::new(world_id, regions_data, storage_players));
         }
         else {
             println!("Error creating world in db");
@@ -81,6 +86,7 @@ async fn main() {
 
             let rx_mc_webservice_gameplay = web_service::start_server(
                 working_game_map_reference.clone(), 
+                storage_game_map_reference.clone(), 
                 db_client.clone()
             );
 
@@ -143,12 +149,10 @@ fn load_regions_data_into_game_map(
     let mut regions_data = Vec::<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>::new();
 
     let mut count = 0;
-    let mut region_count = 0;
     let region_total = regions_stored_data.len();
 
     for region in regions_stored_data.iter(){
-        println!("decoding region {} progress {}/{}", region.0, region_count, region_total);
-        region_count += 1;
+        // println!("decoding region {} progress {}/{}", region.0, region_count, region_total);
         let region_object_id = region.1.id.clone();
         let binary_data: Vec<u8> = match region.1.compressed_data.clone() {
             bson::Bson::Binary(binary) => binary.bytes,
@@ -192,7 +196,7 @@ fn load_regions_data_into_game_map(
         regions_data.push((region_id.clone(), region_tiles));
     }
 
-    println!("finished loading data, starting services tiles: {}", count);
+    println!("finished loading data, starting services. regions: {} with {} tiles",region_total, count);
     regions_data
     // GameMap::new(regions_data)
 }

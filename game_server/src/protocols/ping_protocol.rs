@@ -1,11 +1,11 @@
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use crate::player::player_action::PlayerAction;
+use crate::player::player_command::PlayerCommand;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
-pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &Sender<PlayerAction>)
+pub async fn process_ping(socket:&UdpSocket, data : &[u8; 508], _channel_tx : &Sender<PlayerCommand>)
 {
     // let mut start = 1;
     // let mut end = start + 8;

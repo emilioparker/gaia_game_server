@@ -7,6 +7,7 @@ pub struct StoredPlayer {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub player_id: u64,
+    pub device_id:String,
     pub player_name: String,
     pub constitution: u32
 }

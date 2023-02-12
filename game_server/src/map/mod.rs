@@ -1,5 +1,6 @@
-use std::{collections::{HashMap}, sync::Arc};
+use std::{collections::{HashMap}, sync::{Arc, atomic::AtomicU64}};
 
+use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
 use crate::player::player_entity::PlayerEntity;
@@ -11,13 +12,16 @@ pub mod tetrahedron_id;
 
 
 pub struct GameMap { 
-    pub region_keys : Arc<Vec<TetrahedronId>>,
+    pub world_id : Option<ObjectId>,
+    pub id_generator : Arc<AtomicU64>,
+    // pub region_keys : Arc<Vec<TetrahedronId>>,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
 }
 
 impl GameMap {
     pub fn new(
+        world_id: Option<ObjectId>,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
         players : HashMap<u64, PlayerEntity>,
     ) -> GameMap
@@ -31,8 +35,12 @@ impl GameMap {
             region_keys.push(key);
         }
 
+        let result = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+
         GameMap{
-            region_keys : Arc::new(region_keys),
+            world_id,
+            id_generator : Arc::new(AtomicU64::new(result.as_secs())),
+            // region_keys : Arc::new(region_keys),
             regions : arc_regions,
             players : Arc::new(Mutex::new(players))
         }

@@ -5,14 +5,14 @@ pub enum Code
 }
 
 #[derive(Debug)]
-pub struct PlayerAction {
+pub struct PlayerCommand {
     pub player_id: u64,
     pub position: [f32;3],
     pub second_position: [f32;3],
     pub action:u32,
 }
 
-impl PlayerAction {
+impl PlayerCommand {
     // used by the test_client ignores the protocol byte.
     pub fn to_bytes(&self) -> [u8;36] {
         let mut buffer = [0u8; 36];
@@ -78,7 +78,7 @@ impl PlayerAction {
         end = start + 4;
         let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
 
-        let client_action = PlayerAction {
+        let client_action = PlayerCommand {
             player_id,
             position,
             second_position: direction,

@@ -7,14 +7,14 @@ use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
 use crate::map::map_entity::{MapEntity, MapCommand};
-use crate::player::player_action::PlayerAction;
-use crate::player::player_state::PlayerState;
+use crate::player::player_command::PlayerCommand;
+use crate::player::player_entity::PlayerEntity;
 use crate::{protocols};
 
 
 #[derive(Debug)]
 pub enum StateUpdate {
-    PlayerState(PlayerState),
+    PlayerState(PlayerEntity),
     TileState(MapEntity),
 }
 
@@ -24,7 +24,7 @@ pub async fn spawn_client_process(
     from_address : std::net::SocketAddr, 
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
-    channel_action_tx : mpsc::Sender<PlayerAction>,
+    channel_action_tx : mpsc::Sender<PlayerCommand>,
     _initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);

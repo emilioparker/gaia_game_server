@@ -1,9 +1,9 @@
-use std::{sync::Arc, time::SystemTime};
+use std::{sync::Arc};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
-use crate::player::player_entity::PlayerEntity;
-use crate::player::{player_state::PlayerState, player_action::PlayerAction};
+use crate::player;
+use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
 use tokio::sync::mpsc::Receiver;
@@ -22,7 +22,7 @@ pub enum DataType
 }
 
 pub fn start_service(
-    mut rx_pa_client_game : tokio::sync::mpsc::Receiver<PlayerAction>,
+    mut rx_pc_client_game : tokio::sync::mpsc::Receiver<PlayerCommand>,
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     mut rx_mc_webservice_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
@@ -33,19 +33,17 @@ pub fn start_service(
     let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<PlayerEntity>(1000);
 
     //players
-    let all_players = HashMap::<u64,PlayerState>::new();
-    let data_mutex = Arc::new(Mutex::new(all_players));
-    let processor_lock = data_mutex.clone();
-    let agregator_lock = data_mutex.clone();
+    let player_commands = HashMap::<u64,PlayerCommand>::new();
+    let player_commands_mutex = Arc::new(Mutex::new(player_commands));
+    let player_commands_processor_lock = player_commands_mutex.clone();
+    let player_commands_agregator_lock = player_commands_mutex.clone();
 
     //tile commands, this means that many players might hit the same tile, but only one every 30 ms will apply, this is really cool
     //should I add luck to improve the probability of someones actions to hit the tile ?
     let tile_commands = HashMap::<TetrahedronId,MapCommand>::new();
     let tile_commands_mutex = Arc::new(Mutex::new(tile_commands));
-
     let tile_commands_processor_lock = tile_commands_mutex.clone();
 
-    // I could use one select
     let tile_commands_agregator_from_client_lock = tile_commands_mutex.clone();
     let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
 
@@ -56,39 +54,26 @@ pub fn start_service(
     //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
 
-        let mut sequence_number:u64 = 101;
         loop {
-            let message = rx_pa_client_game.recv().await.unwrap();
+            let message = rx_pc_client_game.recv().await.unwrap();
 
-            let mut current_time = 0;
-            let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            if let Ok(elapsed) = result {
-                current_time = elapsed.as_secs();
-            }
+            println!("got a player change data {}", message.player_id);
+            // let mut current_time = 0;
+            // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+            // if let Ok(elapsed) = result {
+            //     current_time = elapsed.as_secs();
+            // }
 
-            sequence_number = sequence_number + 1;
-
-            let mut data = agregator_lock.lock().await;
+            let mut data = player_commands_agregator_lock.lock().await;
             
-            let new_client_state = PlayerState{
-                current_time,
-                sequence_number,
-                player_id : message.player_id,
-                position : message.position,
-                second_position : message.second_position,
-                action : message.action
-            };
-
-            // println!("player {} pos {:?}",seq, message.position);
             seq = seq + 1;
-
             let old = data.get(&message.player_id);
             match old {
                 Some(_previous_record) => {
-                    data.insert(message.player_id, new_client_state);
+                    data.insert(message.player_id, message);
                 }
                 _ => {
-                    data.insert(message.player_id, new_client_state);
+                    data.insert(message.player_id, message);
                 }
             }
         }
@@ -149,22 +134,35 @@ pub fn start_service(
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
 
-            let mut data = processor_lock.lock().await;
+            let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
-            if data.len() <= 0  && tile_commands_data.len() <= 0{
+            if player_commands_data.len() <= 0  && tile_commands_data.len() <= 0{
                 continue;
             }
 
             let mut player_entities = map.players.lock().await;
-            for item in data.iter()
+            for item in player_commands_data.iter()
             {
+                let player_command = item.1;
                 let cloned_data = item.1.to_owned();
                 // something should change here for the player
                 if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
-                    // *player_entity.constitution +=1;
+                    
+                    let updated_player_entity = PlayerEntity {
+                        action: player_command.action,
+                        position: player_command.position,
+                        second_position: player_command.second_position,
+                        constitution: 15,
+                        ..player_entity.clone()
+                    };
+
+                    *player_entity = updated_player_entity;
                     tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                    players_summary.push(player_entity.clone());
                 }
-                players_summary.push(cloned_data);
+                else {
+                    println!("player was not found {} in {}", cloned_data.player_id , player_entities.len());
+                }
             }
 
 
@@ -200,10 +198,10 @@ pub fn start_service(
 
 
             tile_commands_data.clear();
-            data.clear();
+            player_commands_data.clear();
 
             drop(tile_commands_data);
-            drop(data);
+            drop(player_commands_data);
 
             let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
 
@@ -242,7 +240,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     buffer[start..end].copy_from_slice(&packet_number_bytes);
     start = end;
 
-    let player_state_size: usize = 36;
+    let player_state_size: usize = 40;
     let tile_state_size: usize = 66;
 
     let mut stored_bytes:u32 = 0;
@@ -256,8 +254,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     for state_update in data.iter()
     {
         let required_space = match state_update{
-            StateUpdate::PlayerState(_) => 37,
-            StateUpdate::TileState(_) => 67,
+            StateUpdate::PlayerState(_) => player_state_size as u32 + 1,
+            StateUpdate::TileState(_) => tile_state_size as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -287,10 +285,10 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 buffer[start] = DataType::PlayerState as u8;
                 start += 1;
 
-                let player_state_bytes = player_state.to_bytes(); //36
+                let player_state_bytes = player_state.to_bytes(); //40
                 let next = start + player_state_size;
                 buffer[start..next].copy_from_slice(&player_state_bytes);
-                stored_bytes = stored_bytes + 36 + 1;
+                stored_bytes = stored_bytes + player_state_size as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -301,7 +299,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let tile_state_bytes = tile_state.to_bytes(); //66
                 let next = start + tile_state_size;
                 buffer[start..next].copy_from_slice(&tile_state_bytes);
-                stored_bytes = stored_bytes + 66 + 1;
+                stored_bytes = stored_bytes + tile_state_size as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             }

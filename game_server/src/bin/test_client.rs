@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use game_server::player::player_action::{PlayerAction};
+use game_server::player::player_command::{PlayerCommand};
 use tokio::net::UdpSocket;
 use glam::{Vec3, vec3};
 use rand::{rngs::StdRng, Rng};
@@ -64,7 +64,7 @@ async fn spawn_test_client(client_id : u64) {
 
             // println!("send data {} " ,position);
 
-            let client_action = PlayerAction { 
+            let client_action = PlayerCommand { 
                 player_id:client_id,
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
@@ -82,7 +82,7 @@ async fn spawn_test_client(client_id : u64) {
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-            let client_action = PlayerAction { 
+            let client_action = PlayerCommand { 
                 player_id:client_id,
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
