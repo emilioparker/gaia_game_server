@@ -1,8 +1,21 @@
-pub enum Code
+pub enum Actions
 {
-    PlayerActivity = 1,
-    PlayerInteraction = 2,
+    IdleAction = 0,
+    WalkAction = 1,
+    WoodCutAction = 2,
+    NormaAttackAction = 3,
+    CollectAction = 4,
+    GreetAction = 5,
+    RespawnAction = 6,
 }
+
+// public static UInt32 IdleAction = 0;
+// public static UInt32 WalkAction = 1;
+// public static UInt32 WoodCutAction = 2;
+// public static UInt32 NormaAttackAction = 3;
+// public static UInt32 CollectAction = 4;
+// public static UInt32 GreetAction = 5;
+// public static UInt32 Respawn = 6;
 
 #[derive(Debug)]
 pub struct PlayerCommand {

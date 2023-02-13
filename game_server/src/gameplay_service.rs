@@ -2,7 +2,8 @@ use std::{sync::Arc};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
-use crate::player;
+use crate::player::player_command::Actions;
+use crate::player::player_presentation::PlayerPresentation;
 use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
@@ -19,6 +20,7 @@ pub enum DataType
     NoData = 25,
     PlayerState = 26,
     TileState = 27,
+    PlayerPresentation = 28,
 }
 
 pub fn start_service(
@@ -127,12 +129,14 @@ pub fn start_service(
 
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move {
-        let mut players_summary = Vec::new();
         let mut packet_number = 1u64;
         loop {
             // assuming 30 fps.
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
+            let mut players_summary = Vec::new();
+            let mut players_presentation_summary = Vec::new();
+            let mut tiles_summary : Vec<MapEntity>= Vec::new();
 
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
@@ -147,18 +151,49 @@ pub fn start_service(
                 let cloned_data = item.1.to_owned();
                 // something should change here for the player
                 if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
-                    
-                    let updated_player_entity = PlayerEntity {
-                        action: player_command.action,
-                        position: player_command.position,
-                        second_position: player_command.second_position,
-                        constitution: 15,
-                        ..player_entity.clone()
-                    };
 
-                    *player_entity = updated_player_entity;
-                    tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                    players_summary.push(player_entity.clone());
+                    if player_command.action == 5 {
+                        let name_with_padding = format!("{: <5}", player_entity.character_name);
+                        let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
+
+                        let mut name_array = [0u32; 5];
+                        name_array.clone_from_slice(&name_data.as_slice()[0..5]);
+                        let player_presentation = PlayerPresentation {
+                            player_id: player_entity.player_id,
+                            character_name: name_array,
+                        };
+
+                        players_presentation_summary.push(player_presentation);
+                        // *player_entity = updated_player_entity;
+                        // tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        // players_summary.push(player_entity.clone());
+
+                    }
+                    else if player_command.action == 6 { // respawn, we only update health for the moment
+                        let updated_player_entity = PlayerEntity {
+                            action: player_command.action,
+                            health: player_entity.constitution,
+                            ..player_entity.clone()
+                        };
+
+                        *player_entity = updated_player_entity;
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    }
+                    else
+                    {
+                        let updated_player_entity = PlayerEntity {
+                            action: player_command.action,
+                            position: player_command.position,
+                            second_position: player_command.second_position,
+                            ..player_entity.clone()
+                        };
+
+                        *player_entity = updated_player_entity;
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    }
+                    
                 }
                 else {
                     println!("player was not found {} in {}", cloned_data.player_id , player_entities.len());
@@ -166,7 +201,6 @@ pub fn start_service(
             }
 
 
-            let mut tiles_summary : Vec<MapEntity>= Vec::new();
 
             for tile_command in tile_commands_data.iter()
             {
@@ -194,7 +228,7 @@ pub fn start_service(
                     None => println!("tile not found {}" , tile_command.0),
                 }
             }
-            println!("summary {} ", tiles_summary.len());
+            println!("tiles summary {} ", tiles_summary.len());
 
 
             tile_commands_data.clear();
@@ -203,24 +237,29 @@ pub fn start_service(
             drop(tile_commands_data);
             drop(player_commands_data);
 
-            let tiles_state_update = tiles_summary.into_iter().map(|t| StateUpdate::TileState(t));
+            let tiles_state_update = tiles_summary
+                .into_iter()
+                .map(|t| StateUpdate::TileState(t));
+            let player_presentation_state_update = players_presentation_summary
+                .into_iter()
+                .map(|p| StateUpdate::PlayerGreetings(p));
 
+            let player_state_updates = players_summary
+                .iter()
+                .map(|p| StateUpdate::PlayerState(p.clone()));
             // Sending summary to all clients.
 
             let mut filtered_summary = Vec::new();
 
-            let player_state_updates = players_summary.iter()
-            .map(|p| StateUpdate::PlayerState(p.clone()));
 
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
+            filtered_summary.extend(player_presentation_state_update.clone());
             let packages = create_data_packets(filtered_summary, &mut packet_number);
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
             tx_bytes_game_socket.send(arc_summary).await.unwrap();
-
-            players_summary.clear();
         }
     });
 
@@ -242,6 +281,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
 
     let player_state_size: usize = 40;
     let tile_state_size: usize = 66;
+    let character_presentation_size: usize = 28;
 
     let mut stored_bytes:u32 = 0;
     let mut stored_states:u8 = 0;
@@ -256,6 +296,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         let required_space = match state_update{
             StateUpdate::PlayerState(_) => player_state_size as u32 + 1,
             StateUpdate::TileState(_) => tile_state_size as u32 + 1,
+            StateUpdate::PlayerGreetings(_) => character_presentation_size as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -303,6 +344,17 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             }
+            StateUpdate::PlayerGreetings(presentation) => {
+                buffer[start] = DataType::PlayerPresentation as u8;
+                start += 1;
+
+                let presentation_bytes = presentation.to_bytes(); //28
+                let next = start + character_presentation_size;
+                buffer[start..next].copy_from_slice(&presentation_bytes);
+                stored_bytes = stored_bytes + character_presentation_size as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
         }
 
     }

@@ -5,11 +5,13 @@ use bson::oid::ObjectId;
 #[derive(Clone)]
 pub struct PlayerEntity {
     pub object_id: Option<ObjectId>,
+    pub character_name: String,
     pub player_id: u64,
     pub action:u32,
     pub position: [f32;3],
     pub second_position: [f32;3],
-    pub constitution: u32
+    pub constitution: u32,
+    pub health: u32
 }
 
 impl PlayerEntity {
@@ -41,4 +43,34 @@ fn float_into_buffer(buffer : &mut [u8;40], data: f32, start : usize, end: usize
 {
     let bytes = f32::to_le_bytes(data);
     buffer[start..end].copy_from_slice(&bytes);
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_enconde_ascii() {
+        // いいえ
+        let mut ch:char='い';
+    
+        println!("ASCII value: {}",ch as u32);
+        
+        ch='&';
+        println!("ASCII value: {}",ch as u32);
+
+        ch='X';
+        println!("ASCII value: {}",ch as u32); 
+    }
+
+    #[test]
+    fn test_convert_string_to_array() {
+        let name = "aaaa".to_string();
+        let filled = format!("{: <5}", name);
+        println!("filled {}", filled);
+        let name_data : Vec<u32> = filled.chars().into_iter().map(|c| c as u32).collect();
+
+        let mut name_array = [0u32; 5];
+        name_array.clone_from_slice(&name_data.as_slice()[0..5]);
+        println!("{:?}", name_array);
+    }
 }

@@ -42,7 +42,9 @@ pub async fn get_players_from_db(
                     position: [0f32, 0f32, 0f32],
                     second_position: [0f32, 0f32, 0f32],
                     action: 0,
-                    constitution: doc.constitution
+                    constitution: doc.constitution,
+                    health: doc.health,
+                    character_name: doc.character_name,
                 };
                 count += 1;
                 data.insert(doc.player_id, player);

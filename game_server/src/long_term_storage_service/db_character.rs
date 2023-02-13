@@ -9,5 +9,7 @@ pub struct StoredCharacter {
     pub world_id: Option<ObjectId>,
     pub player_id: u64,
     pub device_id: String,
+    pub character_name: String,
     pub constitution: u32,
+    pub health: u32,
 }

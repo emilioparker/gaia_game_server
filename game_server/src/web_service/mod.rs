@@ -35,7 +35,7 @@ struct PlayerResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct CharacterCreationRequest {
-    name: String, //create
+    character_name: String, //create
     device_id: String
 }
 
@@ -53,9 +53,11 @@ struct JoinWithCharacterRequest {
 #[derive(Deserialize, Serialize, Debug)]
 struct JoinWithCharacterResponse {
     character_id:u64,
+    character_name:String,
     pos_x: f32,
     pos_y: f32,
     pos_z: f32,
+    constitution: u32,
     health: u32,
 }
 
@@ -145,8 +147,10 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         id: None,
         world_id: context.working_game_map.world_id.clone(),
         player_id: new_id,
+        character_name: data.character_name.clone(),
         device_id: data.device_id.clone(),
-        constitution: 11,
+        constitution: 50,
+        health: 50
     };
 
     let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("players");
@@ -159,12 +163,14 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
 
     let player_entity = PlayerEntity {
         object_id: object_id,
+        character_name : data.character_name.clone(),
         // device_id: data.device_id,
         player_id: new_id,
         action: 0,
         position: [0.0, 0.0, 0.0],
         second_position: [0.0, 0.0, 0.0],
-        constitution: 11,
+        constitution: 50,
+        health: 50,
     };
 
     let mut players = context.working_game_map.players.lock().await;
@@ -203,10 +209,12 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
     if let Some(player) = players.get(&data.character_id) {
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
+            character_name: player.character_name.clone(),
             pos_x: 0f32,
             pos_y: 0f32,
             pos_z: 0f32,
-            health: 10,
+            constitution:player.constitution,
+            health: player.health,
         };
 
         let response = serde_json::to_vec(&saved_char).unwrap();

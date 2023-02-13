@@ -9,12 +9,14 @@ use tokio::sync::{mpsc};
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::player::player_command::PlayerCommand;
 use crate::player::player_entity::PlayerEntity;
+use crate::player::player_presentation::PlayerPresentation;
 use crate::{protocols};
 
 
 #[derive(Debug)]
 pub enum StateUpdate {
     PlayerState(PlayerEntity),
+    PlayerGreetings(PlayerPresentation), // we should actually send more data...
     TileState(MapEntity),
 }
 
