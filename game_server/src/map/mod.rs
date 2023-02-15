@@ -14,8 +14,8 @@ pub mod tetrahedron_id;
 pub struct GameMap { 
     pub world_id : Option<ObjectId>,
     pub id_generator : Arc<AtomicU64>,
-    // pub region_keys : Arc<Vec<TetrahedronId>>,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
+    pub active_players: Arc<HashMap<u64, AtomicU64>>,
     pub players : Arc<Mutex<HashMap<u64, PlayerEntity>>>,
 }
 
@@ -37,9 +37,16 @@ impl GameMap {
 
         let result = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
 
+        let mut active_players_set = HashMap::<u64, AtomicU64>::new();
+        for player in &players
+        {
+            active_players_set.insert(*player.0, AtomicU64::new(0));
+        }
+
         GameMap{
             world_id,
             id_generator : Arc::new(AtomicU64::new(result.as_secs())),
+            active_players: Arc::new(active_players_set),
             // region_keys : Arc::new(region_keys),
             regions : arc_regions,
             players : Arc::new(Mutex::new(players))

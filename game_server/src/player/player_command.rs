@@ -22,13 +22,14 @@ pub struct PlayerCommand {
     pub player_id: u64,
     pub position: [f32;3],
     pub second_position: [f32;3],
+    pub other_player_id:u64,
     pub action:u32,
 }
 
 impl PlayerCommand {
     // used by the test_client ignores the protocol byte.
-    pub fn to_bytes(&self) -> [u8;36] {
-        let mut buffer = [0u8; 36];
+    pub fn to_bytes(&self) -> [u8;44] {
+        let mut buffer = [0u8; 44];
 
         let mut start : usize = 0;
         let mut end : usize = 8;
@@ -50,6 +51,11 @@ impl PlayerCommand {
         float_into_buffer(&mut buffer, self.second_position[1], &mut start, end);
         end = start + 4;
         float_into_buffer(&mut buffer, self.second_position[2], &mut start, end);
+
+        end = start + 8;
+        let other_player_id_bytes = u64::to_le_bytes(self.other_player_id); // 8 bytes
+        buffer[start..end].copy_from_slice(&other_player_id_bytes);
+        start = end;
 
         end = start + 4;
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
@@ -88,6 +94,10 @@ impl PlayerCommand {
         let direction_z = decode_float(data, &mut start, end);
         let direction = [direction_x, direction_y, direction_z];
 
+        end = start + 8;
+        let other_player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
         end = start + 4;
         let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
 
@@ -95,6 +105,7 @@ impl PlayerCommand {
             player_id,
             position,
             second_position: direction,
+            other_player_id,
             action
         };
 
@@ -110,7 +121,7 @@ pub fn decode_float(buffer: &[u8;508], start: &mut usize, end: usize) -> f32
     decoded_float
 }
 
-fn float_into_buffer(buffer : &mut [u8;36], data: f32, start : &mut usize, end: usize)
+fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : &mut usize, end: usize)
 {
     let bytes = f32::to_le_bytes(data);
     buffer[*start..end].copy_from_slice(&bytes);

@@ -15,8 +15,8 @@ pub struct PlayerEntity {
 }
 
 impl PlayerEntity {
-    pub fn to_bytes(&self) -> [u8;40] {
-        let mut buffer = [0u8; 40];
+    pub fn to_bytes(&self) -> [u8;44] {
+        let mut buffer = [0u8; 44];
 
         let player_id_bytes = u64::to_le_bytes(self.player_id); // 8 bytes
         buffer[..8].copy_from_slice(&player_id_bytes);
@@ -35,11 +35,14 @@ impl PlayerEntity {
         let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
         buffer[36..40].copy_from_slice(&constitution_bytes);
 
+        let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
+        buffer[40..44].copy_from_slice(&health_bytes);
+
         buffer
     }
 }
 
-fn float_into_buffer(buffer : &mut [u8;40], data: f32, start : usize, end: usize)
+fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : usize, end: usize)
 {
     let bytes = f32::to_le_bytes(data);
     buffer[start..end].copy_from_slice(&bytes);

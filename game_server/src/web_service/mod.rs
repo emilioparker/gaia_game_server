@@ -1,7 +1,12 @@
 
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64};
+use std::io::Write;
 use std::{sync::Arc};
 
 use bson::oid::ObjectId;
+use futures_util::future::OrElse;
+use futures_util::lock::Mutex;
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Sender, Receiver};
@@ -10,6 +15,8 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use hyper::{Body, Response, Server};
 use hyper::service::{make_service_fn, service_fn};
+use flate2::Compression;
+use flate2::write::ZlibEncoder;
 
 use crate::long_term_storage_service::db_character::StoredCharacter;
 use crate::long_term_storage_service::db_region::StoredRegion;
@@ -17,6 +24,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::player::player_entity::PlayerEntity;
+use crate::player::player_presentation::PlayerPresentation;
 
 #[derive(Deserialize, Serialize, Debug)]
 struct PlayerRequest {
@@ -63,6 +71,9 @@ struct JoinWithCharacterResponse {
 
 #[derive(Clone)]
 struct AppContext {
+    last_presentation_update: Arc<AtomicU64>,
+    presentation_data: Arc<Mutex<HashMap<u64, [u8;28]>>>,
+    compressed_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
     tx_mc_webservice_realtime : Sender<MapCommand>,
@@ -206,7 +217,24 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
     let players = context.working_game_map.players.lock().await;
 
+
     if let Some(player) = players.get(&data.character_id) {
+
+        let mut presentation_map = context.presentation_data.lock().await;
+
+
+        let name_with_padding = format!("{: <5}", player.character_name);
+        let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
+        let mut name_array = [0u32; 5];
+        name_array.clone_from_slice(&name_data.as_slice()[0..5]);
+
+        let player_presentation = PlayerPresentation {
+            player_id: player.player_id,
+            character_name: name_array,
+        };
+
+        presentation_map.insert(data.character_id, player_presentation.to_bytes());
+
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
             character_name: player.character_name.clone(),
@@ -270,6 +298,55 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
 
 }
 
+async fn handle_players_request(context: AppContext) -> Result<Response<Body>, hyper::http::Error> {
+
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
+    
+    let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+    let last_time_atomic = context.last_presentation_update;
+    let last_time = last_time_atomic.load(std::sync::atomic::Ordering::Relaxed);
+    if current_time.as_secs() - last_time > 10 {
+
+        println!("generating presentation data {}", last_time);
+        let players_presentation_map = context.presentation_data.lock().await;
+
+        for presentation_data in players_presentation_map.iter()
+        {
+            let bytes = presentation_data.1;
+            encoder.write(bytes).unwrap();
+        }
+
+        drop(players_presentation_map);
+        let mut compressed_bytes = encoder.reset(Vec::new()).unwrap();
+        let mut presentation_cache = context.compressed_presentation_data.lock().await;
+
+        presentation_cache.clear();
+        presentation_cache.append(&mut compressed_bytes);
+
+        last_time_atomic.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
+
+        let response = Response::builder()
+            .status(hyper::StatusCode::OK)
+            .header("Content-Type", "application/octet-stream")
+            .body(Body::from(presentation_cache.clone()))
+            .expect("Failed to create response");
+        Ok(response)
+    }
+    else
+    {
+        println!("using cache {}", last_time);
+        let presentation_cache = context.compressed_presentation_data.lock().await;
+
+        let response = Response::builder()
+            .status(hyper::StatusCode::OK)
+            .header("Content-Type", "application/octet-stream")
+            .body(Body::from(presentation_cache.clone()))
+            .expect("Failed to create response");
+        Ok(response)
+
+    }
+}
+
 async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>, hyper::http::Error> {
 
     let uri = req.uri().to_string();
@@ -279,6 +356,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         let rest : Vec<&str> = data.collect();
         match route {
             "region" => handle_region_request(context, rest).await,
+            "players_data" => handle_players_request(context).await,
             "character_creation" => handle_create_character(context, req).await,
             "join_with_character" => handle_login_character(context, req).await,
             "update_map_entity" => handle_update_map_entity(context, req).await,
@@ -299,11 +377,15 @@ pub fn start_server(
     -> Receiver<MapCommand>{
 
     let (tx_mc_webservice_gameplay, rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
+    
     let context = AppContext {
+        presentation_data : Arc::new(Mutex::new(HashMap::new())),
         working_game_map : working_map,
         storage_game_map : storage_map,
         tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
-        db_client : db_client
+        db_client : db_client,
+        last_presentation_update: Arc::new(AtomicU64::new(0)),
+        compressed_presentation_data: Arc::new(Mutex::new(Vec::new())),
     };
 
     tokio::spawn(async move {

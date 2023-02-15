@@ -144,6 +144,7 @@ pub fn start_service(
                 continue;
             }
 
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let mut player_entities = map.players.lock().await;
             for item in player_commands_data.iter()
             {
@@ -152,10 +153,13 @@ pub fn start_service(
                 // something should change here for the player
                 if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
 
+                    if let Some(atomic_time) = map.active_players.get(&cloned_data.player_id){
+                        atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
+                    }
+
                     if player_command.action == 5 {
                         let name_with_padding = format!("{: <5}", player_entity.character_name);
                         let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
-
                         let mut name_array = [0u32; 5];
                         name_array.clone_from_slice(&name_data.as_slice()[0..5]);
                         let player_presentation = PlayerPresentation {
@@ -164,9 +168,6 @@ pub fn start_service(
                         };
 
                         players_presentation_summary.push(player_presentation);
-                        // *player_entity = updated_player_entity;
-                        // tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                        // players_summary.push(player_entity.clone());
 
                     }
                     else if player_command.action == 6 { // respawn, we only update health for the moment
@@ -279,7 +280,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     buffer[start..end].copy_from_slice(&packet_number_bytes);
     start = end;
 
-    let player_state_size: usize = 40;
+    let player_state_size: usize = 44;
     let tile_state_size: usize = 66;
     let character_presentation_size: usize = 28;
 
@@ -326,7 +327,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 buffer[start] = DataType::PlayerState as u8;
                 start += 1;
 
-                let player_state_bytes = player_state.to_bytes(); //40
+                let player_state_bytes = player_state.to_bytes(); //44
                 let next = start + player_state_size;
                 buffer[start..next].copy_from_slice(&player_state_bytes);
                 stored_bytes = stored_bytes + player_state_size as u32 + 1;

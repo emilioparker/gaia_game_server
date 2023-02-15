@@ -68,6 +68,7 @@ async fn spawn_test_client(client_id : u64) {
                 player_id:client_id,
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
+                other_player_id: 0,
                 action:1
             };
 
@@ -86,6 +87,7 @@ async fn spawn_test_client(client_id : u64) {
                 player_id:client_id,
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
+                other_player_id:0,
                 action:0
             };
 
