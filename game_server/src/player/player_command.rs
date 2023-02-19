@@ -1,13 +1,10 @@
-pub enum Actions
-{
-    IdleAction = 0,
-    WalkAction = 1,
-    WoodCutAction = 2,
-    NormaAttackAction = 3,
-    CollectAction = 4,
-    GreetAction = 5,
-    RespawnAction = 6,
-}
+pub const IdleAction: u32 = 0;
+pub const WalkAction: u32 = 1;
+pub const WoodCutAction: u32 = 2;
+pub const AttackAction: u32 = 3;
+pub const CollectAction: u32 = 4;
+pub const GreetAction: u32 = 5;
+pub const RespawnAction: u32 = 6;
 
 // public static UInt32 IdleAction = 0;
 // public static UInt32 WalkAction = 1;
@@ -24,6 +21,7 @@ pub struct PlayerCommand {
     pub second_position: [f32;3],
     pub other_player_id:u64,
     pub action:u32,
+    pub skill_id:u32, // if a attack action happens, we need to map that to a skill and calculate the damage.
 }
 
 impl PlayerCommand {
@@ -106,7 +104,8 @@ impl PlayerCommand {
             position,
             second_position: direction,
             other_player_id,
-            action
+            action,
+            skill_id: 0,
         };
 
         client_action

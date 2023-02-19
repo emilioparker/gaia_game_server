@@ -61,12 +61,9 @@ struct JoinWithCharacterRequest {
 #[derive(Deserialize, Serialize, Debug)]
 struct JoinWithCharacterResponse {
     character_id:u64,
-    character_name:String,
-    pos_x: f32,
-    pos_y: f32,
-    pos_z: f32,
-    constitution: u32,
-    health: u32,
+    tetrahedron_id:String,
+    health:u32,
+    constitution:u32
 }
 
 #[derive(Clone)]
@@ -237,12 +234,9 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
-            character_name: player.character_name.clone(),
-            pos_x: 0f32,
-            pos_y: 0f32,
-            pos_z: 0f32,
-            constitution:player.constitution,
+            tetrahedron_id:"k003201332".to_owned(),
             health: player.health,
+            constitution: player.constitution,
         };
 
         let response = serde_json::to_vec(&saved_char).unwrap();

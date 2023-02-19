@@ -2,7 +2,7 @@ use std::{sync::Arc};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
-use crate::player::player_command::Actions;
+use crate::player::{player_command, self};
 use crate::player::player_presentation::PlayerPresentation;
 use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
@@ -151,13 +151,15 @@ pub fn start_service(
                 let player_command = item.1;
                 let cloned_data = item.1.to_owned();
                 // something should change here for the player
-                if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
+                // if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
 
-                    if let Some(atomic_time) = map.active_players.get(&cloned_data.player_id){
-                        atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
-                    }
+                if let Some(atomic_time) = map.active_players.get(&cloned_data.player_id){
+                    atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
+                }
 
-                    if player_command.action == 5 {
+                if player_command.action == player_command::GreetAction {
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
                         let name_with_padding = format!("{: <5}", player_entity.character_name);
                         let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
                         let mut name_array = [0u32; 5];
@@ -168,9 +170,12 @@ pub fn start_service(
                         };
 
                         players_presentation_summary.push(player_presentation);
-
                     }
-                    else if player_command.action == 6 { // respawn, we only update health for the moment
+
+                }
+                else if player_command.action == player_command::RespawnAction { // respawn, we only update health for the moment
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
                             action: player_command.action,
                             health: player_entity.constitution,
@@ -181,8 +186,10 @@ pub fn start_service(
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
                     }
-                    else
-                    {
+                }
+                else if player_command.action == player_command::WalkAction { // respawn, we only update health for the moment
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
                             action: player_command.action,
                             position: player_command.position,
@@ -194,10 +201,34 @@ pub fn start_service(
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
                     }
-                    
                 }
-                else {
-                    println!("player was not found {} in {}", cloned_data.player_id , player_entities.len());
+                else if player_command.action == player_command::AttackAction { // respawn, we only update health for the moment
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
+                        let updated_player_entity = PlayerEntity {
+                            action: player_command.action,
+                            health: player_entity.constitution,
+                            ..player_entity.clone()
+                        };
+
+                        *player_entity = updated_player_entity;
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+
+                        if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
+
+                            let updated_player_entity = PlayerEntity {
+                                action: other_entity.action,
+                                health: std::cmp::max(0, other_entity.health - 5),
+                                ..other_entity.clone()
+                            };
+
+                            *other_entity = updated_player_entity;
+                            tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
+                            players_summary.push(other_entity.clone());
+                        }
+// updating target entity, we usually substrack health I think ?
+                    }
                 }
             }
 
@@ -253,6 +284,7 @@ pub fn start_service(
             let mut filtered_summary = Vec::new();
 
 
+    println!("filtered player state {}", player_state_updates.len());
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
             filtered_summary.extend(player_presentation_state_update.clone());
@@ -268,6 +300,7 @@ pub fn start_service(
 }
 
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
+    println!("got states {}", data.len());
     *packet_number += 1u64;
 
     let mut buffer = [0u8; 5000];
