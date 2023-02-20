@@ -203,11 +203,11 @@ pub fn start_service(
                     }
                 }
                 else if player_command.action == player_command::AttackAction { // respawn, we only update health for the moment
+                    println!("got a attack action !");
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
                             action: player_command.action,
-                            health: player_entity.constitution,
                             ..player_entity.clone()
                         };
 
@@ -219,7 +219,7 @@ pub fn start_service(
 
                             let updated_player_entity = PlayerEntity {
                                 action: other_entity.action,
-                                health: std::cmp::max(0, other_entity.health - 5),
+                                health: std::cmp::max(0, other_entity.health - 2),
                                 ..other_entity.clone()
                             };
 

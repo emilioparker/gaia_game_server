@@ -12,7 +12,7 @@ use crate::player::player_command::PlayerCommand;
 
 pub enum Protocol{
     Ping = 1,
-    Position = 2,
+    Action = 2,
     GlobalState = 3,
     Interaction = 4,
 }
@@ -28,7 +28,7 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
             ping_protocol::process_ping(socket, data, channel_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::Position as u8 => {
+        Some(protocol) if *protocol == Protocol::Action as u8 => {
             movement_protocol::process_movement(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Interaction as u8 => {

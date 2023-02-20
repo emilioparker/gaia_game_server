@@ -34,7 +34,6 @@ impl PlayerEntity {
 
         let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
         buffer[36..40].copy_from_slice(&constitution_bytes);
-
         let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
         buffer[40..44].copy_from_slice(&health_bytes);
 
