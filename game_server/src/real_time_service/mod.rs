@@ -39,7 +39,6 @@ pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<
                             // println!("sending {}", packet_sequence_number);
                         }
                         // todo: only send data if client is correctly validated, add state to clients_data
-                        println!("sending packet to clients ");
                         let result = send_udp_socket.send_to(packet, client.0).await;
                         match result {
                             Ok(_) => {},

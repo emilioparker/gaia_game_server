@@ -61,7 +61,7 @@ pub fn start_service(
         loop {
             let message = rx_pc_client_game.recv().await.unwrap();
 
-            println!("got a player change data {}", message.player_id);
+            // println!("got a player change data {}", message.player_id);
             // let mut current_time = 0;
             // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
             // if let Ok(elapsed) = result {
@@ -206,7 +206,6 @@ pub fn start_service(
                     }
                 }
                 else if player_command.action == player_command::AttackAction { // respawn, we only update health for the moment
-                    println!("got a attack action !");
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
@@ -219,24 +218,26 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
+                            if let Some(result) = other_entity.health.checked_sub(2){
+                                let updated_player_entity = PlayerEntity {
+                                    action: other_entity.action,
+                                    health: result,
+                                    ..other_entity.clone()
+                                };
 
-                            let updated_player_entity = PlayerEntity {
-                                action: other_entity.action,
-                                health: std::cmp::max(0, other_entity.health - 2),
-                                ..other_entity.clone()
-                            };
+                                *other_entity = updated_player_entity;
+                                tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
+                                players_summary.push(other_entity.clone());
 
-                            *other_entity = updated_player_entity;
-                            tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
-                            players_summary.push(other_entity.clone());
-
-                            let attack = PlayerAttack{
-                                player_id: cloned_data.player_id,
-                                target_player_id: cloned_data.other_player_id,
-                                damage: 2,
-                                skill_id: 0,
-                            };
-                            player_attacks_summary.push(attack);
+                                let attack = PlayerAttack{
+                                    player_id: cloned_data.player_id,
+                                    target_player_id: cloned_data.other_player_id,
+                                    damage: 2,
+                                    skill_id: 0,
+                                };
+                                player_attacks_summary.push(attack);
+                            }
+                            
                         }
 // updating target entity, we usually substrack health I think ?
                     }
@@ -271,7 +272,7 @@ pub fn start_service(
                     None => println!("tile not found {}" , tile_command.0),
                 }
             }
-            println!("tiles summary {} ", tiles_summary.len());
+            // println!("tiles summary {} ", tiles_summary.len());
 
 
             tile_commands_data.clear();
@@ -299,7 +300,7 @@ pub fn start_service(
             let mut filtered_summary = Vec::new();
 
 
-    println!("filtered player state {}", player_state_updates.len());
+    // println!("filtered player state {}", player_state_updates.len());
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
             filtered_summary.extend(player_presentation_state_update.clone());
@@ -316,7 +317,6 @@ pub fn start_service(
 }
 
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
-    println!("got states {}", data.len());
     *packet_number += 1u64;
 
     let mut buffer = [0u8; 5000];
@@ -357,7 +357,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
 
             encoder.write_all(buffer.as_slice()).unwrap();
             let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-            println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
+            // println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
             packets.push(compressed_bytes); // this is a copy!
 
             start = 1;
@@ -428,7 +428,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         encoder.write_all(&buffer[..(start + 1)]).unwrap();
         // encoder.write_all(buffer.as_slice()).unwrap();
         let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-        println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
+        // println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
 
 
         // let data : &[u8] = &compressed_bytes;
