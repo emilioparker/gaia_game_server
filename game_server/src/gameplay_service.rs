@@ -2,7 +2,8 @@ use std::{sync::Arc};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
-use crate::player::{player_command, self};
+use crate::player::player_attack::PlayerAttack;
+use crate::player::{player_command, self, player_attack};
 use crate::player::player_presentation::PlayerPresentation;
 use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
@@ -21,6 +22,7 @@ pub enum DataType
     PlayerState = 26,
     TileState = 27,
     PlayerPresentation = 28,
+    PlayerAttack = 29,
 }
 
 pub fn start_service(
@@ -135,6 +137,7 @@ pub fn start_service(
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
             let mut players_summary = Vec::new();
+            let mut player_attacks_summary = Vec::new();
             let mut players_presentation_summary = Vec::new();
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
 
@@ -226,6 +229,14 @@ pub fn start_service(
                             *other_entity = updated_player_entity;
                             tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
                             players_summary.push(other_entity.clone());
+
+                            let attack = PlayerAttack{
+                                player_id: cloned_data.player_id,
+                                target_player_id: cloned_data.other_player_id,
+                                damage: 2,
+                                skill_id: 0,
+                            };
+                            player_attacks_summary.push(attack);
                         }
 // updating target entity, we usually substrack health I think ?
                     }
@@ -279,6 +290,10 @@ pub fn start_service(
             let player_state_updates = players_summary
                 .iter()
                 .map(|p| StateUpdate::PlayerState(p.clone()));
+
+            let player_attack_state_updates = player_attacks_summary
+                .iter()
+                .map(|p| StateUpdate::PlayerAttackState(p.clone()));
             // Sending summary to all clients.
 
             let mut filtered_summary = Vec::new();
@@ -288,6 +303,7 @@ pub fn start_service(
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
             filtered_summary.extend(player_presentation_state_update.clone());
+            filtered_summary.extend(player_attack_state_updates.clone());
             let packages = create_data_packets(filtered_summary, &mut packet_number);
 
             // the data that will be sent to each client is not copied.
@@ -316,6 +332,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     let player_state_size: usize = 44;
     let tile_state_size: usize = 66;
     let character_presentation_size: usize = 28;
+    let player_attack_size: usize = 24;
 
     let mut stored_bytes:u32 = 0;
     let mut stored_states:u8 = 0;
@@ -331,6 +348,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::PlayerState(_) => player_state_size as u32 + 1,
             StateUpdate::TileState(_) => tile_state_size as u32 + 1,
             StateUpdate::PlayerGreetings(_) => character_presentation_size as u32 + 1,
+            StateUpdate::PlayerAttackState(_) => player_attack_size as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -386,6 +404,17 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + character_presentation_size;
                 buffer[start..next].copy_from_slice(&presentation_bytes);
                 stored_bytes = stored_bytes + character_presentation_size as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::PlayerAttackState(player_attack) => {
+                buffer[start] = DataType::PlayerAttack as u8;
+                start += 1;
+
+                let attack_bytes = player_attack.to_bytes(); //24
+                let next = start + player_attack_size;
+                buffer[start..next].copy_from_slice(&attack_bytes);
+                stored_bytes = stored_bytes + player_attack_size as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

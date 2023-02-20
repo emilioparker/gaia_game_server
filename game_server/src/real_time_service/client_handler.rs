@@ -7,6 +7,7 @@ use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
 use crate::map::map_entity::{MapEntity, MapCommand};
+use crate::player::player_attack::PlayerAttack;
 use crate::player::player_command::PlayerCommand;
 use crate::player::player_entity::PlayerEntity;
 use crate::player::player_presentation::PlayerPresentation;
@@ -18,6 +19,7 @@ pub enum StateUpdate {
     PlayerState(PlayerEntity),
     PlayerGreetings(PlayerPresentation), // we should actually send more data...
     TileState(MapEntity),
+    PlayerAttackState(PlayerAttack),
 }
 
 pub async fn spawn_client_process(
