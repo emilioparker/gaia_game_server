@@ -69,7 +69,8 @@ async fn spawn_test_client(client_id : u64) {
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
                 other_player_id: 0,
-                action:1
+                action:1,
+                skill_id: todo!(),
             };
 
             position = second_position;
@@ -88,7 +89,8 @@ async fn spawn_test_client(client_id : u64) {
                 position:[position.x, position.y, position.z],
                 second_position:[second_position.x, second_position.y, second_position.z],
                 other_player_id:0,
-                action:0
+                action:0,
+                skill_id: todo!(),
             };
 
             let bytes = client_action.to_bytes();

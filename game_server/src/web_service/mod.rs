@@ -97,9 +97,8 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
                 last_update: tile_data.last_update,
                 health: tile_data.health,
                 prop: data.prop,
-                heat : tile_data.heat,
+                temperature : tile_data.temperature,
                 moisture : tile_data.moisture,
-                biome : tile_data.biome,
                 heights : tile_data.heights,
                 normal_a : tile_data.normal_a,
                 normal_b : tile_data.normal_b,
@@ -234,7 +233,7 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
-            tetrahedron_id:"k003201332".to_owned(),
+            tetrahedron_id:"d130001211".to_owned(),
             health: player.health,
             constitution: player.constitution,
         };
@@ -261,6 +260,7 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
         let data_from_db: Option<StoredRegion> = data_collection
         .find_one(
             bson::doc! {
+                    "world_id": context.storage_game_map.world_id,
                     "region_id": region.to_owned()
             },
             None,

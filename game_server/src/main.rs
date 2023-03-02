@@ -2,8 +2,11 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::AtomicUsize;
 
 use flate2::read::ZlibDecoder;
+use game_server::ServerState;
 use game_server::gameplay_service;
 use game_server::long_term_storage_service;
 use game_server::long_term_storage_service::db_region::StoredRegion;
@@ -18,18 +21,28 @@ use mongodb::Client;
 use mongodb::options::ClientOptions;
 use mongodb::options::ResolverConfig;
 
+
 // #[tokio::main(worker_threads = 1)]
 #[tokio::main()]
 async fn main() {
 
-    let (_tx, mut rx) = tokio::sync::watch::channel("hello");
+    let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
+
+    let server_state = Arc::new(ServerState{
+        tx_mc_client_gameplay: AtomicUsize::new(0),
+        tx_pc_client_gameplay: AtomicUsize::new(0),
+        tx_bytes_gameplay_socket: AtomicUsize::new(0),
+        tx_me_gameplay_longterm:AtomicUsize::new(0),
+        tx_pe_gameplay_longterm:AtomicUsize::new(0)
+    });
+    // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
     let client_uri = "mongodb://localhost:27017/test?retryWrites=true&w=majority";
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
-    let world_name = "world_002";
+    let world_name = "world_008";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -78,6 +91,7 @@ async fn main() {
         }
     }
 
+
     match (working_game_map, storage_game_map) {
         (Some(working_game_map), Some(storage_game_map)) =>
         {
@@ -91,17 +105,18 @@ async fn main() {
             );
 
             let (rx_mc_client_gameplay,
-                rx_pa_client_gameplay, 
+                rx_pc_client_gameplay, 
                 tx_bytes_gameplay_socket 
-            ) =  real_time_service::start_server();
+            ) =  real_time_service::start_server(server_state.clone());
 
             let (rx_me_gameplay_longterm,
                 rx_pe_gameplay_longterm
             ) = gameplay_service::start_service(
-                rx_pa_client_gameplay,
+                rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
                 rx_mc_webservice_gameplay,
                 working_game_map_reference.clone(), 
+                server_state.clone(),
                 tx_bytes_gameplay_socket);
 
             // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
@@ -123,7 +138,12 @@ async fn main() {
     }
 
     println!("Game server started correctly");
-    rx.changed().await.unwrap();
+    loop {
+        // assuming 30 fps.
+        // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        main_loop.tick().await;
+        // println!("{:?}", server_state);
+    }
 }
 
 
@@ -167,9 +187,9 @@ fn load_regions_data_into_game_map(
         let tiles : &[u8] = &decoded_data;
         let size = tiles.len();
 
-        let mut buffer = [0u8;69];
+        let mut buffer = [0u8;90];
         let mut start = 0;
-        let mut end = 69;
+        let mut end = 90;
 
         // println!("initialy for region {} {}",region_id, all_tiles.len());
 
@@ -178,12 +198,13 @@ fn load_regions_data_into_game_map(
         loop {
             buffer.copy_from_slice(&tiles[start..end]);
             let mut map_entity = MapEntity::from_bytes(&buffer);
+            // println!("{:?}", map_entity);
             // all map entities will have the object id of the database region, this value is the same for all map entities in a region
             map_entity.object_id = region_object_id;
             region_tiles.insert(map_entity.id.clone(), map_entity);
 
             start = end;
-            end = end + 69;
+            end = end + 90;
 
             if end > size
             {
@@ -209,16 +230,16 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     let tiles = tokio::fs::read(file_name).await.unwrap();
     let size = tiles.len();
 
-    let mut buffer = [0u8;69];
+    let mut buffer = [0u8;90];
     let mut start = 0;
-    let mut end = 69;
+    let mut end = 90;
 
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
 
         start = end;
-        end = end + 69;
+        end = end + 90;
         if end > size
         {
             break;

@@ -11,7 +11,7 @@ use crate::player::player_attack::PlayerAttack;
 use crate::player::player_command::PlayerCommand;
 use crate::player::player_entity::PlayerEntity;
 use crate::player::player_presentation::PlayerPresentation;
-use crate::{protocols};
+use crate::{protocols, ServerState};
 
 
 #[derive(Debug)]
@@ -26,6 +26,7 @@ pub async fn spawn_client_process(
     _player_id : u64,
     address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
+    server_state: Arc<ServerState>,
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerCommand>,
@@ -57,7 +58,12 @@ pub async fn spawn_client_process(
                     match result{
                         Ok(_size) => {
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
-                            protocols::route_packet(&socket_local_instance, &child_buff, &channel_action_tx, &channel_map_action_tx).await;
+                            protocols::route_packet(
+                                &socket_local_instance, 
+                                &child_buff, 
+                                &server_state,
+                                &channel_action_tx, 
+                                &channel_map_action_tx).await;
                         }
                         Err(error) => {
                             println!("we got an error {:?}", error);

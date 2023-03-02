@@ -9,10 +9,9 @@ pub struct MapEntity { // 69 bytes
     pub last_update: u32, // 4 bytes
     pub health:u32, // 4 bytes
     pub prop: u32, // 4 bytes
-    pub heat:u8,
-    pub moisture:u8,
-    pub biome:u8,
-    pub heights : [u32;3], // 12 bytes
+    pub temperature:[f32;3],
+    pub moisture:[f32;3],
+    pub heights : [f32;3], // 12 bytes
     pub normal_a : [f32;3], // 12 bytes
     pub normal_b : [f32;3], // 12 bytes
     pub normal_c : [f32;3], // 12 bytes
@@ -31,8 +30,8 @@ pub struct MapCommand {
 }
 
 impl MapEntity {
-    pub fn to_bytes(&self) -> [u8;69] {
-        let mut buffer = [0u8;69];
+    pub fn to_bytes(&self) -> [u8;90] {
+        let mut buffer = [0u8;90];
         let mut start : usize;
         let mut end : usize;
 
@@ -46,15 +45,17 @@ impl MapEntity {
         u32_into_buffer(&mut buffer, self.health, &mut start, &mut end);
         u32_into_buffer(&mut buffer, self.prop, &mut start, &mut end);
 
-        buffer[start] = self.heat;
-        buffer[start + 1] = self.moisture;
-        buffer[start + 2] = self.biome;
-        start = start + 3;
-        end = start;
+        float_into_buffer(&mut buffer, self.temperature[0], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.temperature[1], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.temperature[2], &mut start, &mut end);
 
-        u32_into_buffer(&mut buffer, self.heights[0], &mut start, &mut end);
-        u32_into_buffer(&mut buffer, self.heights[1], &mut start, &mut end);
-        u32_into_buffer(&mut buffer, self.heights[2], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.moisture[0], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.moisture[1], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.moisture[2], &mut start, &mut end);
+
+        float_into_buffer(&mut buffer, self.heights[0], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.heights[1], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.heights[2], &mut start, &mut end);
 
         float_into_buffer(&mut buffer, self.normal_a[0], &mut start, &mut end);
         float_into_buffer(&mut buffer, self.normal_a[1], &mut start, &mut end);
@@ -71,7 +72,7 @@ impl MapEntity {
         buffer
     }
 
-    pub fn from_bytes(data: &[u8;69]) -> Self {
+    pub fn from_bytes(data: &[u8;90]) -> Self {
         let mut start : usize;
         let end : usize;
 
@@ -87,17 +88,22 @@ impl MapEntity {
         let health = decode_u32(data, &mut start);
         let prop = decode_u32(data, &mut start);
 
-        let heat = data[start];
-        start += 1;
-        let moisture = data[start];
-        start += 1;
-        let biome = data[start];
-        start += 1;
+        let temperature = [
+            decode_float(data, &mut start),
+            decode_float(data, &mut start),
+            decode_float(data, &mut start)
+        ];
+
+        let moisture = [
+            decode_float(data, &mut start),
+            decode_float(data, &mut start),
+            decode_float(data, &mut start)
+        ];
 
         let heights = [
-            decode_u32(data, &mut start),
-            decode_u32(data, &mut start),
-            decode_u32(data, &mut start)
+            decode_float(data, &mut start),
+            decode_float(data, &mut start),
+            decode_float(data, &mut start)
         ];
 
         let normal_a = [
@@ -116,7 +122,7 @@ impl MapEntity {
             decode_float(data, &mut start)
         ];
 
-        MapEntity {object_id: None, id, last_update, health, prop, heat, moisture, biome, heights, normal_a, normal_b, normal_c }
+        MapEntity {object_id: None, id, last_update, health, prop, temperature, moisture, heights, normal_a, normal_b, normal_c }
     }
 }
 
@@ -144,7 +150,7 @@ impl MapCommand {
 }
 
 
-fn float_into_buffer(buffer : &mut [u8;69], data: f32, start : &mut usize, end: &mut usize)
+fn float_into_buffer(buffer : &mut [u8;90], data: f32, start : &mut usize, end: &mut usize)
 {
     *end = *end + 4;
     let bytes = f32::to_le_bytes(data);
@@ -152,7 +158,7 @@ fn float_into_buffer(buffer : &mut [u8;69], data: f32, start : &mut usize, end: 
     *start = *end;
 }
 
-fn u32_into_buffer(buffer : &mut [u8;69], data: u32, start : &mut usize, end: &mut usize)
+fn u32_into_buffer(buffer : &mut [u8;90], data: u32, start : &mut usize, end: &mut usize)
 {
     *end = *end + 4;
     let bytes = u32::to_le_bytes(data);
@@ -160,7 +166,7 @@ fn u32_into_buffer(buffer : &mut [u8;69], data: u32, start : &mut usize, end: &m
     *start = *end;
 }
 
-pub fn decode_float(buffer: &[u8;69], start: &mut usize) -> f32
+pub fn decode_float(buffer: &[u8;90], start: &mut usize) -> f32
 {
     let end = *start + 4;
     let decoded_float = f32::from_le_bytes(buffer[*start..end].try_into().unwrap());
@@ -168,7 +174,7 @@ pub fn decode_float(buffer: &[u8;69], start: &mut usize) -> f32
     decoded_float
 }
 
-pub fn decode_u32(buffer: &[u8;69], start: &mut usize) -> u32
+pub fn decode_u32(buffer: &[u8;90], start: &mut usize) -> u32
 {
     let end = *start + 4;
     let decoded_float = u32::from_le_bytes(buffer[*start..end].try_into().unwrap());
@@ -190,10 +196,9 @@ mod tests {
             last_update: 1000,
             health: 14,
             prop: 10,
-            heat: 1,
-            moisture: 2,
-            biome:3,
-            heights: [0,1,2],
+            temperature: [1.2, 1.3, 1.4],
+            moisture: [0.2, 0.3, 0.9],
+            heights: [0.2,1.0,2.2],
             normal_a: [1.2,1.1,1.5],
             normal_b: [1.2,1.1,1.6],
             normal_c: [1.2,1.1,1.7],

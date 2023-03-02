@@ -1,5 +1,6 @@
 use std::{sync::Arc};
 
+use crate::ServerState;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
 use crate::player::player_attack::PlayerAttack;
@@ -30,6 +31,7 @@ pub fn start_service(
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     mut rx_mc_webservice_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
+    server_state: Arc<ServerState>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
 ) -> (Receiver<MapEntity>, Receiver<PlayerEntity>) {
 
@@ -258,6 +260,8 @@ pub fn start_service(
                         match tile_command.1.info {
                             MapCommandInfo::Touch() => {
                                 tiles_summary.push(updated_tile);
+                                let capacity = tx_me_gameplay_longterm.capacity();
+                                server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
                                 tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(value) => {
@@ -265,6 +269,8 @@ pub fn start_service(
                                 tiles_summary.push(updated_tile.clone());
                                 *tile = updated_tile;
                                 // sending the updated tile somewhere.
+                                let capacity = tx_me_gameplay_longterm.capacity();
+                                server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
                                 tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
                             }
                         }
@@ -309,6 +315,8 @@ pub fn start_service(
 
             // the data that will be sent to each client is not copied.
             let arc_summary = Arc::new(packages);
+            let capacity = tx_bytes_game_socket.capacity();
+            server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
             tx_bytes_game_socket.send(arc_summary).await.unwrap();
         }
     });

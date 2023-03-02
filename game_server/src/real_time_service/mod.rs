@@ -3,17 +3,19 @@ pub mod utils;
 
 use std::sync::Arc;
 use std::{collections::HashMap};
+use crate::ServerState;
 use crate::map::map_entity::{MapCommand};
 use crate::player::player_connection::PlayerConnection;
 use crate::player::{player_command::PlayerCommand};
+use hyper::Server;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
+pub fn start_server(server_state: Arc<ServerState>) -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
 
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
-    let (tx_pa_client_statesys, rx_pa_client_statesys) = tokio::sync::mpsc::channel::<PlayerCommand>(1000);
+    let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<PlayerCommand>(1000);
 
     let client_connections:HashMap<std::net::SocketAddr, PlayerConnection> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
@@ -95,9 +97,10 @@ pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<
                                 player_id, 
                                 address, 
                                 from_address, 
+                                server_state.clone(),
                                 tx_addr_client_realtime.clone(), 
                                 tx_mc_client_statesys.clone(), 
-                                tx_pa_client_statesys.clone(), 
+                                tx_pc_client_statesys.clone(), 
                                 buf_udp,
                             ).await;
                         }
@@ -116,7 +119,7 @@ pub fn start_server() -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<
         }   
     });
 
-    (rx_mc_client_statesys, rx_pa_client_statesys, tx_bytes_statesys_socket)
+    (rx_mc_client_statesys, rx_pc_client_statesys, tx_bytes_statesys_socket)
 }
 
 
