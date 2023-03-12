@@ -42,7 +42,7 @@ async fn main() {
     let db_client = Client::with_options(options).unwrap();
 
     // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
-    let world_name = "world_008";
+    let world_name = "world_011";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -187,9 +187,9 @@ fn load_regions_data_into_game_map(
         let tiles : &[u8] = &decoded_data;
         let size = tiles.len();
 
-        let mut buffer = [0u8;90];
+        let mut buffer = [0u8;74];
         let mut start = 0;
-        let mut end = 90;
+        let mut end = 74;
 
         // println!("initialy for region {} {}",region_id, all_tiles.len());
 
@@ -204,7 +204,7 @@ fn load_regions_data_into_game_map(
             region_tiles.insert(map_entity.id.clone(), map_entity);
 
             start = end;
-            end = end + 90;
+            end = end + 74;
 
             if end > size
             {
@@ -230,16 +230,16 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     let tiles = tokio::fs::read(file_name).await.unwrap();
     let size = tiles.len();
 
-    let mut buffer = [0u8;90];
+    let mut buffer = [0u8;74];
     let mut start = 0;
-    let mut end = 90;
+    let mut end = 74;
 
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
 
         start = end;
-        end = end + 90;
+        end = end + 74;
         if end > size
         {
             break;
