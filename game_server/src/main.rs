@@ -41,8 +41,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    // tiles are modified by many systems, but since we only have one core... our mutex doesn't work too much
-    let world_name = "world_011";
+    let world_name = "world_013";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
