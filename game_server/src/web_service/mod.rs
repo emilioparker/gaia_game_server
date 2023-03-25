@@ -1,4 +1,5 @@
 
+use core::arch;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64};
 use std::io::Write;
@@ -7,6 +8,7 @@ use std::{sync::Arc};
 use bson::oid::ObjectId;
 use futures_util::future::OrElse;
 use futures_util::lock::Mutex;
+use futures_util::stream::AbortRegistration;
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Sender, Receiver};
@@ -20,7 +22,7 @@ use flate2::write::ZlibEncoder;
 
 use crate::long_term_storage_service::db_character::StoredCharacter;
 use crate::long_term_storage_service::db_region::StoredRegion;
-use crate::map::GameMap;
+use crate::map::{GameMap};
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::player::player_entity::PlayerEntity;
@@ -74,7 +76,8 @@ struct AppContext {
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
     tx_mc_webservice_realtime : Sender<MapCommand>,
-    db_client : mongodb ::Client
+    db_client : mongodb ::Client,
+    temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>
 }
 
 async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, hyper::http::Error> {
@@ -96,6 +99,7 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
                 id: tile_data.id.clone(),
                 last_update: tile_data.last_update,
                 health: tile_data.health,
+                constitution: tile_data.constitution,
                 prop: data.prop,
                 temperature : tile_data.temperature,
                 moisture : tile_data.moisture,
@@ -268,7 +272,7 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
         .unwrap();
 
         if let Some(region_from_db) = data_from_db {
-
+            println!("region id {:?} with version {}", region_from_db.region_id, region_from_db.region_version);
             let binary_data: Vec<u8> = match region_from_db.compressed_data {
                 bson::Bson::Binary(binary) => binary.bytes,
                 _ => panic!("Expected Bson::Binary"),
@@ -292,6 +296,40 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
 
 }
 
+async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, hyper::http::Error> {
+
+    println!("temp region request");
+    let mut iterator = data.into_iter();
+    let region_list = iterator.next();
+
+// this string might contain more than one region separated by semicolon
+    let regions = if let Some(regions_csv) = region_list {
+        println!("{}", regions_csv);
+        let data = regions_csv.split(",");
+        let regions_ids : Vec<&str> = data.collect();
+        let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
+        iterator
+    } else {
+        Vec::new()
+    };
+
+    let mut binary_data = Vec::<u8>::new();
+    for region_id in &regions 
+    {
+        let region_map = context.temp_regions.get(region_id).unwrap();
+        let region_map_lock = region_map.lock().await;
+        let size = region_map_lock.index;
+        binary_data.extend_from_slice(&region_map_lock.buffer[..size]);
+    }
+
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(binary_data))
+        .expect("Failed to create response");
+    Ok(response)
+}
+
 async fn handle_players_request(context: AppContext) -> Result<Response<Body>, hyper::http::Error> {
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
@@ -307,7 +345,7 @@ async fn handle_players_request(context: AppContext) -> Result<Response<Body>, h
         for presentation_data in players_presentation_map.iter()
         {
             let bytes = presentation_data.1;
-            encoder.write(bytes).unwrap();
+            encoder.write_all(bytes).unwrap();
         }
 
         drop(players_presentation_map);
@@ -350,6 +388,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         let rest : Vec<&str> = data.collect();
         match route {
             "region" => handle_region_request(context, rest).await,
+            "temp_regions" => handle_temp_region_request(context, rest).await,
             "players_data" => handle_players_request(context).await,
             "character_creation" => handle_create_character(context, req).await,
             "join_with_character" => handle_login_character(context, req).await,
@@ -364,14 +403,43 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
     }
 }
 
+pub struct TempMapBuffer { 
+    pub index : usize,
+    pub tile_to_index : HashMap<TetrahedronId, usize>,
+    pub buffer : [u8;100000]
+}
+
+impl TempMapBuffer {
+    pub fn new() -> TempMapBuffer
+    {
+        TempMapBuffer { index: 0, buffer: [0; 100000], tile_to_index : HashMap::new() }
+    }
+}
+
 pub fn start_server(
     working_map: Arc<GameMap>, 
     storage_map: Arc<GameMap>, 
-    db_client : mongodb :: Client) 
-    -> Receiver<MapCommand>{
+    db_client : mongodb :: Client,
+    mut rx_me_realtime_webservice : Receiver<MapEntity>,
+    tx_mc_webservice_gameplay : Sender<MapCommand>,
+    mut rx_saved_longterm_webservice : Receiver<u32>)
+    {
 
-    let (tx_mc_webservice_gameplay, rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
-    
+    let regions = crate::map::get_region_ids(2);
+    let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
+
+    for id in regions.into_iter()
+    {
+        println!("webservice -preload region {}", id.to_string());
+        arc_regions.insert(id.clone(), Arc::new(Mutex::new(TempMapBuffer::new())));
+    }
+    println!("len on preload {}",arc_regions.len());
+
+    let regions_adder_reference = Arc::new(arc_regions);
+    let regions_cleaner_reference = regions_adder_reference.clone();
+    let regions_reader_reference = regions_adder_reference.clone();
+
+
     let context = AppContext {
         presentation_data : Arc::new(Mutex::new(HashMap::new())),
         working_game_map : working_map,
@@ -380,6 +448,7 @@ pub fn start_server(
         db_client : db_client,
         last_presentation_update: Arc::new(AtomicU64::new(0)),
         compressed_presentation_data: Arc::new(Mutex::new(Vec::new())),
+        temp_regions : regions_reader_reference
     };
 
     tokio::spawn(async move {
@@ -404,5 +473,51 @@ pub fn start_server(
         }
     });
 
-    rx_mc_webservice_gameplay
+    tokio::spawn(async move {
+        loop {
+            let message = rx_me_realtime_webservice.recv().await.unwrap();
+            let region_id = message.id.get_parent(7);
+
+            let region_map = regions_adder_reference.get(&region_id).unwrap();
+            let mut region_map_lock = region_map.lock().await;
+
+
+            if let Some(index) =  region_map_lock.tile_to_index.get(&message.id)
+            {
+                let idx = *index;
+                region_map_lock.buffer[idx.. idx + MapEntity::get_size()].copy_from_slice(&message.to_bytes());
+                // println!("Replaced temp data to regions map {}", idx);
+            }
+            else {
+                let index = region_map_lock.index;
+                if index + MapEntity::get_size() < region_map_lock.buffer.len() {
+                    // println!("index {}, size {}", index, MapEntity::get_size());
+                    
+                    region_map_lock.buffer[index .. index + MapEntity::get_size()].copy_from_slice(&message.to_bytes());
+                    region_map_lock.index = index + MapEntity::get_size();
+
+                    region_map_lock.tile_to_index.insert(message.id.clone(), index);
+                }
+                else {
+                    println!("webservice - temp buffer at capacity {}", region_id);
+                }
+            }
+        }
+    });
+
+    tokio::spawn(async move {
+        let regions = crate::map::get_region_ids(2);
+        loop {
+            let _message = rx_saved_longterm_webservice.recv().await.unwrap();
+            println!("server saved the data, cleaning cache");
+
+            for region_id in &regions
+            {
+                let region_map = regions_cleaner_reference.get(&region_id).unwrap();
+                let mut region_map_lock = region_map.lock().await;
+                region_map_lock.index = 0;
+                region_map_lock.tile_to_index.clear();
+            }
+        }
+    });
 }

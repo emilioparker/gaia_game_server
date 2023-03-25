@@ -14,5 +14,6 @@ pub struct ServerState {
     pub tx_pc_client_gameplay: AtomicUsize,
     pub tx_bytes_gameplay_socket: AtomicUsize,
     pub tx_me_gameplay_longterm:AtomicUsize,
+    pub tx_me_gameplay_webservice:AtomicUsize,
     pub tx_pe_gameplay_longterm:AtomicUsize
 }

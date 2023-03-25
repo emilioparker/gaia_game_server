@@ -43,6 +43,7 @@ pub async fn preload_db(
             world_id : world_id,
             world_name : world_name.to_owned(),
             region_id : region.0.to_string(),
+            region_version : 0,
             compressed_data : bson
         };
 
@@ -67,7 +68,7 @@ pub async fn get_regions_from_db(
     let mut cursor = data_collection
     .find(
         doc! {
-                "world_id": world_id
+                "world_id": world_id,
         },
         None,
     ).await
@@ -145,7 +146,8 @@ pub fn start_server(
     mut rx_me_realtime_longterm : Receiver<MapEntity>,
     map : Arc<GameMap>,
     db_client : Client
-) {
+) -> Receiver<u32> {
+    let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = tokio::sync::mpsc::channel::<u32>(10);
     let modified_regions = HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));
 
@@ -160,7 +162,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_me_realtime_longterm.recv().await.unwrap();
-            println!("got a tile changed {:?} ", message);
+            // println!("got a tile changed {:?} ", message);
             let region_id = message.id.get_parent(7);
 
             let mut modified_regions = modified_regions_update_lock.lock().await;
@@ -185,8 +187,7 @@ pub fn start_server(
     // after a few seconds we try to save all changes to the database.
     tokio::spawn(async move {
         loop {
-            let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
-            tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(300)).await; // every 5 minutes
             let mut modified_regions = modified_regions_reader_lock.lock().await;
 
             let mut stored_regions = Vec::<StoredRegion>:: new();
@@ -196,14 +197,17 @@ pub fn start_server(
                 let region = map_reader.get_region(region_id);
 
                 let locked_tiles = region.lock().await;
+
+                let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
                 let mut region_object_id : Option<ObjectId> = None;
 
                 for tile in locked_tiles.iter()
                 {
                     region_object_id = tile.1.object_id;
                     let bytes = tile.1.to_bytes();
-                    encoder.write(&bytes).unwrap();
+                    encoder.write_all(&bytes).unwrap();
                 }
+
 
                 let compressed_bytes = encoder.reset(Vec::new()).unwrap();
                 let bson = bson::Bson::Binary(bson::Binary {
@@ -216,24 +220,27 @@ pub fn start_server(
                     world_id : None,
                     world_name : "".to_owned(),
                     region_id : region_id.to_string(),
+                    region_version : 0,
                     compressed_data : bson
                 };
 
                 stored_regions.push(data);
             }
-            modified_regions.clear();
 
             if modified_regions.len() > 0 {
                 let data_collection: mongodb::Collection<StoredRegion> = db_client.database("game").collection::<StoredRegion>("regions");
 
                 for region in stored_regions {
+                    
                     // Update the document:
                     let update_result = data_collection.update_one(
                         doc! {
+                            "world_id" : map_reader.world_id,
                             "_id": region.id,
                         },
                     doc! {
-                            "$set": {"compressed_data": region.compressed_data}
+                            "$set": {"compressed_data": region.compressed_data},
+                            "$inc": {"region_version": 1}
                         },
                         None
                     ).await;
@@ -241,6 +248,10 @@ pub fn start_server(
                     println!("updated region result {:?}", update_result);
                 }
             }
+            let _result =  tx_saved_longterm_webservice.send(1).await;
+
+            modified_regions.clear();
         }
     });
+    rx_me_tx_saved_longterm_webservice
 }

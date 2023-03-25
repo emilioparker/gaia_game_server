@@ -69,3 +69,34 @@ impl GameMap {
         region.clone()
     }
 }
+
+pub fn get_region_ids(lod : u8) -> Vec<TetrahedronId>
+{
+    let encoded_areas : [char; 20] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't'];
+
+    let initial_tiles : Vec<TetrahedronId> = encoded_areas.map(|l| {
+        let first = l.to_string();
+        TetrahedronId::from_string(&first)
+    }).into_iter().collect();
+
+    let mut regions = Vec::<TetrahedronId>::new();
+    for initial in initial_tiles
+    {
+        get_regions(initial, lod, &mut regions);
+    }
+    regions
+}
+
+pub fn get_regions(initial : TetrahedronId, target_lod : u8, regions : &mut Vec<TetrahedronId>)
+{
+    if initial.lod == target_lod
+    {
+        regions.push(initial);
+    }
+    else {
+        for index in 0..4
+        {
+            get_regions(initial.subdivide(index), target_lod, regions);
+        }
+    }
+}

@@ -62,8 +62,7 @@ pub async fn get_players_from_db(
 pub fn start_server(
     mut rx_pe_realtime_longterm : Receiver<PlayerEntity>,
     map : Arc<GameMap>,
-    db_client : Client
-) {
+    db_client : Client){
 
     let modified_players = HashSet::<u64>::new();
     let modified_players_reference = Arc::new(Mutex::new(modified_players));

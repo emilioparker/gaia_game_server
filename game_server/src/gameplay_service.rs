@@ -9,7 +9,7 @@ use crate::player::player_presentation::PlayerPresentation;
 use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
 
@@ -29,13 +29,14 @@ pub enum DataType
 pub fn start_service(
     mut rx_pc_client_game : tokio::sync::mpsc::Receiver<PlayerCommand>,
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
-    mut rx_mc_webservice_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
-) -> (Receiver<MapEntity>, Receiver<PlayerEntity>) {
+) -> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<PlayerEntity>, Sender<MapCommand>) {
 
+    let (tx_mc_webservice_gameplay, mut rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
+    let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<PlayerEntity>(1000);
 
     //players
@@ -91,7 +92,7 @@ pub fn start_service(
         // let mut sequence_number:u64 = 101;
         loop {
             let message = rx_mc_client_game.recv().await.unwrap();
-            println!("got a tile change data {}", message.id);
+            // println!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_client_lock.lock().await;
             
             let old = data.get(&message.id);
@@ -113,8 +114,8 @@ pub fn start_service(
 
         // let mut sequence_number:u64 = 101;
         loop {
-            let message = rx_mc_webservice_game.recv().await.unwrap();
-            println!("got a tile change data {}", message.id);
+            let message = rx_mc_webservice_gameplay.recv().await.unwrap();
+            // println!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
             
             let old = data.get(&message.id);
@@ -155,8 +156,6 @@ pub fn start_service(
             {
                 let player_command = item.1;
                 let cloned_data = item.1.to_owned();
-                // something should change here for the player
-                // if let Some(player_entity) = player_entities.get_mut(&cloned_data.player_id){
 
                 if let Some(atomic_time) = map.active_players.get(&cloned_data.player_id){
                     atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
@@ -260,18 +259,31 @@ pub fn start_service(
                         match tile_command.1.info {
                             MapCommandInfo::Touch() => {
                                 tiles_summary.push(updated_tile);
+
                                 let capacity = tx_me_gameplay_longterm.capacity();
                                 server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                let capacity = tx_me_gameplay_webservice.capacity();
+                                server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                // sending the updated tile somewhere.
                                 tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(value) => {
+                                println!("Change tile health!!!");
                                 updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
+                                updated_tile.last_update += 1;
                                 tiles_summary.push(updated_tile.clone());
                                 *tile = updated_tile;
-                                // sending the updated tile somewhere.
                                 let capacity = tx_me_gameplay_longterm.capacity();
                                 server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                let capacity = tx_me_gameplay_webservice.capacity();
+                                server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                // sending the updated tile somewhere.
                                 tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
                             }
                         }
                     }
@@ -321,7 +333,7 @@ pub fn start_service(
         }
     });
 
-    ( rx_me_gameplay_longterm, rx_pe_gameplay_longterm)
+    (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, tx_mc_webservice_gameplay)
 }
 
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
@@ -338,7 +350,6 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     start = end;
 
     let player_state_size: usize = 44;
-    let tile_state_size: usize = 66;
     let character_presentation_size: usize = 28;
     let player_attack_size: usize = 24;
 
@@ -354,7 +365,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     {
         let required_space = match state_update{
             StateUpdate::PlayerState(_) => player_state_size as u32 + 1,
-            StateUpdate::TileState(_) => tile_state_size as u32 + 1,
+            StateUpdate::TileState(_) => MapEntity::get_size() as u32 + 1,
             StateUpdate::PlayerGreetings(_) => character_presentation_size as u32 + 1,
             StateUpdate::PlayerAttackState(_) => player_attack_size as u32 + 1,
         };
@@ -397,10 +408,10 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 buffer[start] = DataType::TileState as u8;
                 start += 1;
 
-                let tile_state_bytes = tile_state.to_bytes(); //66
-                let next = start + tile_state_size;
+                let tile_state_bytes = tile_state.to_bytes();
+                let next = start + MapEntity::get_size() as usize;
                 buffer[start..next].copy_from_slice(&tile_state_bytes);
-                stored_bytes = stored_bytes + tile_state_size as u32 + 1;
+                stored_bytes = stored_bytes + MapEntity::get_size() as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             }

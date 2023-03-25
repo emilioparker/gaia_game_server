@@ -9,6 +9,8 @@ pub struct StoredRegion {
     pub world_id: Option<ObjectId>,
     pub world_name: String,
     pub region_id: String,
+    #[serde(default)]
+    pub region_version: u32,
     pub compressed_data : bson::Bson,
 }
 
@@ -34,6 +36,7 @@ mod tests {
             world_id : None,
             world_name : "test_world".to_owned(),
             region_id : "testing".to_owned(),
+            region_version : 0,
             compressed_data : bson
         };
 
@@ -71,6 +74,7 @@ mod tests {
             world_id : None,
             world_name : "test_world".to_owned(),
             region_id : "a".to_owned(),
+            region_version : 0,
             compressed_data : bson
         };
 
@@ -98,8 +102,8 @@ mod tests {
             id : None,
             world_id : None,
             world_name : "test_world".to_owned(),
-            region_id : "a".to_owned()
-            ,
+            region_id : "a".to_owned(),
+            region_version : 0,
             compressed_data : bson
         };
 
@@ -110,7 +114,7 @@ mod tests {
         let data_from_db: StoredRegion = data_collection
         .find_one(
             doc! {
-                    "region_id": "a"
+                    "_id": insert_result.inserted_id 
             },
             None,
         ).await
