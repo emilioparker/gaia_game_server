@@ -255,9 +255,21 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, hyper::http::Error> {
 
     let mut iterator = data.into_iter();
-    let region = iterator.next();
-    if let Some(region) = region {
+    let region_list = iterator.next();
+    let regions = if let Some(regions_csv) = region_list {
+        println!("{}", regions_csv);
+        let data = regions_csv.split(",");
+        let regions_ids : Vec<&str> = data.collect();
+        let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
+        iterator
+    } else {
+        Vec::new()
+    };
 
+    let mut binary_data = Vec::<u8>::new();
+    let mut stored_regions_data = Vec::<Vec<u8>>::new();
+    for region_id in &regions 
+    {
         let data_collection: mongodb::Collection<StoredRegion> = context.db_client.database("game").collection::<StoredRegion>("regions");
 
         // Look up one document:
@@ -265,7 +277,7 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
         .find_one(
             bson::doc! {
                     "world_id": context.storage_game_map.world_id,
-                    "region_id": region.to_owned()
+                    "region_id": region_id.to_string()
             },
             None,
         ).await
@@ -273,32 +285,37 @@ async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<
 
         if let Some(region_from_db) = data_from_db {
             println!("region id {:?} with version {}", region_from_db.region_id, region_from_db.region_version);
-            let binary_data: Vec<u8> = match region_from_db.compressed_data {
+            let region_data: Vec<u8> = match region_from_db.compressed_data {
                 bson::Bson::Binary(binary) => binary.bytes,
                 _ => panic!("Expected Bson::Binary"),
             };
-
-            let response = Response::builder()
-                .status(hyper::StatusCode::OK)
-                .header("Content-Type", "application/octet-stream")
-                .body(Body::from(binary_data))
-                .expect("Failed to create response");
-            Ok(response)
+            stored_regions_data.push(region_data);
         }
         else {
-            Ok(Response::new(Body::from("Error getting region from db")))
+            stored_regions_data.push(Vec::new());
         }
     }
-    else{
-        println!("bad request");
-        return Ok(Response::new(Body::from("bad request")));
+
+    for region_data in &stored_regions_data{
+        let size_bytes = u32::to_le_bytes(region_data.len() as u32);
+        binary_data.extend_from_slice(&size_bytes);
     }
 
+    for region_data in &mut stored_regions_data
+    {
+        binary_data.append(region_data);
+    }
+
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(binary_data))
+        .expect("Failed to create response");
+    Ok(response)
 }
 
 async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, hyper::http::Error> {
 
-    println!("temp region request");
     let mut iterator = data.into_iter();
     let region_list = iterator.next();
 
