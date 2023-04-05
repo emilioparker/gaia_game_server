@@ -7,7 +7,6 @@ use crate::ServerState;
 use crate::map::map_entity::{MapCommand};
 use crate::player::player_connection::PlayerConnection;
 use crate::player::{player_command::PlayerCommand};
-use hyper::Server;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 

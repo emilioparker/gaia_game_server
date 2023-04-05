@@ -162,7 +162,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_me_realtime_longterm.recv().await.unwrap();
-            // println!("got a tile changed {:?} ", message);
+            println!("got a tile changed {:?} ", message);
             let region_id = message.id.get_parent(7);
 
             let mut modified_regions = modified_regions_update_lock.lock().await;

@@ -1,9 +1,9 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
-use crate::long_term_storage_service::db_character::StoredCharacter;
+use crate::long_term_storage_service::db_character::{StoredCharacter, StoredInventoryItem};
 use crate::map::GameMap;
-use crate::player::player_entity::PlayerEntity;
+use crate::player::player_entity::{PlayerEntity, InventoryItem};
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
@@ -36,6 +36,14 @@ pub async fn get_players_from_db(
         match result 
         {
             Ok(doc) => {
+
+                let inventory = doc.inventory.into_iter().map(|item| InventoryItem {
+                    item_id: item.item_id,
+                    level: item.level,
+                    quality: item.quality,
+                    amount: item.amount,
+                }).collect();
+
                 let player =  PlayerEntity{
                     player_id: doc.player_id,
                     object_id: doc.id,
@@ -45,6 +53,7 @@ pub async fn get_players_from_db(
                     constitution: doc.constitution,
                     health: doc.health,
                     character_name: doc.character_name,
+                    inventory
                 };
                 count += 1;
                 data.insert(doc.player_id, player);
@@ -79,7 +88,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_pe_realtime_longterm.recv().await.unwrap();
-
+            println!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.player_id.clone());
 
@@ -120,12 +129,23 @@ pub fn start_server(
             let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
 
             for player in modified_player_entities {
+                let updated_inventory : Vec<StoredInventoryItem> = player.inventory
+                .into_iter()
+                .map(|item| StoredInventoryItem ::from(item))
+                .collect();
+
+                let serialized_data= bson::to_bson(&updated_inventory).unwrap();
+
                 let update_result = data_collection.update_one(
                     doc! {
                         "_id": player.object_id,
                     },
                     doc! {
-                        "$set": {"constitution": player.constitution + 1}
+                        "$set": {
+                            "constitution": player.constitution,
+                            "health" : player.health,
+                            "inventory" : serialized_data
+                        }
                     },
                     None
                 ).await;

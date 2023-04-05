@@ -4,7 +4,9 @@ use crate::ServerState;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo};
 use crate::player::player_attack::PlayerAttack;
-use crate::player::{player_command, self, player_attack};
+use crate::player::player_entity::InventoryItem;
+use crate::player::player_reward::{PlayerReward, self};
+use crate::player::{player_command};
 use crate::player::player_presentation::PlayerPresentation;
 use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
@@ -24,6 +26,7 @@ pub enum DataType
     TileState = 27,
     PlayerPresentation = 28,
     PlayerAttack = 29,
+    PlayerReward = 30,
 }
 
 pub fn start_service(
@@ -143,6 +146,7 @@ pub fn start_service(
             let mut player_attacks_summary = Vec::new();
             let mut players_presentation_summary = Vec::new();
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
+            let mut players_rewards_summary : Vec<PlayerReward>= Vec::new();
 
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
@@ -161,7 +165,7 @@ pub fn start_service(
                     atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
                 }
 
-                if player_command.action == player_command::GreetAction {
+                if player_command.action == player_command::GREET_ACTION {
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let name_with_padding = format!("{: <5}", player_entity.character_name);
@@ -177,7 +181,7 @@ pub fn start_service(
                     }
 
                 }
-                else if player_command.action == player_command::RespawnAction { // respawn, we only update health for the moment
+                else if player_command.action == player_command::RESPAWN_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
@@ -191,7 +195,7 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == player_command::WalkAction { // respawn, we only update health for the moment
+                else if player_command.action == player_command::WALK_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
@@ -206,7 +210,7 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == player_command::AttackAction { // respawn, we only update health for the moment
+                else if player_command.action == player_command::ATTACK_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
@@ -243,6 +247,23 @@ pub fn start_service(
 // updating target entity, we usually substrack health I think ?
                     }
                 }
+                else if player_command.action == player_command::WOOD_CUT_ACTION { // respawn, we only update health for the moment
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
+                        let updated_player_entity = PlayerEntity {
+                            action: player_command.action,
+                            ..player_entity.clone()
+                        };
+
+                        *player_entity = updated_player_entity;
+                        // we don't need to store this
+                        // tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    }
+                }
+                else {
+                    println!("got an unknown player command {}", player_command.action)
+                }
             }
 
 
@@ -270,20 +291,52 @@ pub fn start_service(
                                 tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
                                 tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
                             },
-                            MapCommandInfo::ChangeHealth(value) => {
+                            MapCommandInfo::ChangeHealth(player_id, value) => {
                                 println!("Change tile health!!!");
-                                updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
-                                updated_tile.last_update += 1;
-                                tiles_summary.push(updated_tile.clone());
-                                *tile = updated_tile;
-                                let capacity = tx_me_gameplay_longterm.capacity();
-                                server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                let capacity = tx_me_gameplay_webservice.capacity();
-                                server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                let previous_health = tile.health;
 
-                                // sending the updated tile somewhere.
-                                tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+
+                                if previous_health > 0
+                                {
+                                    updated_tile.health = i32::max(0, updated_tile.health as i32 - value as i32) as u32;
+                                    updated_tile.last_update += 1;
+                                    tiles_summary.push(updated_tile.clone());
+                                    *tile = updated_tile;
+
+                                    let capacity = tx_me_gameplay_longterm.capacity();
+                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    let capacity = tx_me_gameplay_webservice.capacity();
+                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                    // sending the updated tile somewhere.
+                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+
+
+                                    if tile.health == 0
+                                    {
+                                        let player_option = player_entities.get_mut(&player_id);
+                                        if let Some(player_entity) = player_option {
+                                            println!("Add inventory item for player");
+                                            // get this from definitions
+                                            player_entity.add_inventory_item(InventoryItem {
+                                                item_id: 1,
+                                                level: 1,
+                                                quality: 1,
+                                                amount: 15,
+                                            });
+
+                                            // *player_entity = updated_player_entity;
+                                            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                                            players_summary.push(player_entity.clone());
+                                        }
+
+                                        // we should also give the player the reward
+                                        players_rewards_summary.push(PlayerReward {
+                                             player_id, item_id: 1, level: 1, quality: 1, amount: 15 }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -306,6 +359,10 @@ pub fn start_service(
                 .into_iter()
                 .map(|p| StateUpdate::PlayerGreetings(p));
 
+            let player_rewards_state_update = players_rewards_summary
+                .into_iter()
+                .map(|p| StateUpdate::Rewards(p));
+
             let player_state_updates = players_summary
                 .iter()
                 .map(|p| StateUpdate::PlayerState(p.clone()));
@@ -322,6 +379,7 @@ pub fn start_service(
             filtered_summary.extend(player_state_updates.clone());
             filtered_summary.extend(tiles_state_update.clone());
             filtered_summary.extend(player_presentation_state_update.clone());
+            filtered_summary.extend(player_rewards_state_update.clone());
             filtered_summary.extend(player_attack_state_updates.clone());
             let packages = create_data_packets(filtered_summary, &mut packet_number);
 
@@ -368,6 +426,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileState(_) => MapEntity::get_size() as u32 + 1,
             StateUpdate::PlayerGreetings(_) => character_presentation_size as u32 + 1,
             StateUpdate::PlayerAttackState(_) => player_attack_size as u32 + 1,
+            StateUpdate::Rewards(_) =>player_reward::PLAYER_REWARD_SIZE as u32 +1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -434,6 +493,17 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + player_attack_size;
                 buffer[start..next].copy_from_slice(&attack_bytes);
                 stored_bytes = stored_bytes + player_attack_size as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::Rewards(player_reward) => {
+                buffer[start] = DataType::PlayerReward as u8; // 30
+                start += 1;
+
+                let reward_bytes = player_reward.to_bytes(); //16 bytes
+                let next = start + player_reward::PLAYER_REWARD_SIZE;
+                buffer[start..next].copy_from_slice(&reward_bytes);
+                stored_bytes = stored_bytes + player_reward::PLAYER_REWARD_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

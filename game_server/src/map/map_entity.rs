@@ -47,7 +47,7 @@ impl MapEntity {
 #[derive(Debug, Clone)]
 pub enum MapCommandInfo {
     Touch(),
-    ChangeHealth(u16),
+    ChangeHealth(u64,u16),
 }
 
 #[derive(Debug, Clone)]
@@ -142,7 +142,8 @@ impl MapEntity {
     }
 }
 
-
+// todo this is assuming it comes from a client package... we should make this pure and then add the case where it comes from the client.
+// ignoring the first byte looks wrong.
 impl MapCommand {
     pub fn from_bytes(data: &[u8;508]) -> Self {
         let mut start : usize;
@@ -156,11 +157,13 @@ impl MapCommand {
         let tile_id = TetrahedronId::from_bytes(&buffer);
 
         start = end;
+        end = start + 8;
+        let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
+        start = end;
         end = start + 2;
-
         let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
 
-        let info = MapCommandInfo::ChangeHealth(damage);
+        let info = MapCommandInfo::ChangeHealth(player_id, damage);
         MapCommand { id: tile_id, info }
     }
 }

@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use bson::oid::ObjectId;
 
 
@@ -10,9 +12,26 @@ pub struct PlayerEntity {
     pub action:u32,
     pub position: [f32;3],
     pub second_position: [f32;3],
+    pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub constitution: u32,
     pub health: u32
 }
+
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct InventoryItem{
+    pub item_id : u32,
+    pub level : u8,
+    pub quality : u8,
+    pub amount : u16
+}
+
+// #[derive(Debug)]
+// #[derive(Clone)]
+// pub struct PlayerInventory{
+//     pub items : Vec<InventoryItem>,
+//     pub hash : u32
+// }
 
 impl PlayerEntity {
     pub fn to_bytes(&self) -> [u8;44] {
@@ -39,6 +58,20 @@ impl PlayerEntity {
 
         buffer
     }
+
+    pub fn add_inventory_item(&mut self, item : InventoryItem)
+    {
+        // you are supposed to accumulate, collapse this.
+        self.inventory.push(item);
+    }
+
+
+}
+
+impl Hash for PlayerEntity {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.action.hash(state);
+    }
 }
 
 fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : usize, end: usize)
@@ -49,6 +82,8 @@ fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : usize, end: usize
 
 #[cfg(test)]
 mod tests {
+    use std::num::Wrapping;
+
 
     #[test]
     fn test_enconde_ascii() {
@@ -74,5 +109,20 @@ mod tests {
         let mut name_array = [0u32; 5];
         name_array.clone_from_slice(&name_data.as_slice()[0..5]);
         println!("{:?}", name_array);
+    }
+
+    #[test]
+    fn test_overflow()
+    {
+        let a = Wrapping(200u8);
+        let b = Wrapping(2u8);
+        let c = Wrapping(121u8);
+        let d = Wrapping(15u8);
+        let result = a * b * c * d;
+        println!("{result}");
+        let result = c * b * d * a;
+        println!("{result}");
+        let result = a * c * d * b;
+        println!("{result}");
     }
 }

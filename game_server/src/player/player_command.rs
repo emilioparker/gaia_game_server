@@ -1,18 +1,10 @@
-pub const IdleAction: u32 = 0;
-pub const WalkAction: u32 = 1;
-pub const WoodCutAction: u32 = 2;
-pub const AttackAction: u32 = 3;
-pub const CollectAction: u32 = 4;
-pub const GreetAction: u32 = 5;
-pub const RespawnAction: u32 = 6;
-
-// public static UInt32 IdleAction = 0;
-// public static UInt32 WalkAction = 1;
-// public static UInt32 WoodCutAction = 2;
-// public static UInt32 NormaAttackAction = 3;
-// public static UInt32 CollectAction = 4;
-// public static UInt32 GreetAction = 5;
-// public static UInt32 Respawn = 6;
+pub const IDLE_ACTION: u32 = 0;
+pub const WALK_ACTION: u32 = 1;
+pub const WOOD_CUT_ACTION: u32 = 2;
+pub const ATTACK_ACTION: u32 = 3;
+pub const COLLECT_ACTION: u32 = 4;
+pub const GREET_ACTION: u32 = 5;
+pub const RESPAWN_ACTION: u32 = 6;
 
 #[derive(Debug)]
 pub struct PlayerCommand {

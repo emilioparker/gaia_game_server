@@ -1,14 +1,11 @@
 
-use core::arch;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64};
 use std::io::Write;
 use std::{sync::Arc};
 
 use bson::oid::ObjectId;
-use futures_util::future::OrElse;
 use futures_util::lock::Mutex;
-use futures_util::stream::AbortRegistration;
 use hyper::{Request, body, server::conn::AddrStream};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Sender, Receiver};
@@ -160,6 +157,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         player_id: new_id,
         character_name: data.character_name.clone(),
         device_id: data.device_id.clone(),
+        inventory : Vec::new(),
         constitution: 50,
         health: 50
     };
@@ -182,6 +180,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         second_position: [0.0, 0.0, 0.0],
         constitution: 50,
         health: 50,
+        inventory: Vec::new(), // fill this from storedcharacter
     };
 
     let mut players = context.working_game_map.players.lock().await;
@@ -221,8 +220,6 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
     if let Some(player) = players.get(&data.character_id) {
 
         let mut presentation_map = context.presentation_data.lock().await;
-
-
         let name_with_padding = format!("{: <5}", player.character_name);
         let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
         let mut name_array = [0u32; 5];

@@ -11,13 +11,15 @@ use crate::player::player_attack::PlayerAttack;
 use crate::player::player_command::PlayerCommand;
 use crate::player::player_entity::PlayerEntity;
 use crate::player::player_presentation::PlayerPresentation;
+use crate::player::player_reward::PlayerReward;
 use crate::{protocols, ServerState};
 
 
 #[derive(Debug)]
 pub enum StateUpdate {
     PlayerState(PlayerEntity),
-    PlayerGreetings(PlayerPresentation), // we should actually send more data...
+    PlayerGreetings(PlayerPresentation), 
+    Rewards(PlayerReward),
     TileState(MapEntity),
     PlayerAttackState(PlayerAttack),
 }
