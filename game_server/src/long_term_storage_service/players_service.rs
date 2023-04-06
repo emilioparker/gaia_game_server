@@ -53,7 +53,8 @@ pub async fn get_players_from_db(
                     constitution: doc.constitution,
                     health: doc.health,
                     character_name: doc.character_name,
-                    inventory
+                    inventory,
+                    inventory_hash: 1,
                 };
                 count += 1;
                 data.insert(doc.player_id, player);

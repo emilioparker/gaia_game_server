@@ -2,9 +2,9 @@ use std::{sync::Arc};
 
 use crate::ServerState;
 use crate::map::GameMap;
-use crate::map::map_entity::{MapCommand, MapCommandInfo};
+use crate::map::map_entity::{MapCommand, MapCommandInfo, MAP_ENTITY_SIZE};
 use crate::player::player_attack::PlayerAttack;
-use crate::player::player_entity::InventoryItem;
+use crate::player::player_entity::{InventoryItem, PLAYER_ENTITY_SIZE};
 use crate::player::player_reward::{PlayerReward, self};
 use crate::player::{player_command};
 use crate::player::player_presentation::PlayerPresentation;
@@ -223,26 +223,24 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
-                            if let Some(result) = other_entity.health.checked_sub(2){
-                                let updated_player_entity = PlayerEntity {
-                                    action: other_entity.action,
-                                    health: result,
-                                    ..other_entity.clone()
-                                };
+                            let result = other_entity.health.wrapping_sub(4);
+                            let updated_player_entity = PlayerEntity {
+                                action: other_entity.action,
+                                health: result,
+                                ..other_entity.clone()
+                            };
 
-                                *other_entity = updated_player_entity;
-                                tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
-                                players_summary.push(other_entity.clone());
+                            *other_entity = updated_player_entity;
+                            tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
+                            players_summary.push(other_entity.clone());
 
-                                let attack = PlayerAttack{
-                                    player_id: cloned_data.player_id,
-                                    target_player_id: cloned_data.other_player_id,
-                                    damage: 2,
-                                    skill_id: 0,
-                                };
-                                player_attacks_summary.push(attack);
-                            }
-                            
+                            let attack = PlayerAttack{
+                                player_id: cloned_data.player_id,
+                                target_player_id: cloned_data.other_player_id,
+                                damage: 2,
+                                skill_id: 0,
+                            };
+                            player_attacks_summary.push(attack);
                         }
 // updating target entity, we usually substrack health I think ?
                     }
@@ -318,23 +316,29 @@ pub fn start_service(
                                         let player_option = player_entities.get_mut(&player_id);
                                         if let Some(player_entity) = player_option {
                                             println!("Add inventory item for player");
-                                            // get this from definitions
-                                            player_entity.add_inventory_item(InventoryItem {
+                                            let new_item = InventoryItem {
                                                 item_id: 1,
                                                 level: 1,
                                                 quality: 1,
                                                 amount: 15,
-                                            });
+                                            };
 
-                                            // *player_entity = updated_player_entity;
+                                            // we should also give the player the reward
+                                            let reward = PlayerReward {
+                                                player_id,
+                                                item_id: new_item.item_id,
+                                                level: new_item.level,
+                                                quality: new_item.quality,
+                                                amount: new_item.amount
+                                            };
+
+                                            players_rewards_summary.push(reward);
+
+                                            player_entity.add_inventory_item(new_item);
                                             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                                             players_summary.push(player_entity.clone());
                                         }
 
-                                        // we should also give the player the reward
-                                        players_rewards_summary.push(PlayerReward {
-                                             player_id, item_id: 1, level: 1, quality: 1, amount: 15 }
-                                        )
                                     }
                                 }
                             }
@@ -407,7 +411,6 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     buffer[start..end].copy_from_slice(&packet_number_bytes);
     start = end;
 
-    let player_state_size: usize = 44;
     let character_presentation_size: usize = 28;
     let player_attack_size: usize = 24;
 
@@ -422,8 +425,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     for state_update in data.iter()
     {
         let required_space = match state_update{
-            StateUpdate::PlayerState(_) => player_state_size as u32 + 1,
-            StateUpdate::TileState(_) => MapEntity::get_size() as u32 + 1,
+            StateUpdate::PlayerState(_) => PLAYER_ENTITY_SIZE as u32 + 1,
+            StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
             StateUpdate::PlayerGreetings(_) => character_presentation_size as u32 + 1,
             StateUpdate::PlayerAttackState(_) => player_attack_size as u32 + 1,
             StateUpdate::Rewards(_) =>player_reward::PLAYER_REWARD_SIZE as u32 +1,
@@ -457,9 +460,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 start += 1;
 
                 let player_state_bytes = player_state.to_bytes(); //44
-                let next = start + player_state_size;
+                let next = start + PLAYER_ENTITY_SIZE;
                 buffer[start..next].copy_from_slice(&player_state_bytes);
-                stored_bytes = stored_bytes + player_state_size as u32 + 1;
+                stored_bytes = stored_bytes + PLAYER_ENTITY_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

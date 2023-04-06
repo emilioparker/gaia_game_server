@@ -181,6 +181,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         constitution: 50,
         health: 50,
         inventory: Vec::new(), // fill this from storedcharacter
+        inventory_hash : 1
     };
 
     let mut players = context.working_game_map.players.lock().await;

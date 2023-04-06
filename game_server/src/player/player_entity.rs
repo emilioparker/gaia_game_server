@@ -1,7 +1,8 @@
-use std::hash::Hash;
+use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
+pub const PLAYER_ENTITY_SIZE: usize = 48;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -13,6 +14,7 @@ pub struct PlayerEntity {
     pub position: [f32;3],
     pub second_position: [f32;3],
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
+    pub inventory_hash : u32,
     pub constitution: u32,
     pub health: u32
 }
@@ -34,8 +36,8 @@ pub struct InventoryItem{
 // }
 
 impl PlayerEntity {
-    pub fn to_bytes(&self) -> [u8;44] {
-        let mut buffer = [0u8; 44];
+    pub fn to_bytes(&self) -> [u8;PLAYER_ENTITY_SIZE] {
+        let mut buffer = [0u8; PLAYER_ENTITY_SIZE];
 
         let player_id_bytes = u64::to_le_bytes(self.player_id); // 8 bytes
         buffer[..8].copy_from_slice(&player_id_bytes);
@@ -48,24 +50,44 @@ impl PlayerEntity {
         float_into_buffer(&mut buffer, self.second_position[1], 24, 28);
         float_into_buffer(&mut buffer, self.second_position[2], 28, 32);
         
+        let inventory_hash_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
+        buffer[32..36].copy_from_slice(&inventory_hash_bytes);
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
-        buffer[32..36].copy_from_slice(&action_bytes);
-
+        buffer[36..40].copy_from_slice(&action_bytes);
         let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
-        buffer[36..40].copy_from_slice(&constitution_bytes);
+        buffer[40..44].copy_from_slice(&constitution_bytes);
         let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
-        buffer[40..44].copy_from_slice(&health_bytes);
-
+        buffer[44..48].copy_from_slice(&health_bytes);
         buffer
     }
 
-    pub fn add_inventory_item(&mut self, item : InventoryItem)
+    pub fn add_inventory_item(&mut self, new_item : InventoryItem)
     {
-        // you are supposed to accumulate, collapse this.
-        self.inventory.push(item);
+        let mut found = false;
+        for item in &mut self.inventory {
+            if item.item_id == new_item.item_id && item.level == new_item.level && item.quality == new_item.quality {
+                item.amount += new_item.amount;
+                found = true;
+            }
+        }
+
+        if !found {
+            self.inventory.push(new_item);
+        }
+
+        self.inventory_hash = self.calculate_inventory_hash();
     }
 
-
+    pub fn calculate_inventory_hash(&self) -> u32
+    {
+        let mut hash : u32 = 1;
+        for item in &self.inventory {
+            hash = hash.wrapping_mul(item.level as u32); 
+            hash = hash.wrapping_mul(item.quality as u32); 
+            hash = hash.wrapping_mul(item.amount as u32); 
+        }
+        hash
+    }
 }
 
 impl Hash for PlayerEntity {
@@ -74,7 +96,7 @@ impl Hash for PlayerEntity {
     }
 }
 
-fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : usize, end: usize)
+fn float_into_buffer(buffer : &mut [u8], data: f32, start : usize, end: usize)
 {
     let bytes = f32::to_le_bytes(data);
     buffer[start..end].copy_from_slice(&bytes);
@@ -83,6 +105,8 @@ fn float_into_buffer(buffer : &mut [u8;44], data: f32, start : usize, end: usize
 #[cfg(test)]
 mod tests {
     use std::num::Wrapping;
+
+    use super::PlayerEntity;
 
 
     #[test]
@@ -124,5 +148,33 @@ mod tests {
         println!("{result}");
         let result = a * c * d * b;
         println!("{result}");
+    }
+
+    #[test]
+    fn test_add_inventory_item()
+    {
+        let mut entity = PlayerEntity{
+            object_id: None,
+            character_name: "a".to_owned(),
+            player_id: 1234,
+            action: 0,
+            position: [1.0, 2.0, 3.0],
+            second_position: [1.0, 2.0, 3.0],
+            inventory: Vec::new(),
+            inventory_hash: 1,
+            constitution: 0,
+            health: 0,
+        };
+
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 2 });
+
+        assert!(entity.inventory.len() == 1);
+
+        let item = entity.inventory.iter().next().unwrap();
+        assert!(item.amount == 3);
+        entity.add_inventory_item(super::InventoryItem { item_id: 2, level: 1, quality: 1, amount: 2 });
+        assert!(entity.inventory.len() == 2);
+        println!("{:?}", entity.inventory);
     }
 }
