@@ -18,7 +18,9 @@ pub async fn process_request(
     let mut start = 1;
     let mut end = start + 8;
 
-    let _player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+
+//TODO: WE USE THIS ONE BECUASE THE OTHER ID IS 0 THE FIRST TIME... NEED TO DEBUG...
+    let requested_player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     end = start + 1;
@@ -26,12 +28,13 @@ pub async fn process_request(
     start = end;
 
     let player_entities = map.players.lock().await;
-    let player_option = player_entities.get(&player_id);
+    let player_option = player_entities.get(&requested_player_id);
 
     let (inventory, hash) = if let Some(player_entity) = player_option {
         (player_entity.inventory.clone(), player_entity.inventory_hash)
     }
     else {
+        println!("Inventory Request - player not found {}" , player_id);
         (Vec::new(), 1)
     };
 
