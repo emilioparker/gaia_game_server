@@ -524,7 +524,6 @@ pub fn start_server(
         let regions = crate::map::get_region_ids(2);
         loop {
             let _message = rx_saved_longterm_webservice.recv().await.unwrap();
-            println!("server saved the data, cleaning cache");
 
             for region_id in &regions
             {
