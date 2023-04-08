@@ -3,6 +3,7 @@ use std::{hash::Hash, collections::HashMap};
 use bson::oid::ObjectId;
 
 pub const PLAYER_ENTITY_SIZE: usize = 48;
+pub const PLAYER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -10,9 +11,9 @@ pub struct PlayerEntity {
     pub object_id: Option<ObjectId>,
     pub character_name: String,
     pub player_id: u64,
-    pub action:u32,
     pub position: [f32;3],
     pub second_position: [f32;3],
+    pub action:u32,
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub inventory_hash : u32,
     pub constitution: u32,
@@ -22,11 +23,34 @@ pub struct PlayerEntity {
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct InventoryItem{
-    pub item_id : u32,
-    pub level : u8,
-    pub quality : u8,
-    pub amount : u16
+    pub item_id : u32, //4
+    pub level : u8, //1
+    pub quality : u8,//1
+    pub amount : u16 // 2
 }
+
+impl InventoryItem {
+    pub fn to_bytes(&self) -> [u8; PLAYER_INVENTORY_SIZE]{
+        let offset = 0;
+        let mut buffer = [0u8;PLAYER_INVENTORY_SIZE];
+        let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
+        let end = offset + 4; 
+        buffer[offset..end].copy_from_slice(&item_id_bytes);
+
+        let mut offset = end;
+        buffer[offset] = self.level;
+        offset += 1;
+        buffer[offset] = self.quality;
+        offset += 1;
+
+
+        let end = offset + 2; 
+        let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
+        buffer[offset..end].copy_from_slice(&amount_bytes);
+        buffer
+    }
+}
+
 
 // #[derive(Debug)]
 // #[derive(Clone)]
@@ -49,11 +73,10 @@ impl PlayerEntity {
         float_into_buffer(&mut buffer, self.second_position[0], 20, 24);
         float_into_buffer(&mut buffer, self.second_position[1], 24, 28);
         float_into_buffer(&mut buffer, self.second_position[2], 28, 32);
-        
-        let inventory_hash_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
-        buffer[32..36].copy_from_slice(&inventory_hash_bytes);
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
-        buffer[36..40].copy_from_slice(&action_bytes);
+        buffer[32..36].copy_from_slice(&action_bytes);
+        let inventory_hash_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
+        buffer[36..40].copy_from_slice(&inventory_hash_bytes);
         let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
         buffer[40..44].copy_from_slice(&constitution_bytes);
         let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
@@ -176,5 +199,15 @@ mod tests {
         entity.add_inventory_item(super::InventoryItem { item_id: 2, level: 1, quality: 1, amount: 2 });
         assert!(entity.inventory.len() == 2);
         println!("{:?}", entity.inventory);
+    }
+
+    #[test]
+    fn test_encode_inventory_item()
+    {
+
+        let item = super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 };
+        let buffer = item.to_bytes();
+
+        assert!(buffer.len() == super::PLAYER_INVENTORY_SIZE);
     }
 }

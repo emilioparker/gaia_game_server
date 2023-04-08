@@ -1,4 +1,4 @@
-pub const PLAYER_REWARD_SIZE: usize = 16;
+pub const PLAYER_REWARD_SIZE: usize = 20;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerReward {
@@ -7,7 +7,7 @@ pub struct PlayerReward {
     pub level: u8, // 1 bytes
     pub quality: u8, // 1 byte
     pub amount: u16, // 2 bytes
-    // pub inventory_hash: u32
+    pub inventory_hash: u32 // 4 bytes
 }
 
 impl PlayerReward {
@@ -30,9 +30,12 @@ impl PlayerReward {
         buffer[start] = self.quality;
         start = end;
         end = start + 2;
-        let amount_bytes = u16::to_le_bytes(self.amount); // 8 bytes
+        let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
         buffer[start..end].copy_from_slice(&amount_bytes);
-        // start = end;
+        start = end;
+        end = start + 4;
+        let amount_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
+        buffer[start..end].copy_from_slice(&amount_bytes);
         buffer
     }
 
@@ -58,7 +61,11 @@ impl PlayerReward {
         let amount = u16::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        PlayerReward { player_id, item_id, level, quality, amount}
+        end = start + 4;
+        let inventory_hash = u32::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
+        PlayerReward { player_id, item_id, level, quality, amount, inventory_hash}
     }
 }
 
@@ -90,6 +97,7 @@ mod tests {
             level: 232,
             quality: 123,
             amount: 101,
+            inventory_hash: 1,
         };
 
         let encoded = reward.to_bytes();

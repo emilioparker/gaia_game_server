@@ -317,24 +317,25 @@ pub fn start_service(
                                         if let Some(player_entity) = player_option {
                                             println!("Add inventory item for player");
                                             let new_item = InventoryItem {
-                                                item_id: 1,
+                                                item_id: tile.prop,
                                                 level: 1,
                                                 quality: 1,
                                                 amount: 15,
                                             };
 
+
+                                            player_entity.add_inventory_item(new_item.clone());
                                             // we should also give the player the reward
                                             let reward = PlayerReward {
                                                 player_id,
                                                 item_id: new_item.item_id,
                                                 level: new_item.level,
                                                 quality: new_item.quality,
-                                                amount: new_item.amount
+                                                amount: new_item.amount,
+                                                inventory_hash : player_entity.inventory_hash
                                             };
 
                                             players_rewards_summary.push(reward);
-
-                                            player_entity.add_inventory_item(new_item);
                                             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                                             players_summary.push(player_entity.clone());
                                         }

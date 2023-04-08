@@ -4,13 +4,18 @@ pub mod utils;
 use std::sync::Arc;
 use std::{collections::HashMap};
 use crate::ServerState;
+use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand};
 use crate::player::player_connection::PlayerConnection;
 use crate::player::{player_command::PlayerCommand};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-pub fn start_server(server_state: Arc<ServerState>) -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
+pub fn start_server(
+    map : Arc<GameMap>,
+    server_state: Arc<ServerState>
+) -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
+
 
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
@@ -96,6 +101,7 @@ pub fn start_server(server_state: Arc<ServerState>) -> (Receiver<MapCommand>, Re
                                 player_id, 
                                 address, 
                                 from_address, 
+                                map.clone(),
                                 server_state.clone(),
                                 tx_addr_client_realtime.clone(), 
                                 tx_mc_client_statesys.clone(), 

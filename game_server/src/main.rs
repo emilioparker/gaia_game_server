@@ -102,7 +102,9 @@ async fn main() {
             let (rx_mc_client_gameplay,
                 rx_pc_client_gameplay, 
                 tx_bytes_gameplay_socket 
-            ) =  real_time_service::start_server(server_state.clone());
+            ) =  real_time_service::start_server(
+                working_game_map_reference.clone(), 
+                server_state.clone());
 
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
