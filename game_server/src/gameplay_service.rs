@@ -223,7 +223,7 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
-                            let result = other_entity.health.wrapping_sub(4);
+                            let result = other_entity.health.saturating_sub(4);
                             let updated_player_entity = PlayerEntity {
                                 action: other_entity.action,
                                 health: result,

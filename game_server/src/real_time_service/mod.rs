@@ -91,8 +91,6 @@ pub fn start_server(
 
                             clients_data.insert(from_address, player_entity);
 
-
-
                             // each client can send a message to remove itself using tx,
                             // each client can send actions to be processed using client_action_tx,
                             // each client can receive data to be sent to the client using client_state_rx because each client has its socket.

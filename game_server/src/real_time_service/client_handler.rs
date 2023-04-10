@@ -34,7 +34,7 @@ pub async fn spawn_client_process(
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<PlayerCommand>,
-    _initial_data : [u8; 508])
+    initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
     child_socket.connect(from_address).await.unwrap();
@@ -47,8 +47,14 @@ pub async fn spawn_client_process(
         // we should try to get the player data at this point!
 
         //handle the first package
-        // I think the first package doesn't matter.
-        // packet_router::route_packet(&socket_local_instance, &initial_data, &channel_action_tx).await;
+        protocols::route_packet(
+            player_id,
+            &socket_local_instance, 
+            &initial_data, 
+            map.clone(),
+            &server_state,
+            &channel_action_tx, 
+            &channel_map_action_tx).await;
 
         let mut child_buff = [0u8; 508];
         'main_loop : loop {
