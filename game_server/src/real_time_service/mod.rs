@@ -47,7 +47,9 @@ pub fn start_server(
                         // todo: only send data if client is correctly validated, add state to clients_data
                         let result = send_udp_socket.send_to(packet, client.0).await;
                         match result {
-                            Ok(_) => {},
+                            Ok(_) => {
+                                println!("data sent to client {}", packet.len());
+                            },
                             Err(_) => println!("error sending data through socket"),
                         }
                     }

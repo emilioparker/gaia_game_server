@@ -342,7 +342,52 @@ pub fn start_service(
 
                                     }
                                 }
-                            }
+                            }, // we need to deduct stuff from the player
+                            MapCommandInfo::LayFoundation(_player_id, prop, pathness_a, pathness_b,pathness_c) => {
+                                updated_tile.health = 500;
+                                updated_tile.constitution = 0;
+                                updated_tile.prop = prop;
+                                updated_tile.pathness = [
+                                    f32::max(pathness_a,updated_tile.pathness[0]),
+                                    f32::max(pathness_b,updated_tile.pathness[1]),
+                                    f32::max(pathness_c,updated_tile.pathness[2])
+                                ];
+                                updated_tile.last_update += 1;
+                                tiles_summary.push(updated_tile.clone());
+                                *tile = updated_tile;
+
+                                let capacity = tx_me_gameplay_longterm.capacity();
+                                server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                let capacity = tx_me_gameplay_webservice.capacity();
+                                server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                // sending the updated tile somewhere.
+                                tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                            },
+                            MapCommandInfo::BuildStructure(_player_id, increment) => {
+                                
+                                if updated_tile.health > updated_tile.constitution {
+
+                                    updated_tile.constitution = i32::min(updated_tile.health as i32, updated_tile.constitution as i32 + increment as i32) as u32;
+                                    updated_tile.last_update += 1;
+                                    tiles_summary.push(updated_tile.clone());
+                                    *tile = updated_tile;
+
+                                    let capacity = tx_me_gameplay_longterm.capacity();
+                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    let capacity = tx_me_gameplay_webservice.capacity();
+                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                    // sending the updated tile somewhere.
+                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                }
+                                else {
+                                    println!("structure is already built!");
+                                    // structure is already built!
+                                }
+                            },
                         }
                     }
                     None => println!("tile not found {}" , tile_command.0),
@@ -386,6 +431,7 @@ pub fn start_service(
             filtered_summary.extend(player_presentation_state_update.clone());
             filtered_summary.extend(player_rewards_state_update.clone());
             filtered_summary.extend(player_attack_state_updates.clone());
+            println!("filtered summarny total {}" , filtered_summary.len());
             let packages = create_data_packets(filtered_summary, &mut packet_number);
 
             // the data that will be sent to each client is not copied.

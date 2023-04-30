@@ -2,6 +2,8 @@ pub mod ping_protocol;
 pub mod movement_protocol;
 pub mod interaction_protocol;
 pub mod inventory_request_protocol;
+pub mod layfoundation_protocol;
+pub mod build_protocol;
 
 
 use std::sync::Arc;
@@ -21,6 +23,8 @@ pub enum Protocol{
     GlobalState = 3,
     Interaction = 4,
     InventoryRequest = 5,
+    LayFoundation = 6,
+    Build = 7,
 }
     
 pub async fn route_packet(
@@ -40,6 +44,9 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map, channel_tx).await;
         },
+        Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
+            layfoundation_protocol::process_construction(socket, data, channel_map_tx).await;
+        },
         Some(protocol) if *protocol == Protocol::Action as u8 => {
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
@@ -49,6 +56,11 @@ pub async fn route_packet(
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             interaction_protocol::process_interaction(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::Build as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            build_protocol::process(socket, data, channel_map_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

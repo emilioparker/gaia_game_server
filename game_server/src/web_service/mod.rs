@@ -95,15 +95,15 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
                 object_id: tile_data.object_id,
                 id: tile_data.id.clone(),
                 last_update: tile_data.last_update,
-                health: tile_data.health,
-                constitution: tile_data.constitution,
                 prop: data.prop,
+                faction : tile_data.faction,
+                level : tile_data.level,
                 temperature : tile_data.temperature,
                 moisture : tile_data.moisture,
                 heights : tile_data.heights,
-                normal_a : tile_data.normal_a,
-                normal_b : tile_data.normal_b,
-                normal_c : tile_data.normal_c
+                pathness : tile_data.pathness,
+                health: tile_data.health,
+                constitution: tile_data.constitution,
             };
 
             let player_response = PlayerResponse {
@@ -235,7 +235,7 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
-            tetrahedron_id:"j220132101".to_owned(),
+            tetrahedron_id:"j012331210".to_owned(),
             health: player.health,
             constitution: player.constitution,
         };

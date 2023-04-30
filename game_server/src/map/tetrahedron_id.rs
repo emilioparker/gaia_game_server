@@ -11,6 +11,9 @@ impl TetrahedronId {
     pub fn is_parent(&self, child : &TetrahedronId) -> bool
     {
         let factor = 4u32.pow(self.lod as u32);
+        if child.id < self.id {
+            return false;
+        }
         let substraction = child.id - self.id;
         return self.area == child.area && self.lod < child.lod && (substraction % factor == 0)
     }

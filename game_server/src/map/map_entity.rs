@@ -2,22 +2,22 @@ use bson::oid::ObjectId;
 
 use super::tetrahedron_id::TetrahedronId;
 
-pub const MAP_ENTITY_SIZE: usize = 78;
+pub const MAP_ENTITY_SIZE: usize = 56;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MapEntity { // 78 bytes
+pub struct MapEntity { // 56 bytes
     pub object_id : Option<ObjectId>,
     pub id : TetrahedronId, // 6 bytes
     pub last_update: u32, // 4 bytes
-    pub health:u32, // 4 bytes
-    pub constitution:u32, // 4 bytes
     pub prop: u32, // 4 bytes
+    pub faction:u8, // 1 bytes
+    pub level:u8,// 1 bytes
     pub temperature:f32, //4 bytes
     pub moisture:f32, //4 bytes
     pub heights : [f32;3], // 12 bytes
-    pub normal_a : [f32;3], // 12 bytes
-    pub normal_b : [f32;3], // 12 bytes
-    pub normal_c : [f32;3], // 12 bytes
+    pub pathness : [f32;3], // 12 bytes
+    pub health:u32, // 4 bytes
+    pub constitution:u32, // 4 bytes
 }
 
 impl MapEntity {
@@ -27,16 +27,17 @@ impl MapEntity {
             object_id: None,
             id: TetrahedronId::from_string(id),
             last_update: 1000,
-            health,
-            constitution: 100,
             prop: 10,
+            faction: 0,
+            level: 0,
             temperature: 1.2,
             moisture: 0.2,
             heights: [0.2,1.0,2.2],
-            normal_a: [1.2,1.1,1.5],
-            normal_b: [1.2,1.1,1.6],
-            normal_c: [1.2,1.1,1.7],
+            pathness: [0.0,0.0,0.0],
+            health,
+            constitution: 100,
         };
+          
         entity
     }
     pub fn get_size() -> usize {
@@ -48,6 +49,8 @@ impl MapEntity {
 pub enum MapCommandInfo {
     Touch(),
     ChangeHealth(u64,u16),
+    LayFoundation(u64,u32, f32, f32, f32),
+    BuildStructure(u64,u32)
 }
 
 #[derive(Debug, Clone)]
@@ -69,9 +72,14 @@ impl MapEntity {
         start = end;
 
         u32_into_buffer(&mut buffer, self.last_update, &mut start, &mut end);
-        u32_into_buffer(&mut buffer, self.health, &mut start, &mut end);
-        u32_into_buffer(&mut buffer, self.constitution, &mut start, &mut end);
         u32_into_buffer(&mut buffer, self.prop, &mut start, &mut end);
+
+        buffer[start] = self.faction;
+        start += 1;
+        end += 1;
+        buffer[start] = self.level;
+        start += 1;
+        end += 1;
 
         float_into_buffer(&mut buffer, self.temperature, &mut start, &mut end);
         float_into_buffer(&mut buffer, self.moisture, &mut start, &mut end);
@@ -80,17 +88,12 @@ impl MapEntity {
         float_into_buffer(&mut buffer, self.heights[1], &mut start, &mut end);
         float_into_buffer(&mut buffer, self.heights[2], &mut start, &mut end);
 
-        float_into_buffer(&mut buffer, self.normal_a[0], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_a[1], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_a[2], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.pathness[0], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.pathness[1], &mut start, &mut end);
+        float_into_buffer(&mut buffer, self.pathness[2], &mut start, &mut end);
 
-        float_into_buffer(&mut buffer, self.normal_b[0], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_b[1], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_b[2], &mut start, &mut end);
-
-        float_into_buffer(&mut buffer, self.normal_c[0], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_c[1], &mut start, &mut end);
-        float_into_buffer(&mut buffer, self.normal_c[2], &mut start, &mut end);
+        u32_into_buffer(&mut buffer, self.health, &mut start, &mut end);
+        u32_into_buffer(&mut buffer, self.constitution, &mut start, &mut end);
 
         buffer
     }
@@ -108,12 +111,13 @@ impl MapEntity {
         start = end;
 
         let last_update = decode_u32(data, &mut start);
-        let health = decode_u32(data, &mut start);
-        let constitution = decode_u32(data, &mut start);
         let prop = decode_u32(data, &mut start);
+        let faction = data[start];
+        start += 1;
+        let level = data[start];
+        start += 1;
 
         let temperature = decode_float(data, &mut start);
-
         let moisture = decode_float(data, &mut start);
 
         let heights = [
@@ -122,49 +126,16 @@ impl MapEntity {
             decode_float(data, &mut start)
         ];
 
-        let normal_a = [
-            decode_float(data, &mut start),
-            decode_float(data, &mut start),
-            decode_float(data, &mut start)
-        ];
-        let normal_b = [
-            decode_float(data, &mut start),
-            decode_float(data, &mut start),
-            decode_float(data, &mut start)
-        ];
-        let normal_c = [
+        let pathness = [
             decode_float(data, &mut start),
             decode_float(data, &mut start),
             decode_float(data, &mut start)
         ];
 
-        MapEntity {object_id: None, id, last_update, health, constitution, prop, temperature, moisture, heights, normal_a, normal_b, normal_c }
-    }
-}
+        let health = decode_u32(data, &mut start);
+        let constitution = decode_u32(data, &mut start);
 
-// todo this is assuming it comes from a client package... we should make this pure and then add the case where it comes from the client.
-// ignoring the first byte looks wrong.
-impl MapCommand {
-    pub fn from_bytes(data: &[u8;508]) -> Self {
-        let mut start : usize;
-        let mut end : usize;
-
-        start = 1; // ignoring first byte
-        end = start + 6;
-
-        let mut buffer = [0u8;6];
-        buffer.copy_from_slice(&data[start..end]);
-        let tile_id = TetrahedronId::from_bytes(&buffer);
-
-        start = end;
-        end = start + 8;
-        let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
-        start = end;
-        end = start + 2;
-        let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
-
-        let info = MapCommandInfo::ChangeHealth(player_id, damage);
-        MapCommand { id: tile_id, info }
+        MapEntity {object_id: None, id, last_update, prop, faction, level, temperature, moisture, heights, pathness, health, constitution}
     }
 }
 
@@ -213,20 +184,21 @@ mod tests {
             object_id: None,
             id: TetrahedronId::from_string("a00001"),
             last_update: 1000,
-            health: 14,
-            constitution: 100,
             prop: 10,
+            faction: 0,
+            level:1,
             temperature: 1.2,
             moisture: 0.2,
             heights: [0.2,1.0,2.2],
-            normal_a: [1.2,1.1,1.5],
-            normal_b: [1.2,1.1,1.6],
-            normal_c: [1.2,1.1,1.7],
+            pathness: [1.2,1.1,1.5],
+            health: 14,
+            constitution: 100,
         };
 
         let encoded = entity.to_bytes();
 
         let decoded_tile = MapEntity::from_bytes(&encoded);
+        println!("{:?}", decoded_tile);
         assert_eq!(decoded_tile,entity);
     }
 }

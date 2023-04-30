@@ -89,7 +89,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_pe_realtime_longterm.recv().await.unwrap();
-            println!("player entity changed  with inventory ? {}" , message.inventory.len());
+            // println!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.player_id.clone());
 
