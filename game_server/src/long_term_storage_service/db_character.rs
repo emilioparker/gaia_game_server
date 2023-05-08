@@ -13,6 +13,7 @@ pub struct StoredCharacter {
     pub faction: String,
     pub device_id: String,
     pub character_name: String,
+    pub position:[f32;3],
     pub inventory: Vec<StoredInventoryItem>,
     pub constitution: u32,
     pub health: u32,

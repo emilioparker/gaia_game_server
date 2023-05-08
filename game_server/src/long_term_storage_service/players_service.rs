@@ -48,8 +48,8 @@ pub async fn get_players_from_db(
                     player_id: doc.player_id,
                     faction: PlayerEntity::get_faction_code(&doc.faction),
                     object_id: doc.id,
-                    position: [0f32, 0f32, 0f32],
-                    second_position: [0f32, 0f32, 0f32],
+                    position: doc.position,
+                    second_position: doc.position,
                     action: 0,
                     constitution: doc.constitution,
                     health: doc.health,
@@ -137,6 +137,7 @@ pub fn start_server(
                 .collect();
 
                 let serialized_data= bson::to_bson(&updated_inventory).unwrap();
+                let serialized_position= bson::to_bson(&player.second_position).unwrap();
 
                 let update_result = data_collection.update_one(
                     doc! {
@@ -146,6 +147,7 @@ pub fn start_server(
                         "$set": {
                             "constitution": player.constitution,
                             "health" : player.health,
+                            "position":serialized_position,
                             "inventory" : serialized_data
                         }
                     },

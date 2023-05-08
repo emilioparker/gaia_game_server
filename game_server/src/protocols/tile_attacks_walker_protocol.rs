@@ -27,7 +27,7 @@ pub async fn process(
             info: MapCommandInfo::AttackWalker(player_id)
         };
 
-        println!("got a {:?}", map_action);
+        // println!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }

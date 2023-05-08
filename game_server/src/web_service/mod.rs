@@ -63,7 +63,7 @@ struct JoinWithCharacterResponse {
     character_id:u64,
     faction:u8,
     tetrahedron_id:String,
-    // position:[f32;3],
+    position:[f32;3],
     health:u32,
     constitution:u32
 }
@@ -159,6 +159,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         world_id: context.working_game_map.world_id.clone(),
         player_id: new_id,
         character_name: data.character_name.clone(),
+        position:[0f32,0f32,0f32],
         faction: data.faction.clone(),
         device_id: data.device_id.clone(),
         inventory : Vec::new(),
@@ -224,7 +225,7 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
 
     if let Some(player) = players.get(&data.character_id) {
-
+        println!("player login {:?}", player);
         let mut presentation_map = context.presentation_data.lock().await;
         let name_with_padding = format!("{: <5}", player.character_name);
         let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
@@ -237,11 +238,13 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
         };
 
         presentation_map.insert(data.character_id, player_presentation.to_bytes());
+        println!("position {:?} {}", player.position, player.health);
 
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
             faction:player.faction,
             tetrahedron_id:"j012331210".to_owned(),
+            position: player.second_position,
             health: player.health,
             constitution: player.constitution,
         };
