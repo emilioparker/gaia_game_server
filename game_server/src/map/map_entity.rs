@@ -50,7 +50,8 @@ pub enum MapCommandInfo {
     Touch(),
     ChangeHealth(u64,u16),
     LayFoundation(u64,u32, f32, f32, f32),
-    BuildStructure(u64,u32)
+    BuildStructure(u64,u32),
+    AttackWalker(u64),
 }
 
 #[derive(Debug, Clone)]

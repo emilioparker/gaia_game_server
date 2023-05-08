@@ -46,6 +46,7 @@ pub async fn get_players_from_db(
 
                 let player =  PlayerEntity{
                     player_id: doc.player_id,
+                    faction: PlayerEntity::get_faction_code(&doc.faction),
                     object_id: doc.id,
                     position: [0f32, 0f32, 0f32],
                     second_position: [0f32, 0f32, 0f32],

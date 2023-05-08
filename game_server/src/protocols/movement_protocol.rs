@@ -9,6 +9,6 @@ pub async fn process_movement(
     channel_tx : &Sender<PlayerCommand>)
 {
     let client_action = PlayerCommand::from_bytes(data);
-    // println!("got a {:?}", client_action.position);
+    // println!("got a {:?} {:?}", client_action.position, client_action.action);
     channel_tx.send(client_action).await.unwrap();
 }

@@ -1,10 +1,11 @@
 pub const IDLE_ACTION: u32 = 0;
 pub const WALK_ACTION: u32 = 1;
-pub const WOOD_CUT_ACTION: u32 = 2;
+pub const ATTACK_TILE_ACTION: u32 = 2;
 pub const ATTACK_ACTION: u32 = 3;
 pub const COLLECT_ACTION: u32 = 4;
 pub const GREET_ACTION: u32 = 5;
 pub const RESPAWN_ACTION: u32 = 6;
+pub const BUILD_ACTION: u32 = 7;
 
 #[derive(Debug)]
 pub struct PlayerCommand {

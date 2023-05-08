@@ -4,6 +4,7 @@ pub mod interaction_protocol;
 pub mod inventory_request_protocol;
 pub mod layfoundation_protocol;
 pub mod build_protocol;
+pub mod tile_attacks_walker_protocol;
 
 
 use std::sync::Arc;
@@ -25,6 +26,7 @@ pub enum Protocol{
     InventoryRequest = 5,
     LayFoundation = 6,
     Build = 7,
+    TileAttacksWalker = 8,
 }
     
 pub async fn route_packet(
@@ -61,6 +63,11 @@ pub async fn route_packet(
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             build_protocol::process(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::TileAttacksWalker as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            tile_attacks_walker_protocol::process(socket, data, channel_map_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

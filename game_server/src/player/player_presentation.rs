@@ -1,3 +1,5 @@
+pub const PLAYER_PRESENTATION_SIZE: usize = 28;
+
 #[derive(Debug, Clone)]
 pub struct PlayerPresentation {
     pub player_id: u64, // 8 bytes

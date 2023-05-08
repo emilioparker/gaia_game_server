@@ -43,7 +43,8 @@ struct PlayerResponse {
 #[derive(Deserialize, Serialize, Debug)]
 struct CharacterCreationRequest {
     character_name: String, //create
-    device_id: String
+    device_id: String,
+    faction: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -60,7 +61,9 @@ struct JoinWithCharacterRequest {
 #[derive(Deserialize, Serialize, Debug)]
 struct JoinWithCharacterResponse {
     character_id:u64,
+    faction:u8,
     tetrahedron_id:String,
+    // position:[f32;3],
     health:u32,
     constitution:u32
 }
@@ -156,6 +159,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         world_id: context.working_game_map.world_id.clone(),
         player_id: new_id,
         character_name: data.character_name.clone(),
+        faction: data.faction.clone(),
         device_id: data.device_id.clone(),
         inventory : Vec::new(),
         constitution: 50,
@@ -175,6 +179,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         character_name : data.character_name.clone(),
         // device_id: data.device_id,
         player_id: new_id,
+        faction: PlayerEntity::get_faction_code(&data.faction),
         action: 0,
         position: [0.0, 0.0, 0.0],
         second_position: [0.0, 0.0, 0.0],
@@ -235,6 +240,7 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
 
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
+            faction:player.faction,
             tetrahedron_id:"j012331210".to_owned(),
             health: player.health,
             constitution: player.constitution,

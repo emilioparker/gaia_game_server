@@ -8,6 +8,7 @@ use tokio::sync::{mpsc};
 
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
+use crate::map::tile_attack::TileAttack;
 use crate::player::player_attack::PlayerAttack;
 use crate::player::player_command::PlayerCommand;
 use crate::player::player_entity::PlayerEntity;
@@ -23,6 +24,7 @@ pub enum StateUpdate {
     Rewards(PlayerReward),
     TileState(MapEntity),
     PlayerAttackState(PlayerAttack),
+    TileAttackState(TileAttack),
 }
 
 pub async fn spawn_client_process(

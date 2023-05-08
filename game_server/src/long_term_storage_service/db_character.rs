@@ -10,6 +10,7 @@ pub struct StoredCharacter {
     pub id: Option<ObjectId>,
     pub world_id: Option<ObjectId>,
     pub player_id: u64,
+    pub faction: String,
     pub device_id: String,
     pub character_name: String,
     pub inventory: Vec<StoredInventoryItem>,

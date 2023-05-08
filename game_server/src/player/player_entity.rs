@@ -2,7 +2,7 @@ use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
-pub const PLAYER_ENTITY_SIZE: usize = 48;
+pub const PLAYER_ENTITY_SIZE: usize = 49;
 pub const PLAYER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -11,6 +11,7 @@ pub struct PlayerEntity {
     pub object_id: Option<ObjectId>,
     pub character_name: String,
     pub player_id: u64,
+    pub faction:u8,
     pub position: [f32;3],
     pub second_position: [f32;3],
     pub action:u32,
@@ -62,25 +63,54 @@ impl InventoryItem {
 impl PlayerEntity {
     pub fn to_bytes(&self) -> [u8;PLAYER_ENTITY_SIZE] {
         let mut buffer = [0u8; PLAYER_ENTITY_SIZE];
+        let mut offset = 0;
+        let mut end = 0;
 
+        end = offset + 8;
         let player_id_bytes = u64::to_le_bytes(self.player_id); // 8 bytes
         buffer[..8].copy_from_slice(&player_id_bytes);
+        offset = end;
 
-        float_into_buffer(&mut buffer, self.position[0], 8, 12);
-        float_into_buffer(&mut buffer, self.position[1], 12, 16);
-        float_into_buffer(&mut buffer, self.position[2], 16, 20);
+        end = offset + 1;
+        buffer[offset] = self.faction;
+        offset = end;
 
-        float_into_buffer(&mut buffer, self.second_position[0], 20, 24);
-        float_into_buffer(&mut buffer, self.second_position[1], 24, 28);
-        float_into_buffer(&mut buffer, self.second_position[2], 28, 32);
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.position[0], offset, end);
+        offset = end;
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.position[1], offset, end);
+        offset = end;
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.position[2], offset, end);
+        offset = end;
+
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.second_position[0], offset, end);
+        offset = end;
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.second_position[1], offset, end);
+        offset = end;
+        end = offset + 4;
+        float_into_buffer(&mut buffer, self.second_position[2], offset, end);
+        offset = end;
+
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
-        buffer[32..36].copy_from_slice(&action_bytes);
+        end = offset + 4;
+        buffer[offset..end].copy_from_slice(&action_bytes);
+        offset = end;
         let inventory_hash_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
-        buffer[36..40].copy_from_slice(&inventory_hash_bytes);
+        end = offset + 4;
+        buffer[offset..end].copy_from_slice(&inventory_hash_bytes);
+        offset = end;
         let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
-        buffer[40..44].copy_from_slice(&constitution_bytes);
+        end = offset + 4;
+        buffer[offset..end].copy_from_slice(&constitution_bytes);
+        offset = end;
+        end = offset + 4;
         let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
-        buffer[44..48].copy_from_slice(&health_bytes);
+        buffer[offset..end].copy_from_slice(&health_bytes);
+        offset = end;
         buffer
     }
 
@@ -110,6 +140,17 @@ impl PlayerEntity {
             hash = hash.wrapping_mul(item.amount as u32); 
         }
         hash
+    }
+
+    pub fn get_faction_code(faction : &str) -> u8
+    {
+        match faction {
+            "none" => 0,
+            "red" => 1,
+            "green" => 2,
+            "blue" => 3,
+            _ => 255
+        }
     }
 }
 
@@ -180,6 +221,7 @@ mod tests {
             object_id: None,
             character_name: "a".to_owned(),
             player_id: 1234,
+            faction:0,
             action: 0,
             position: [1.0, 2.0, 3.0],
             second_position: [1.0, 2.0, 3.0],

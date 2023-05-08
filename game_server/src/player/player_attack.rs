@@ -1,3 +1,5 @@
+pub const PLAYER_ATTACK_SIZE: usize = 24;
+
 #[derive(Debug, Clone)]
 pub struct PlayerAttack {
     pub player_id: u64, // 8 bytes
