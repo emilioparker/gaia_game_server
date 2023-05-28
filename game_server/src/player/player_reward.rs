@@ -1,8 +1,8 @@
-pub const PLAYER_REWARD_SIZE: usize = 20;
+pub const PLAYER_REWARD_SIZE: usize = 14;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerReward {
-    pub player_id: u64, // 8 bytes
+    pub player_id: u16, // 2 bytes
     pub item_id: u32, // 4 bytes
     pub level: u8, // 1 bytes
     pub quality: u8, // 1 byte
@@ -16,9 +16,9 @@ impl PlayerReward {
         let mut buffer = [0u8; PLAYER_REWARD_SIZE];
 
         let mut start : usize = 0;
-        let mut end : usize = 8;
+        let mut end : usize = 2;
 
-        let player_id_bytes = u64::to_le_bytes(self.player_id); // 8 bytes
+        let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
         buffer[start..end].copy_from_slice(&player_id_bytes);
         start = end;
         end = start + 4;
@@ -41,9 +41,9 @@ impl PlayerReward {
 
     pub fn from_bytes(data: &[u8]) -> Self {
         let mut start = 0;
-        let mut end = start + 8;
+        let mut end = start + 2;
 
-        let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         end = start + 4;

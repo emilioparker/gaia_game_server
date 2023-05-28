@@ -15,10 +15,10 @@ use futures_util::stream::StreamExt;
 pub async fn get_players_from_db(
     world_id : Option<ObjectId>,
     db_client : Client
-) -> HashMap<u64, PlayerEntity> {
+) -> HashMap<u16, PlayerEntity> {
     println!("get players from db using {:?}", world_id);
 
-    let mut data = HashMap::<u64, PlayerEntity>::new();
+    let mut data = HashMap::<u16, PlayerEntity>::new();
 
     let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
 
@@ -75,7 +75,7 @@ pub fn start_server(
     map : Arc<GameMap>,
     db_client : Client){
 
-    let modified_players = HashSet::<u64>::new();
+    let modified_players = HashSet::<u16>::new();
     let modified_players_reference = Arc::new(Mutex::new(modified_players));
 
     let modified_players_update_lock = modified_players_reference.clone();

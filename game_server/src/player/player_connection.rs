@@ -1,6 +1,6 @@
 
 pub struct PlayerConnection {
-    pub player_id: u64,
+    pub player_id: u16,
     // pub tx: tokio::sync::mpsc::Sender<Arc<Vec<[u8;508]>>>
 }
 

@@ -48,7 +48,7 @@ pub fn start_server(
                         let result = send_udp_socket.send_to(packet, client.0).await;
                         match result {
                             Ok(_) => {
-                                println!("data sent to client {}", packet.len());
+                                // println!("data sent to client {}", packet.len());
                             },
                             Err(_) => println!("error sending data through socket"),
                         }
@@ -79,8 +79,8 @@ pub fn start_server(
                         {
                             // byte 0 is for the protocol, and we are sure the next 8 bytes are for the id.
                             let start = 1;
-                            let end = start + 8;
-                            let player_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
+                            let end = start + 2;
+                            let player_id = u16::from_le_bytes(buf_udp[start..end].try_into().unwrap());
 
                             println!("--- create child for {}", player_id);
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we

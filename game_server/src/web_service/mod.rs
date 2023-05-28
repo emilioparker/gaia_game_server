@@ -49,18 +49,18 @@ struct CharacterCreationRequest {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct CharacterCreationResponse {
-    character_id:u64,
+    character_id:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct JoinWithCharacterRequest {
     device_id: String,
-    character_id:u64,
+    character_id:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct JoinWithCharacterResponse {
-    character_id:u64,
+    character_id:u16,
     faction:u8,
     tetrahedron_id:String,
     position:[f32;3],
@@ -71,7 +71,7 @@ struct JoinWithCharacterResponse {
 #[derive(Clone)]
 struct AppContext {
     last_presentation_update: Arc<AtomicU64>,
-    presentation_data: Arc<Mutex<HashMap<u64, [u8;28]>>>,
+    presentation_data: Arc<Mutex<HashMap<u16, [u8;22]>>>,
     compressed_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
@@ -96,8 +96,15 @@ async fn handle_update_map_entity(context: AppContext, mut req: Request<Body>) -
 
             let tile = MapEntity{
                 object_id: tile_data.object_id,
+                version: tile_data.version,
                 id: tile_data.id.clone(),
-                last_update: tile_data.last_update,
+
+                owner_id: tile_data.owner_id,
+                ownership_time: tile_data.ownership_time,
+
+                origin_id: tile_data.origin_id.clone(),
+                target_id: tile_data.target_id.clone(),
+                time: 0,
                 prop: data.prop,
                 faction : tile_data.faction,
                 level : tile_data.level,
@@ -184,8 +191,8 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         action: 0,
         position: [0.0, 0.0, 0.0],
         second_position: [0.0, 0.0, 0.0],
-        constitution: 50,
-        health: 50,
+        constitution: 200,
+        health: 200,
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_hash : 1
     };

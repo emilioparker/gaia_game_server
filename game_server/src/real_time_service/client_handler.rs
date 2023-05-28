@@ -28,7 +28,7 @@ pub enum StateUpdate {
 }
 
 pub async fn spawn_client_process(
-    player_id : u64,
+    player_id : u16,
     address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,

@@ -18,8 +18,8 @@ pub async fn process(
         let tile_id = TetrahedronId::from_bytes(&buffer);
         start = end;
 
-        end = start + 8;
-        let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap()); 
+        end = start + 2;
+        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
         let map_action = MapCommand{

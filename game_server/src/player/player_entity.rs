@@ -2,7 +2,7 @@ use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
-pub const PLAYER_ENTITY_SIZE: usize = 49;
+pub const PLAYER_ENTITY_SIZE: usize = 43;
 pub const PLAYER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub const PLAYER_INVENTORY_SIZE: usize = 8;
 pub struct PlayerEntity {
     pub object_id: Option<ObjectId>,
     pub character_name: String,
-    pub player_id: u64,
+    pub player_id: u16,
     pub faction:u8,
     pub position: [f32;3],
     pub second_position: [f32;3],
@@ -66,9 +66,9 @@ impl PlayerEntity {
         let mut offset = 0;
         let mut end = 0;
 
-        end = offset + 8;
-        let player_id_bytes = u64::to_le_bytes(self.player_id); // 8 bytes
-        buffer[..8].copy_from_slice(&player_id_bytes);
+        end = offset + 2;
+        let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
+        buffer[..end].copy_from_slice(&player_id_bytes);
         offset = end;
 
         end = offset + 1;

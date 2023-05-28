@@ -17,8 +17,8 @@ pub async fn process_interaction(_socket:&UdpSocket, data : &[u8; 508],  channel
     let tile_id = TetrahedronId::from_bytes(&buffer);
 
     start = end;
-    end = start + 8;
-    let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
+    end = start + 2;
+    let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
     start = end;
     end = start + 2;
     let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes

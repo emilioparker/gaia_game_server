@@ -13,8 +13,8 @@ pub async fn process_construction(
         let mut end : usize;
 
         start = 1; // ignoring first byte
-        end = start + 8;
-        let player_id = u64::from_le_bytes(data[start..end].try_into().unwrap()); 
+        end = start + 2;
+        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
         end = start + 2;

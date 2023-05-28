@@ -9,18 +9,18 @@ use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
-    player_id: u64,
+    player_id: u16,
     socket:&UdpSocket,
     data : &[u8; 508],
     map : Arc<GameMap>,
     _channel_tx : &Sender<PlayerCommand>)
 {
     let mut start = 1;
-    let mut end = start + 8;
+    let mut end = start + 2;
 
 
 //TODO: WE USE THIS ONE BECUASE THE OTHER ID IS 0 THE FIRST TIME... NEED TO DEBUG...
-    let requested_player_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let requested_player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     end = start + 1;

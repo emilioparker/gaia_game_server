@@ -2,13 +2,23 @@ use bson::oid::ObjectId;
 
 use super::tetrahedron_id::TetrahedronId;
 
-pub const MAP_ENTITY_SIZE: usize = 56;
+pub const MAP_ENTITY_SIZE: usize = 76;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MapEntity { // 56 bytes
+pub struct MapEntity { // 76 bytes
     pub object_id : Option<ObjectId>,
+    pub version: u16, // 2 bytes
     pub id : TetrahedronId, // 6 bytes
-    pub last_update: u32, // 4 bytes
+
+    // to handle who is commanding this tile with a timeout
+    pub owner_id : u16, //2 bytes
+    pub ownership_time : u32, // 4 bytes
+
+    // for moving between origin and target
+    pub origin_id : TetrahedronId, // 6 bytes
+    pub target_id : TetrahedronId, // 6 bytes
+    pub time : u32,// 4 bytes
+
     pub prop: u32, // 4 bytes
     pub faction:u8, // 1 bytes
     pub level:u8,// 1 bytes
@@ -25,8 +35,16 @@ impl MapEntity {
         
         let entity = MapEntity{
             object_id: None,
+            version: 1000,
             id: TetrahedronId::from_string(id),
-            last_update: 1000,
+
+            owner_id: 0,
+            ownership_time: 0,
+
+            origin_id: TetrahedronId::from_string(id),
+            target_id: TetrahedronId::from_string(id),
+            time: 0,
+
             prop: 10,
             faction: 0,
             level: 0,
@@ -48,10 +66,13 @@ impl MapEntity {
 #[derive(Debug, Clone)]
 pub enum MapCommandInfo {
     Touch(),
-    ChangeHealth(u64,u16),
-    LayFoundation(u64,u32, f32, f32, f32),
-    BuildStructure(u64,u32),
-    AttackWalker(u64),
+    ChangeHealth(u16,u16),
+    LayFoundation(u16,u32, f32, f32, f32),
+    BuildStructure(u16,u32),
+    AttackWalker(u16),
+    SpawnMob(u32),
+    MoveMob(u16,u32, TetrahedronId, f32),
+    ControlMob(u16, u32),
 }
 
 #[derive(Debug, Clone)]
@@ -67,12 +88,28 @@ impl MapEntity {
         let mut end : usize;
 
         start = 0;
+        end = 0;
+        u16_into_buffer(&mut buffer, self.version, &mut start, &mut end);
+
         end = start + 6;
         let tile_id = self.id.to_bytes(); // 6 bytes
         buffer[start..end].copy_from_slice(&tile_id);
         start = end;
 
-        u32_into_buffer(&mut buffer, self.last_update, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.owner_id, &mut start, &mut end);
+        u32_into_buffer(&mut buffer, self.ownership_time, &mut start, &mut end);
+
+        end = start + 6;
+        let origin_id_bytes = self.origin_id.to_bytes(); // 6 bytes
+        buffer[start..end].copy_from_slice(&origin_id_bytes);
+        start = end;
+
+        end = start + 6;
+        let target_id_bytes = self.target_id.to_bytes(); // 6 bytes
+        buffer[start..end].copy_from_slice(&target_id_bytes);
+        start = end;
+
+        u32_into_buffer(&mut buffer, self.time, &mut start, &mut end);
         u32_into_buffer(&mut buffer, self.prop, &mut start, &mut end);
 
         buffer[start] = self.faction;
@@ -101,17 +138,34 @@ impl MapEntity {
 
     pub fn from_bytes(data: &[u8;MAP_ENTITY_SIZE]) -> Self {
         let mut start : usize;
-        let end : usize;
+        let mut end : usize;
 
         start = 0;
-        end = start + 6;
+        let version = decode_u16(data, &mut start);
 
+        end = start + 6;
         let mut buffer = [0u8;6];
         buffer.copy_from_slice(&data[start..end]);
         let id = TetrahedronId::from_bytes(&buffer);
         start = end;
 
-        let last_update = decode_u32(data, &mut start);
+        let owner_id = decode_u16(data, &mut start);
+        let ownership_time = decode_u32(data, &mut start);
+
+        end = start + 6;
+        let mut buffer = [0u8;6];
+        buffer.copy_from_slice(&data[start..end]);
+        let origin_id = TetrahedronId::from_bytes(&buffer);
+        start = end;
+
+        end = start + 6;
+        let mut buffer = [0u8;6];
+        buffer.copy_from_slice(&data[start..end]);
+        let target_id = TetrahedronId::from_bytes(&buffer);
+        start = end;
+
+        let time = decode_u32(data, &mut start);
+
         let prop = decode_u32(data, &mut start);
         let faction = data[start];
         start += 1;
@@ -136,7 +190,27 @@ impl MapEntity {
         let health = decode_u32(data, &mut start);
         let constitution = decode_u32(data, &mut start);
 
-        MapEntity {object_id: None, id, last_update, prop, faction, level, temperature, moisture, heights, pathness, health, constitution}
+        MapEntity {
+            object_id: None, 
+            version,
+            id,
+
+            owner_id,
+            ownership_time,
+
+            prop,
+            faction,
+            level,
+            temperature,
+            moisture,
+            heights,
+            pathness,
+            health,
+            constitution,
+            origin_id,
+            target_id,
+            time
+        }
     }
 }
 
@@ -157,6 +231,14 @@ fn u32_into_buffer(buffer : &mut [u8;MAP_ENTITY_SIZE], data: u32, start : &mut u
     *start = *end;
 }
 
+fn u16_into_buffer(buffer : &mut [u8;MAP_ENTITY_SIZE], data: u16, start : &mut usize, end: &mut usize)
+{
+    *end = *end + 2;
+    let bytes = u16::to_le_bytes(data);
+    buffer[*start..*end].copy_from_slice(&bytes);
+    *start = *end;
+}
+
 pub fn decode_float(buffer: &[u8;MAP_ENTITY_SIZE], start: &mut usize) -> f32
 {
     let end = *start + 4;
@@ -173,6 +255,14 @@ pub fn decode_u32(buffer: &[u8;MAP_ENTITY_SIZE], start: &mut usize) -> u32
     decoded_float
 }
 
+pub fn decode_u16(buffer: &[u8;MAP_ENTITY_SIZE], start: &mut usize) -> u16
+{
+    let end = *start + 2;
+    let decoded_float = u16::from_le_bytes(buffer[*start..end].try_into().unwrap());
+    *start = end;
+    decoded_float
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,8 +273,11 @@ mod tests {
 
         let entity = MapEntity{
             object_id: None,
+            version: 1000,
             id: TetrahedronId::from_string("a00001"),
-            last_update: 1000,
+            origin_id: TetrahedronId::from_string("a00001"),
+            target_id: TetrahedronId::from_string("a00001"),
+            time: 0,
             prop: 10,
             faction: 0,
             level:1,
@@ -194,6 +287,8 @@ mod tests {
             pathness: [1.2,1.1,1.5],
             health: 14,
             constitution: 100,
+            owner_id: 0,
+            ownership_time: 234,
         };
 
         let encoded = entity.to_bytes();

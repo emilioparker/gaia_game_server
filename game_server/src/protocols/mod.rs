@@ -5,6 +5,9 @@ pub mod inventory_request_protocol;
 pub mod layfoundation_protocol;
 pub mod build_protocol;
 pub mod tile_attacks_walker_protocol;
+pub mod spawn_mob_protocol;
+pub mod mob_moves_protocol;
+pub mod claim_mob_ownership;
 
 
 use std::sync::Arc;
@@ -27,10 +30,13 @@ pub enum Protocol{
     LayFoundation = 6,
     Build = 7,
     TileAttacksWalker = 8,
+    SpawnMob = 9,
+    MobMoves = 10,
+    ControlMob = 11,
 }
     
 pub async fn route_packet(
-    player_id: u64,
+    player_id: u16,
     socket: &UdpSocket,
     data : &[u8; 508],
     map : Arc<GameMap>,
@@ -41,7 +47,7 @@ pub async fn route_packet(
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
-            ping_protocol::process_ping(socket, data, channel_tx).await;
+            ping_protocol::process_ping(socket, data, map, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map, channel_tx).await;
@@ -64,10 +70,25 @@ pub async fn route_packet(
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             build_protocol::process(socket, data, channel_map_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::TileAttacksWalker as u8 => {
+        Some(protocol) if *protocol == Protocol::TileAttacksWalker as u8 => { // used by mobs and towers.
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             tile_attacks_walker_protocol::process(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::SpawnMob as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            spawn_mob_protocol::process(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::MobMoves as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            mob_moves_protocol::process(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::ControlMob as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            claim_mob_ownership::process(socket, data, channel_map_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);
