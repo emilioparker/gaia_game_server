@@ -666,7 +666,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     let mut packets = Vec::<Vec<u8>>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
-    println!("data to send {}" , data.len());
+    // println!("data to send {}" , data.len());
     for state_update in data.iter()
     {
         let required_space = match state_update{
@@ -678,7 +678,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 +1,
         };
 
-        println!("required space {}", required_space);
+        // println!("required space {}", required_space);
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
         {
@@ -789,7 +789,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         encoder.write_all(trimmed_buffer).unwrap();
         // encoder.write_all(buffer.as_slice()).unwrap();
         let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-        println!("compressed {} vs normal {}", compressed_bytes.len(), trimmed_buffer.len());
+        // println!("compressed {} vs normal {}", compressed_bytes.len(), trimmed_buffer.len());
 
 
         // let data : &[u8] = &compressed_bytes;
