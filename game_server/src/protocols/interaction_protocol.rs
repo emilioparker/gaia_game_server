@@ -27,6 +27,6 @@ pub async fn process_interaction(_socket:&UdpSocket, data : &[u8; 508],  channel
     let map_action = MapCommand { id: tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);
-    println!("got a {:?} {:?}",map_action, map_action.id.to_string());
+    // println!("got a {:?} {:?}",map_action, map_action.id.to_string());
     channel_map_tx.send(map_action).await.unwrap();
 }

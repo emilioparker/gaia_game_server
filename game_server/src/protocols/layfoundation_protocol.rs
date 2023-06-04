@@ -52,7 +52,7 @@ pub async fn process_construction(
                 info: MapCommandInfo::LayFoundation(player_id, prop, pathness_a, pathness_b, pathness_c)
             };
 
-            println!("got a {:?}", map_action);
+            // println!("got a {:?}", map_action);
 
             channel_map_tx.send(map_action).await.unwrap();
         }

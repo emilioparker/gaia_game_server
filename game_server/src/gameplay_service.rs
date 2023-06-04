@@ -623,13 +623,15 @@ pub fn start_service(
             filtered_summary.extend(player_attack_state_updates.clone());
             filtered_summary.extend(tile_attack_state_updates.clone());
             // println!("filtered summarny total {}" , filtered_summary.len());
-            let packages = create_data_packets(filtered_summary, &mut packet_number);
-
-            // the data that will be sent to each client is not copied.
-            let arc_summary = Arc::new(packages);
-            let capacity = tx_bytes_game_socket.capacity();
-            server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
-            tx_bytes_game_socket.send(arc_summary).await.unwrap();
+            if filtered_summary.len() > 0 
+            {
+                let packages = create_data_packets(filtered_summary, &mut packet_number);
+                // the data that will be sent to each client is not copied.
+                let arc_summary = Arc::new(packages);
+                let capacity = tx_bytes_game_socket.capacity();
+                server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                tx_bytes_game_socket.send(arc_summary).await.unwrap();
+            }
         }
     });
 
@@ -638,6 +640,7 @@ pub fn start_service(
 
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
     *packet_number += 1u64;
+    // println!("{packet_number} -A");
 
     let mut buffer = [0u8; 5000];
     let mut start: usize = 1;
@@ -678,7 +681,18 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 +1,
         };
 
-        // println!("required space {}", required_space);
+        // let sent_data = match state_update{
+        //     StateUpdate::PlayerState(_) => "player state".to_owned(),
+        //     StateUpdate::TileState(_) => "tile state".to_owned(),
+        //     StateUpdate::PlayerGreetings(_) => "presentation".to_owned(),
+        //     StateUpdate::PlayerAttackState(_) => "player attack state ". to_owned(),
+        //     StateUpdate::Rewards(_) => "player requred".to_owned(),
+        //     StateUpdate::TileAttackState(_) =>"tile attack state".to_owned(),
+        // };
+
+        // println!("data sent {} required space {}",sent_data, required_space);
+
+
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
         {
@@ -695,6 +709,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
 
             //a new packet with a new sequence number
             *packet_number += 1u64;
+            println!("{packet_number} -B");
             let end: usize = start + 8;
             let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
             buffer[start..end].copy_from_slice(&packet_number_bytes);

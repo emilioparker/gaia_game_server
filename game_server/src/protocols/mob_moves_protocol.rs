@@ -42,7 +42,7 @@ pub async fn process(
             info: MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance)
         };
 
-        println!("got a {:?}", map_action);
+        // println!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }
