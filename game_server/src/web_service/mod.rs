@@ -250,7 +250,7 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
         let saved_char = JoinWithCharacterResponse{
             character_id: player.player_id,
             faction:player.faction,
-            tetrahedron_id:"j012331210".to_owned(),
+            tetrahedron_id:"k120223211".to_owned(),
             position: player.second_position,
             health: player.health,
             constitution: player.constitution,
