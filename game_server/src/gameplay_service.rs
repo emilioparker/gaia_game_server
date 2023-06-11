@@ -180,7 +180,20 @@ pub fn start_service(
                     atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
                 }
 
-                if player_command.action == player_command::GREET_ACTION {
+                if player_command.action == player_command::IDLE_ACTION {
+                    let player_option = player_entities.get_mut(&cloned_data.player_id);
+                    if let Some(player_entity) = player_option {
+                        let updated_player_entity = PlayerEntity {
+                            action: player_command.action,
+                            ..player_entity.clone()
+                        };
+
+                        *player_entity = updated_player_entity;
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    }
+                }
+                else if player_command.action == player_command::GREET_ACTION {
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let name_with_padding = format!("{: <5}", player_entity.character_name);
