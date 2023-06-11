@@ -185,6 +185,8 @@ pub fn start_service(
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = PlayerEntity {
                             action: player_command.action,
+                            position: player_command.position,
+                            second_position: player_command.second_position,
                             ..player_entity.clone()
                         };
 
