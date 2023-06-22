@@ -1,17 +1,15 @@
-use std::env::set_current_dir;
 use std::time::SystemTime;
 use std::{sync::Arc};
 
 use crate::ServerState;
+use crate::character::character_command::{CharacterCommand, self};
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand, MapCommandInfo, MAP_ENTITY_SIZE};
 use crate::map::tile_attack::{TileAttack, TILE_ATTACK_SIZE};
-use crate::player::player_attack::{PlayerAttack, PLAYER_ATTACK_SIZE};
-use crate::player::player_entity::{InventoryItem, PLAYER_ENTITY_SIZE};
-use crate::player::player_reward::{PlayerReward, self, PLAYER_REWARD_SIZE};
-use crate::player::{player_command};
-use crate::player::player_presentation::{PlayerPresentation, PLAYER_PRESENTATION_SIZE};
-use crate::player::{player_entity::PlayerEntity, player_command::PlayerCommand};
+use crate::character::character_attack::{CharacterAttack, CHARACTER_ATTACK_SIZE};
+use crate::character::character_entity::{InventoryItem, CHARACTER_ENTITY_SIZE, CharacterEntity};
+use crate::character::character_reward::{CharacterReward, CHARACTER_REWARD_SIZE, self};
+use crate::character::character_presentation::{CharacterPresentation, CHARACTER_PRESENTATION_SIZE};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -34,20 +32,20 @@ pub enum DataType
 }
 
 pub fn start_service(
-    mut rx_pc_client_game : tokio::sync::mpsc::Receiver<PlayerCommand>,
+    mut rx_pc_client_game : tokio::sync::mpsc::Receiver<CharacterCommand>,
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
-) -> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<PlayerEntity>, Sender<MapCommand>) {
+) -> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Sender<MapCommand>) {
 
     let (tx_mc_webservice_gameplay, mut rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
-    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<PlayerEntity>(1000);
+    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<CharacterEntity>(1000);
 
     //players
-    let player_commands = HashMap::<u16,PlayerCommand>::new();
+    let player_commands = HashMap::<u16,CharacterCommand>::new();
     let player_commands_mutex = Arc::new(Mutex::new(player_commands));
     let player_commands_processor_lock = player_commands_mutex.clone();
     let player_commands_agregator_lock = player_commands_mutex.clone();
@@ -161,7 +159,7 @@ pub fn start_service(
             let mut tile_attacks_summary = Vec::new();
             let mut players_presentation_summary = Vec::new();
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
-            let mut players_rewards_summary : Vec<PlayerReward>= Vec::new();
+            let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
 
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
@@ -180,10 +178,10 @@ pub fn start_service(
                     atomic_time.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
                 }
 
-                if player_command.action == player_command::IDLE_ACTION {
+                if player_command.action == character_command::IDLE_ACTION {
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
-                        let updated_player_entity = PlayerEntity {
+                        let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             position: player_command.position,
                             second_position: player_command.second_position,
@@ -195,15 +193,15 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == player_command::GREET_ACTION {
+                else if player_command.action == character_command::GREET_ACTION {
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let name_with_padding = format!("{: <5}", player_entity.character_name);
                         let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
                         let mut name_array = [0u32; 5];
                         name_array.clone_from_slice(&name_data.as_slice()[0..5]);
-                        let player_presentation = PlayerPresentation {
-                            player_id: player_entity.player_id,
+                        let player_presentation = CharacterPresentation {
+                            player_id: player_entity.character_id,
                             character_name: name_array,
                         };
 
@@ -211,10 +209,10 @@ pub fn start_service(
                     }
 
                 }
-                else if player_command.action == player_command::RESPAWN_ACTION { // respawn, we only update health for the moment
+                else if player_command.action == character_command::RESPAWN_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
-                        let updated_player_entity = PlayerEntity {
+                        let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             health: player_entity.constitution,
                             ..player_entity.clone()
@@ -225,10 +223,10 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == player_command::WALK_ACTION { // respawn, we only update health for the moment
+                else if player_command.action == character_command::WALK_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
-                        let updated_player_entity = PlayerEntity {
+                        let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             position: player_command.position,
                             second_position: player_command.second_position,
@@ -240,10 +238,10 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == player_command::ATTACK_ACTION { // respawn, we only update health for the moment
+                else if player_command.action == character_command::ATTACK_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
-                        let updated_player_entity = PlayerEntity {
+                        let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             ..player_entity.clone()
                         };
@@ -254,7 +252,7 @@ pub fn start_service(
 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
                             let result = other_entity.health.saturating_sub(4);
-                            let updated_player_entity = PlayerEntity {
+                            let updated_player_entity = CharacterEntity {
                                 action: other_entity.action,
                                 health: result,
                                 ..other_entity.clone()
@@ -264,7 +262,7 @@ pub fn start_service(
                             tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
                             players_summary.push(other_entity.clone());
 
-                            let attack = PlayerAttack{
+                            let attack = CharacterAttack{
                                 player_id: cloned_data.player_id,
                                 target_player_id: cloned_data.other_player_id,
                                 damage: 2,
@@ -275,11 +273,11 @@ pub fn start_service(
 // updating target entity, we usually substrack health I think ?
                     }
                 }
-                else if player_command.action == player_command::ATTACK_TILE_ACTION
-                || player_command.action == player_command::BUILD_ACTION { // respawn, we only update health for the moment
+                else if player_command.action == character_command::ATTACK_TILE_ACTION
+                || player_command.action == character_command::BUILD_ACTION { // respawn, we only update health for the moment
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
-                        let updated_player_entity = PlayerEntity {
+                        let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             ..player_entity.clone()
                         };
@@ -385,7 +383,7 @@ pub fn start_service(
 
                                             player_entity.add_inventory_item(new_item.clone());
                                             // we should also give the player the reward
-                                            let reward = PlayerReward {
+                                            let reward = CharacterReward {
                                                 player_id: *player_id,
                                                 item_id: new_item.item_id,
                                                 level: new_item.level,
@@ -471,7 +469,7 @@ pub fn start_service(
                                     {
                                         let result = player_entity.health.saturating_sub(2);
 
-                                        let updated_player_entity = PlayerEntity {
+                                        let updated_player_entity = CharacterEntity {
                                             action: player_entity.action,
                                             health: result,
                                             ..player_entity.clone()
@@ -688,11 +686,11 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     for state_update in data.iter()
     {
         let required_space = match state_update{
-            StateUpdate::PlayerState(_) => PLAYER_ENTITY_SIZE as u32 + 1,
+            StateUpdate::PlayerState(_) => CHARACTER_ENTITY_SIZE as u32 + 1,
             StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
-            StateUpdate::PlayerGreetings(_) => PLAYER_PRESENTATION_SIZE as u32 + 1,
-            StateUpdate::PlayerAttackState(_) => PLAYER_ATTACK_SIZE as u32 + 1,
-            StateUpdate::Rewards(_) =>PLAYER_REWARD_SIZE as u32 +1,
+            StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
+            StateUpdate::PlayerAttackState(_) => CHARACTER_ATTACK_SIZE as u32 + 1,
+            StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 +1,
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 +1,
         };
 
@@ -746,9 +744,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 start += 1;
 
                 let player_state_bytes = player_state.to_bytes(); //44
-                let next = start + PLAYER_ENTITY_SIZE;
+                let next = start + CHARACTER_ENTITY_SIZE;
                 buffer[start..next].copy_from_slice(&player_state_bytes);
-                stored_bytes = stored_bytes + PLAYER_ENTITY_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + CHARACTER_ENTITY_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -768,9 +766,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 start += 1;
 
                 let presentation_bytes = presentation.to_bytes(); //28
-                let next = start + PLAYER_PRESENTATION_SIZE;
+                let next = start + CHARACTER_PRESENTATION_SIZE;
                 buffer[start..next].copy_from_slice(&presentation_bytes);
-                stored_bytes = stored_bytes + PLAYER_PRESENTATION_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + CHARACTER_PRESENTATION_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -779,9 +777,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 start += 1;
 
                 let attack_bytes = player_attack.to_bytes(); //24
-                let next = start + PLAYER_ATTACK_SIZE;
+                let next = start + CHARACTER_ATTACK_SIZE;
                 buffer[start..next].copy_from_slice(&attack_bytes);
-                stored_bytes = stored_bytes + PLAYER_ATTACK_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + CHARACTER_ATTACK_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -790,9 +788,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 start += 1;
 
                 let reward_bytes = player_reward.to_bytes(); //16 bytes
-                let next = start + player_reward::PLAYER_REWARD_SIZE;
+                let next = start + character_reward::CHARACTER_REWARD_SIZE;
                 buffer[start..next].copy_from_slice(&reward_bytes);
-                stored_bytes = stored_bytes + player_reward::PLAYER_REWARD_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + character_reward::CHARACTER_REWARD_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

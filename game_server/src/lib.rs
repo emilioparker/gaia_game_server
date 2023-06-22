@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize};
 
 pub mod protocols;
 pub mod gameplay_service;
-pub mod player;
+pub mod character;
 pub mod map;
 pub mod web_service;
 pub mod real_time_service;

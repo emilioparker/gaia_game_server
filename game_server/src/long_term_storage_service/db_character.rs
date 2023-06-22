@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::player::player_entity::InventoryItem;
+use crate::character::character_entity::InventoryItem;
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -9,9 +9,10 @@ pub struct StoredCharacter {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub world_id: Option<ObjectId>,
-    pub player_id: u16,
+    pub world_name: String,
+    pub player_id: Option<ObjectId>,
+    pub character_id: u16,
     pub faction: String,
-    pub device_id: String,
     pub character_name: String,
     pub position:[f32;3],
     pub inventory: Vec<StoredInventoryItem>,

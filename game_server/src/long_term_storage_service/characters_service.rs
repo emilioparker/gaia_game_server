@@ -3,7 +3,7 @@ use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
 use crate::long_term_storage_service::db_character::{StoredCharacter, StoredInventoryItem};
 use crate::map::GameMap;
-use crate::player::player_entity::{PlayerEntity, InventoryItem};
+use crate::character::character_entity::{CharacterEntity, InventoryItem};
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
@@ -12,15 +12,15 @@ use tokio::sync::mpsc::{Receiver};
 use futures_util::stream::StreamExt;
 
 
-pub async fn get_players_from_db(
+pub async fn get_characters_from_db_by_world(
     world_id : Option<ObjectId>,
     db_client : Client
-) -> HashMap<u16, PlayerEntity> {
+) -> HashMap<u16, CharacterEntity> {
     println!("get players from db using {:?}", world_id);
 
-    let mut data = HashMap::<u16, PlayerEntity>::new();
+    let mut data = HashMap::<u16, CharacterEntity>::new();
 
-    let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
+    let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("characters");
 
     let mut cursor = data_collection
     .find(
@@ -44,9 +44,10 @@ pub async fn get_players_from_db(
                     amount: item.amount,
                 }).collect();
 
-                let player =  PlayerEntity{
+                let player =  CharacterEntity{
+                    character_id: doc.character_id,
                     player_id: doc.player_id,
-                    faction: PlayerEntity::get_faction_code(&doc.faction),
+                    faction: CharacterEntity::get_faction_code(&doc.faction),
                     object_id: doc.id,
                     position: doc.position,
                     second_position: doc.position,
@@ -58,20 +59,20 @@ pub async fn get_players_from_db(
                     inventory_hash: 1,
                 };
                 count += 1;
-                data.insert(doc.player_id, player);
+                data.insert(doc.character_id, player);
             },
             Err(error_details) => {
-                println!("error getting player from db with {:?}", error_details);
+                println!("error getting characters from db with {:?}", error_details);
             },
         }
     }
-    println!("Got {} players from database", count);
+    println!("Got {} characters from database", count);
 
     data
 }
 
 pub fn start_server(
-    mut rx_pe_realtime_longterm : Receiver<PlayerEntity>,
+    mut rx_pe_realtime_longterm : Receiver<CharacterEntity>,
     map : Arc<GameMap>,
     db_client : Client){
 
@@ -92,17 +93,17 @@ pub fn start_server(
             let message = rx_pe_realtime_longterm.recv().await.unwrap();
             // println!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_players = modified_players_update_lock.lock().await;
-            modified_players.insert(message.player_id.clone());
+            modified_players.insert(message.character_id.clone());
 
             let mut locked_players = map_updater.players.lock().await;
 
-            let old = locked_players.get(&message.player_id);
+            let old = locked_players.get(&message.character_id);
             match old {
                 Some(_previous_record) => {
-                    locked_players.insert(message.player_id.clone(), message);
+                    locked_players.insert(message.character_id.clone(), message);
                 }
                 _ => {
-                   locked_players.insert(message.player_id.clone(), message);
+                   locked_players.insert(message.character_id.clone(), message);
                 }
             }
             // we need to save into the hashmap and then save to a file.
@@ -116,7 +117,7 @@ pub fn start_server(
             let mut modified_player_keys = modified_players_reader_lock.lock().await;
             let locked_players = map_reader.players.lock().await;
 
-            let mut modified_player_entities = Vec::<PlayerEntity>::new();
+            let mut modified_player_entities = Vec::<CharacterEntity>::new();
             for player_id in modified_player_keys.iter(){
                 println!("this player was changed {}", player_id.to_string());
                 if let Some(player_data) = locked_players.get(player_id) {
@@ -128,7 +129,7 @@ pub fn start_server(
             drop(modified_player_keys);
             drop(locked_players);
 
-            let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("players");
+            let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("characters");
 
             for player in modified_player_entities {
                 let updated_inventory : Vec<StoredInventoryItem> = player.inventory

@@ -3,7 +3,7 @@ use std::{collections::{HashMap}, sync::{Arc, atomic::{AtomicU64, AtomicU32, Ato
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::player::player_entity::PlayerEntity;
+use crate::character::character_entity::CharacterEntity;
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -14,18 +14,21 @@ pub mod tile_attack;
 
 pub struct GameMap { 
     pub world_id : Option<ObjectId>,
+    pub world_name : String,
     pub id_generator : AtomicU16,
     pub time : AtomicU32,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
-    pub players : Arc<Mutex<HashMap<u16, PlayerEntity>>>,
+    pub logged_in_players: Arc<HashMap<u16, AtomicU64>>,
+    pub players : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
 }
 
 impl GameMap {
     pub fn new(
         world_id: Option<ObjectId>,
+        world_name:String,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
-        players : HashMap<u16, PlayerEntity>,
+        players : HashMap<u16, CharacterEntity>,
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
@@ -40,10 +43,20 @@ impl GameMap {
         let result = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
 
         let mut active_players_set = HashMap::<u16, AtomicU64>::new();
+        let mut logged_in_players_set = HashMap::<u16, AtomicU64>::new();
         let mut last_id = 0u16;
+
+        let mut i:u16 = 0;
+
+        while i < u16::MAX {
+            i = i + 1;
+            active_players_set.insert(i, AtomicU64::new(0));
+            logged_in_players_set.insert(i, AtomicU64::new(0));
+        }
+
+
         for player in &players
         {
-            active_players_set.insert(*player.0, AtomicU64::new(0));
             if last_id < *player.0{
                 last_id = *player.0;
             }
@@ -55,9 +68,10 @@ impl GameMap {
 
         GameMap{
             world_id,
+            world_name,
             id_generator : AtomicU16::new(last_id + 1),
             active_players: Arc::new(active_players_set),
-            // region_keys : Arc::new(region_keys),
+            logged_in_players : Arc::new(logged_in_players_set),
             regions : arc_regions,
             players : Arc::new(Mutex::new(players)),
             time : AtomicU32::new(current_time),

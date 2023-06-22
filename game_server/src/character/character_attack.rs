@@ -1,15 +1,17 @@
-pub const PLAYER_PRESENTATION_SIZE: usize = 22;
+pub const CHARACTER_ATTACK_SIZE: usize = 12;
 
 #[derive(Debug, Clone)]
-pub struct PlayerPresentation {
+pub struct CharacterAttack {
     pub player_id: u16, // 2 bytes
-    pub character_name: [u32;5], //20 bytes
+    pub target_player_id: u16, // 2 bytes
+    pub damage: u32, // 4 bytes
+    pub skill_id: u32 // 4 bytes
 }
 
-impl PlayerPresentation {
+impl CharacterAttack {
     // used by the test_client ignores the protocol byte.
-    pub fn to_bytes(&self) -> [u8;22] {
-        let mut buffer = [0u8; 22];
+    pub fn to_bytes(&self) -> [u8;12] {
+        let mut buffer = [0u8; 12];
 
         let mut start : usize = 0;
         let mut end : usize = 2;
@@ -17,17 +19,16 @@ impl PlayerPresentation {
         let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
         buffer[start..end].copy_from_slice(&player_id_bytes);
         start = end;
-        end = start + 4;
+        end = start + 2;
 
-        u32_into_buffer(&mut buffer,self.character_name[0], &mut start, end);
+        let target_player_id_bytes = u16::to_le_bytes(self.target_player_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&target_player_id_bytes);
+        start = end;
+
         end = start + 4;
-        u32_into_buffer(&mut buffer,self.character_name[1], &mut start, end);
+        u32_into_buffer(&mut buffer,self.damage, &mut start, end);
         end = start + 4;
-        u32_into_buffer(&mut buffer,self.character_name[2], &mut start, end);
-        end = start + 4;
-        u32_into_buffer(&mut buffer,self.character_name[3], &mut start, end);
-        end = start + 4;
-        u32_into_buffer(&mut buffer,self.character_name[4], &mut start, end);
+        u32_into_buffer(&mut buffer,self.skill_id, &mut start, end);
         buffer
     }
 
@@ -44,19 +45,16 @@ impl PlayerPresentation {
         let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
-        end = start + 4;
-        let a = decode_u32(data, &mut start, end);
-        end = start + 4;
-        let b = decode_u32(data, &mut start, end);
-        end = start + 4;
-        let c = decode_u32(data, &mut start, end);
-        end = start + 4;
-        let d = decode_u32(data, &mut start, end);
-        end = start + 4;
-        let e = decode_u32(data, &mut start, end);
+        end = start + 2;
+        let target_player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
 
-        PlayerPresentation { player_id, character_name: [a,b,c,d,e] }
+        end = start + 4;
+        let damage = decode_u32(data, &mut start, end);
+        end = start + 4;
+        let skill_id = decode_u32(data, &mut start, end);
+
+        CharacterAttack { player_id, target_player_id, damage, skill_id}
     }
 }
 

@@ -54,15 +54,15 @@ async fn main() {
 
     if let Some(world) = world_state {
         println!("Load the world from db init at {}", world.start_time);
-        let working_players = long_term_storage_service::players_service::get_players_from_db(world.id, db_client.clone()).await;
+        let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world.id, db_client.clone()).await;
         //used and updated by the long storage system
         let storage_players = working_players.clone();
 
         let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
         println!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
-        working_game_map = Some(GameMap::new(world.id, regions_data.clone(), working_players));
-        storage_game_map = Some(GameMap::new(world.id, regions_data, storage_players));
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), regions_data.clone(), working_players));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, regions_data, storage_players));
     }
     else{
         println!("Creating world from scratch, because it was not found in the database");
@@ -71,7 +71,7 @@ async fn main() {
         let world_id = long_term_storage_service::world_service::init_world_state(world_name, db_client.clone()).await;
         if let Some(id) = world_id{
             println!("Creating world with id {}", id);
-            let working_players = long_term_storage_service::players_service::get_players_from_db(world_id, db_client.clone()).await;
+            let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world_id, db_client.clone()).await;
             //used and updated by the long storage system
             let storage_players = working_players.clone();
 
@@ -82,8 +82,8 @@ async fn main() {
             let regions_data_from_db = long_term_storage_service::world_service::get_regions_from_db(world_id, db_client.clone()).await;
 
             let regions_data = load_regions_data_into_game_map(&regions_data_from_db);
-            working_game_map = Some(GameMap::new(world_id, regions_data.clone(), working_players));
-            storage_game_map = Some(GameMap::new(world_id, regions_data, storage_players));
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data.clone(), working_players));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data, storage_players));
         }
         else {
             println!("Error creating world in db");
@@ -124,7 +124,7 @@ async fn main() {
                 db_client.clone()
             );
 
-            long_term_storage_service::players_service::start_server(
+            long_term_storage_service::characters_service::start_server(
                 rx_pe_gameplay_longterm,
                 storage_game_map_reference.clone(), 
                 db_client.clone()

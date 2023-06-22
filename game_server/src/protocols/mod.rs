@@ -18,7 +18,7 @@ use tokio::sync::mpsc::Sender;
 use crate::ServerState;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
-use crate::player::player_command::PlayerCommand;
+use crate::character::character_command::CharacterCommand;
 
 
 pub enum Protocol{
@@ -41,7 +41,7 @@ pub async fn route_packet(
     data : &[u8; 508],
     map : Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    channel_tx : &Sender<PlayerCommand>,
+    channel_tx : &Sender<CharacterCommand>,
     channel_map_tx : &Sender<MapCommand>
 ){
 

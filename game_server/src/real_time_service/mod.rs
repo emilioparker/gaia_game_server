@@ -6,22 +6,22 @@ use std::{collections::HashMap};
 use crate::ServerState;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapCommand};
-use crate::player::player_connection::PlayerConnection;
-use crate::player::{player_command::PlayerCommand};
+use crate::character::{character_command::CharacterCommand};
+use mongodb::change_stream::session;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 pub fn start_server(
     map : Arc<GameMap>,
     server_state: Arc<ServerState>
-) -> (Receiver<MapCommand>, Receiver<PlayerCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
+) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
 
 
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
-    let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<PlayerCommand>(1000);
+    let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
 
-    let client_connections:HashMap<std::net::SocketAddr, PlayerConnection> = HashMap::new();
+    let client_connections:HashMap<std::net::SocketAddr, u16> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
     let server_lock = client_connections_mutex.clone();
@@ -38,7 +38,7 @@ pub fn start_server(
                 for client in clients_data.iter_mut()
                 {
                     for packet in packet_list.iter(){
-                        if client.1.player_id == 0 {
+                        if client.1 == &0u16 {
                             // let first_byte = packet[0]; // this is the protocol
                             // the packet is compress, I can't read the sequence number
                             // let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
@@ -82,43 +82,69 @@ pub fn start_server(
                             let end = start + 2;
                             let player_id = u16::from_le_bytes(buf_udp[start..end].try_into().unwrap());
 
-                            println!("--- create child for {}", player_id);
+                            let start = end;
+                            let end = start + 8;
+                            let player_session_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
+
+                            println!("--- create child for {} with session id {}", player_id, player_session_id);
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
                             // send, this will be epic
                             // let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
-                            let player_entity = PlayerConnection{
-                                player_id : player_id, // we need to get this data from the packet
-                                // tx : server_state_tx
+                            // let player_entity = PlayerConnection{
+                            //     player_id : player_id, // we need to get this data from the packet
+                            //     // tx : server_state_tx
+                            // };
+
+                            let key_value = map.logged_in_players.get_key_value(&player_id);
+
+                            let session_id = match key_value {
+                                Some((_stored_player_id, stored_session_id)) => 
+                                {
+                                    stored_session_id.load(std::sync::atomic::Ordering::Relaxed)
+                                },
+                                None => 0,
                             };
+                            println!("comparing {} with server {}", player_session_id, session_id);
 
-                            clients_data.insert(from_address, player_entity);
-
-                            // each client can send a message to remove itself using tx,
-                            // each client can send actions to be processed using client_action_tx,
-                            // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
-                            // the producer for this channel is saved in the player_entity which is saved on the clients_data
-                            client_handler::spawn_client_process(
-                                player_id, 
-                                address, 
-                                from_address, 
-                                map.clone(),
-                                server_state.clone(),
-                                tx_addr_client_realtime.clone(), 
-                                tx_mc_client_statesys.clone(), 
-                                tx_pc_client_statesys.clone(), 
-                                buf_udp,
-                            ).await;
+                            if session_id == player_session_id  && session_id != 0
+                            {
+                                clients_data.insert(from_address, player_id);
+                                // each client can send a message to remove itself using tx,
+                                // each client can send actions to be processed using client_action_tx,
+                                // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
+                                // the producer for this channel is saved in the player_entity which is saved on the clients_data
+                                client_handler::spawn_client_process(
+                                    player_id, 
+                                    session_id,
+                                    address, 
+                                    from_address, 
+                                    map.clone(),
+                                    server_state.clone(),
+                                    tx_addr_client_realtime.clone(), 
+                                    tx_mc_client_statesys.clone(), 
+                                    tx_pc_client_statesys.clone(), 
+                                    buf_udp,
+                                ).await;
+                            } 
+                            else
+                            {
+                                println!("rejected: invalid session id");
+                            }
                         }
                         else
                         {
-                            println!("rejected");
+                            println!("rejected: client process should be handling this");
                         }
                     }
                 }
                 Some(res) = rx_addr_client_realtime.recv() => {
                     println!("removing entry from hash set");
                     let mut clients_data = server_lock.lock().await;
-                    clients_data.remove(&res);
+                    let removed_value = clients_data.remove(&res);
+                    if let Some(session_id) = removed_value.map(|id| map.logged_in_players.get(&id)).flatten()
+                    {
+                        session_id.store(0, std::sync::atomic::Ordering::Relaxed);
+                    }
                 }
             }
         }   

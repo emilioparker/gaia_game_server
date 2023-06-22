@@ -16,6 +16,10 @@ pub async fn process(
         let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
+        end = start + 8;
+        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
         // current tile, it must be a mob
         end = start + 6;
         let mut buffer = [0u8;6];

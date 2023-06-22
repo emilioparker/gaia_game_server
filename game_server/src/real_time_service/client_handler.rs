@@ -6,36 +6,37 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
+use crate::character::character_attack::CharacterAttack;
+use crate::character::character_command::CharacterCommand;
+use crate::character::character_entity::CharacterEntity;
+use crate::character::character_presentation::CharacterPresentation;
+use crate::character::character_reward::CharacterReward;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tile_attack::TileAttack;
-use crate::player::player_attack::PlayerAttack;
-use crate::player::player_command::PlayerCommand;
-use crate::player::player_entity::PlayerEntity;
-use crate::player::player_presentation::PlayerPresentation;
-use crate::player::player_reward::PlayerReward;
 use crate::{protocols, ServerState};
 
 
 #[derive(Debug)]
 pub enum StateUpdate {
-    PlayerState(PlayerEntity),
-    PlayerGreetings(PlayerPresentation), 
-    Rewards(PlayerReward),
+    PlayerState(CharacterEntity),
+    PlayerGreetings(CharacterPresentation), 
+    Rewards(CharacterReward),
     TileState(MapEntity),
-    PlayerAttackState(PlayerAttack),
+    PlayerAttackState(CharacterAttack),
     TileAttackState(TileAttack),
 }
 
 pub async fn spawn_client_process(
     player_id : u16,
+    session_id : u64,
     address : std::net::SocketAddr, 
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     channel_tx : mpsc::Sender<std::net::SocketAddr>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
-    channel_action_tx : mpsc::Sender<PlayerCommand>,
+    channel_action_tx : mpsc::Sender<CharacterCommand>,
     initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
@@ -64,6 +65,7 @@ pub async fn spawn_client_process(
             let time_out = time::sleep(Duration::from_secs_f32(5.0)); 
             tokio::select! {
                 result = socket_receive => {
+                    // read the player id and the session id and drop if session id is different
 
                     match result{
                         Ok(_size) => {

@@ -3,7 +3,7 @@ pub mod db_world;
 pub mod db_character;
 pub mod db_player;
 pub mod world_service;
-pub mod players_service;
+pub mod characters_service;
 
 
 

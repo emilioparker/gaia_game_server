@@ -8,7 +8,7 @@ pub const RESPAWN_ACTION: u32 = 6;
 pub const BUILD_ACTION: u32 = 7;
 
 #[derive(Debug)]
-pub struct PlayerCommand {
+pub struct CharacterCommand {
     pub player_id: u16,
     pub position: [f32;3],
     pub second_position: [f32;3],
@@ -17,7 +17,7 @@ pub struct PlayerCommand {
     pub skill_id:u32, // if a attack action happens, we need to map that to a skill and calculate the damage.
 }
 
-impl PlayerCommand {
+impl CharacterCommand {
     // used by the test_client ignores the protocol byte.
     pub fn to_bytes(&self) -> [u8;32] {
         let mut buffer = [0u8; 32];
@@ -68,6 +68,10 @@ impl PlayerCommand {
         let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
+        end = start + 8;
+        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
         // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
         end = start + 4;
         let pos_x = decode_float(data, &mut start, end);
@@ -92,7 +96,7 @@ impl PlayerCommand {
         end = start + 4;
         let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
 
-        let client_action = PlayerCommand {
+        let client_action = CharacterCommand {
             player_id,
             position,
             second_position: direction,

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use crate::map::GameMap;
-use crate::player::player_command::PlayerCommand;
+use crate::character::character_command::CharacterCommand;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
@@ -13,7 +13,7 @@ pub async fn process_request(
     socket:&UdpSocket,
     data : &[u8; 508],
     map : Arc<GameMap>,
-    _channel_tx : &Sender<PlayerCommand>)
+    _channel_tx : &Sender<CharacterCommand>)
 {
     let mut start = 1;
     let mut end = start + 2;
@@ -21,6 +21,10 @@ pub async fn process_request(
 
 //TODO: WE USE THIS ONE BECUASE THE OTHER ID IS 0 THE FIRST TIME... NEED TO DEBUG...
     let requested_player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+    start = end;
+
+    end = start + 8;
+    let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     end = start + 1;

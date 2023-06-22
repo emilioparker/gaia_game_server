@@ -1,7 +1,7 @@
-pub const PLAYER_REWARD_SIZE: usize = 14;
+pub const CHARACTER_REWARD_SIZE: usize = 14;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct PlayerReward {
+pub struct CharacterReward {
     pub player_id: u16, // 2 bytes
     pub item_id: u32, // 4 bytes
     pub level: u8, // 1 bytes
@@ -10,10 +10,10 @@ pub struct PlayerReward {
     pub inventory_hash: u32 // 4 bytes
 }
 
-impl PlayerReward {
+impl CharacterReward {
     // used by the test_client ignores the protocol byte.
-    pub fn to_bytes(&self) -> [u8;PLAYER_REWARD_SIZE] {
-        let mut buffer = [0u8; PLAYER_REWARD_SIZE];
+    pub fn to_bytes(&self) -> [u8;CHARACTER_REWARD_SIZE] {
+        let mut buffer = [0u8; CHARACTER_REWARD_SIZE];
 
         let mut start : usize = 0;
         let mut end : usize = 2;
@@ -65,7 +65,7 @@ impl PlayerReward {
         let inventory_hash = u32::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        PlayerReward { player_id, item_id, level, quality, amount, inventory_hash}
+        CharacterReward { player_id, item_id, level, quality, amount, inventory_hash}
     }
 }
 
@@ -91,7 +91,7 @@ mod tests {
     fn encode_decode_map_entity()
     {
 
-        let reward = PlayerReward{
+        let reward = CharacterReward{
             player_id: 12300,
             item_id: 34,
             level: 232,
@@ -103,7 +103,7 @@ mod tests {
         let encoded = reward.to_bytes();
         println!("encoded size {}", encoded.len());
 
-        let decoded_reward = PlayerReward::from_bytes(&encoded);
+        let decoded_reward = CharacterReward::from_bytes(&encoded);
         assert_eq!(decoded_reward,reward);
     }
 }

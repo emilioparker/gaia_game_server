@@ -2,15 +2,16 @@ use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
-pub const PLAYER_ENTITY_SIZE: usize = 43;
-pub const PLAYER_INVENTORY_SIZE: usize = 8;
+pub const CHARACTER_ENTITY_SIZE: usize = 43;
+pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct PlayerEntity {
+pub struct CharacterEntity {
     pub object_id: Option<ObjectId>,
+    pub player_id: Option<ObjectId>,
     pub character_name: String,
-    pub player_id: u16,
+    pub character_id: u16,
     pub faction:u8,
     pub position: [f32;3],
     pub second_position: [f32;3],
@@ -31,9 +32,9 @@ pub struct InventoryItem{
 }
 
 impl InventoryItem {
-    pub fn to_bytes(&self) -> [u8; PLAYER_INVENTORY_SIZE]{
+    pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]{
         let offset = 0;
-        let mut buffer = [0u8;PLAYER_INVENTORY_SIZE];
+        let mut buffer = [0u8;CHARACTER_INVENTORY_SIZE];
         let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
         let end = offset + 4; 
         buffer[offset..end].copy_from_slice(&item_id_bytes);
@@ -53,21 +54,14 @@ impl InventoryItem {
 }
 
 
-// #[derive(Debug)]
-// #[derive(Clone)]
-// pub struct PlayerInventory{
-//     pub items : Vec<InventoryItem>,
-//     pub hash : u32
-// }
-
-impl PlayerEntity {
-    pub fn to_bytes(&self) -> [u8;PLAYER_ENTITY_SIZE] {
-        let mut buffer = [0u8; PLAYER_ENTITY_SIZE];
+impl CharacterEntity {
+    pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] {
+        let mut buffer = [0u8; CHARACTER_ENTITY_SIZE];
         let mut offset = 0;
         let mut end = 0;
 
         end = offset + 2;
-        let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
+        let player_id_bytes = u16::to_le_bytes(self.character_id); // 2 bytes
         buffer[..end].copy_from_slice(&player_id_bytes);
         offset = end;
 
@@ -154,7 +148,7 @@ impl PlayerEntity {
     }
 }
 
-impl Hash for PlayerEntity {
+impl Hash for CharacterEntity {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.action.hash(state);
     }
@@ -170,7 +164,7 @@ fn float_into_buffer(buffer : &mut [u8], data: f32, start : usize, end: usize)
 mod tests {
     use std::num::Wrapping;
 
-    use super::PlayerEntity;
+    use super::CharacterEntity;
 
 
     #[test]
@@ -217,10 +211,11 @@ mod tests {
     #[test]
     fn test_add_inventory_item()
     {
-        let mut entity = PlayerEntity{
+        let mut entity = CharacterEntity{
             object_id: None,
+            player_id: None,
             character_name: "a".to_owned(),
-            player_id: 1234,
+            character_id: 1234,
             faction:0,
             action: 0,
             position: [1.0, 2.0, 3.0],
@@ -250,6 +245,6 @@ mod tests {
         let item = super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 };
         let buffer = item.to_bytes();
 
-        assert!(buffer.len() == super::PLAYER_INVENTORY_SIZE);
+        assert!(buffer.len() == super::CHARACTER_INVENTORY_SIZE);
     }
 }

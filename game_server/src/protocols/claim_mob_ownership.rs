@@ -16,6 +16,10 @@ pub async fn process(
         let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
+        end = start + 8;
+        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
         end = start + 4;
         let mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
