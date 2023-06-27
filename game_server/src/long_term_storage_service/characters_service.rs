@@ -57,6 +57,9 @@ pub async fn get_characters_from_db_by_world(
                     character_name: doc.character_name,
                     inventory,
                     inventory_hash: 1,
+                    attack: doc.attack,
+                    defense: doc.defense,
+                    agility: doc.agility,
                 };
                 count += 1;
                 data.insert(doc.character_id, player);
@@ -146,10 +149,13 @@ pub fn start_server(
                     },
                     doc! {
                         "$set": {
-                            "constitution": player.constitution,
-                            "health" : player.health,
                             "position":serialized_position,
-                            "inventory" : serialized_data
+                            "inventory" : serialized_data,
+                            "constitution": bson::to_bson(&player.constitution).unwrap(),
+                            "health" :bson::to_bson(&player.health).unwrap(),
+                            "attack" :bson::to_bson(&player.attack).unwrap(),
+                            "defense" :bson::to_bson(&player.defense).unwrap(),
+                            "agility" :bson::to_bson(&player.agility).unwrap(),
                         }
                     },
                     None

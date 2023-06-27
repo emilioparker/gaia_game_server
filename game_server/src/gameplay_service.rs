@@ -245,13 +245,13 @@ pub fn start_service(
                             action: player_command.action,
                             ..player_entity.clone()
                         };
-
+                        let player_attack = updated_player_entity.attack;
                         *player_entity = updated_player_entity;
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
-                            let result = other_entity.health.saturating_sub(4);
+                            let result = other_entity.health.saturating_sub(player_attack);
                             let updated_player_entity = CharacterEntity {
                                 action: other_entity.action,
                                 health: result,
@@ -349,6 +349,7 @@ pub fn start_service(
                                 }
                                 else if previous_health > 0
                                 {
+                                    let collected_prop = updated_tile.prop;
                                     updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
                                     updated_tile.version += 1;
                                     if updated_tile.health == 0
@@ -374,10 +375,10 @@ pub fn start_service(
                                         if let Some(player_entity) = player_option {
                                             println!("Add inventory item for player");
                                             let new_item = InventoryItem {
-                                                item_id: tile.prop,
+                                                item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
                                                 level: 1,
                                                 quality: 1,
-                                                amount: 15,
+                                                amount: 1,
                                             };
 
 
@@ -391,6 +392,8 @@ pub fn start_service(
                                                 amount: new_item.amount,
                                                 inventory_hash : player_entity.inventory_hash
                                             };
+
+                                            println!("reward {:?}", reward);
 
                                             players_rewards_summary.push(reward);
                                             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();

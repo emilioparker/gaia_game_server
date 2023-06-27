@@ -16,8 +16,11 @@ pub struct StoredCharacter {
     pub character_name: String,
     pub position:[f32;3],
     pub inventory: Vec<StoredInventoryItem>,
-    pub constitution: u32,
-    pub health: u32,
+    pub constitution: u16,
+    pub health: u16,
+    pub attack: u16,
+    pub defense: u16,
+    pub agility: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

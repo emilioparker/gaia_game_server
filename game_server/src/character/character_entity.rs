@@ -2,7 +2,7 @@ use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
-pub const CHARACTER_ENTITY_SIZE: usize = 43;
+pub const CHARACTER_ENTITY_SIZE: usize = 45;
 pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -18,8 +18,11 @@ pub struct CharacterEntity {
     pub action:u32,
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub inventory_hash : u32,
-    pub constitution: u32,
-    pub health: u32
+    pub constitution: u16,
+    pub health: u16,
+    pub attack: u16,
+    pub defense: u16,
+    pub agility: u16,
 }
 
 #[derive(Debug)]
@@ -97,14 +100,31 @@ impl CharacterEntity {
         end = offset + 4;
         buffer[offset..end].copy_from_slice(&inventory_hash_bytes);
         offset = end;
-        let constitution_bytes = u32::to_le_bytes(self.constitution); // 4 bytes
-        end = offset + 4;
+        let constitution_bytes = u16::to_le_bytes(self.constitution); // 4 bytes
+        end = offset + 2;
         buffer[offset..end].copy_from_slice(&constitution_bytes);
         offset = end;
-        end = offset + 4;
-        let health_bytes = u32::to_le_bytes(self.health); // 4 bytes
+
+        end = offset + 2;
+        let health_bytes = u16::to_le_bytes(self.health); // 2 bytes
         buffer[offset..end].copy_from_slice(&health_bytes);
         offset = end;
+
+        end = offset + 2;
+        let attack_bytes = u16::to_le_bytes(self.attack); // 2 bytes
+        buffer[offset..end].copy_from_slice(&attack_bytes);
+        offset = end;
+
+        end = offset + 2;
+        let defense_bytes = u16::to_le_bytes(self.defense); // 2 bytes
+        buffer[offset..end].copy_from_slice(&defense_bytes);
+        offset = end;
+
+        end = offset + 2;
+        let agility_bytes = u16::to_le_bytes(self.agility); // 2 bytes
+        buffer[offset..end].copy_from_slice(&agility_bytes);
+        offset = end;
+
         buffer
     }
 
@@ -123,6 +143,32 @@ impl CharacterEntity {
         }
 
         self.inventory_hash = self.calculate_inventory_hash();
+    }
+
+    pub fn remove_inventory_item(&mut self, old_item : InventoryItem) -> bool
+    {
+        let mut successfuly_removed = false;
+        for (index, item) in &mut self.inventory.iter_mut().enumerate() 
+        {
+            if item.item_id == old_item.item_id && item.level == old_item.level && item.quality == old_item.quality {
+                if item.amount >= old_item.amount
+                {
+                    item.amount -= old_item.amount;
+                    successfuly_removed = true;
+                }
+
+                if item.amount == 0 
+                {
+                    self.inventory.swap_remove(index);
+                }
+                break;
+            }
+        }
+
+        if !successfuly_removed {
+            self.inventory_hash = self.calculate_inventory_hash();
+        }
+        successfuly_removed
     }
 
     pub fn calculate_inventory_hash(&self) -> u32
@@ -224,6 +270,9 @@ mod tests {
             inventory_hash: 1,
             constitution: 0,
             health: 0,
+            attack: 0,
+            defense: 0,
+            agility: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 });

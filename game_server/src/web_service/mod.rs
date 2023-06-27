@@ -27,7 +27,7 @@ use crate::long_term_storage_service::db_world::StoredWorld;
 use crate::map::{GameMap};
 use crate::map::map_entity::{MapCommand, MapEntity, MapCommandInfo};
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::character::character_entity::CharacterEntity;
+use crate::character::character_entity::{CharacterEntity, InventoryItem};
 use crate::character::character_presentation::CharacterPresentation;
 
 
@@ -86,8 +86,22 @@ struct JoinWithCharacterResponse {
     faction:u8,
     tetrahedron_id:String,
     position:[f32;3],
-    health:u32,
-    constitution:u32
+    health:u16,
+    constitution:u16
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct SellItemRequest {
+    player_token: String,
+    character_id:u16,
+    old_item_id:u32,
+    amount:u16,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct SellItemResponse {
+    new_item_id:u32,
+    amount:u16,
 }
 
 #[derive(Clone)]
@@ -348,8 +362,11 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         position:[0f32,0f32,0f32],
         faction: data.faction.clone(),
         inventory : Vec::new(),
-        constitution: 50,
-        health: 50,
+        constitution: 100,
+        health: 100,
+        attack: 5,
+        defense: 5,
+        agility: 5,
     };
 
     let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
@@ -369,10 +386,13 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         action: 0,
         position: [0.0, 0.0, 0.0],
         second_position: [0.0, 0.0, 0.0],
-        constitution: 200,
-        health: 200,
+        constitution: 100,
+        health: 100,
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_hash : 1,
+        attack: 5,
+        defense: 5,
+        agility: 5,
     };
 
     let mut players = context.working_game_map.players.lock().await;
@@ -469,6 +489,55 @@ async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->R
     }
 
     
+}
+
+async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> {
+
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let data: SellItemRequest = serde_json::from_slice(&data).unwrap();
+    println!("handling request {:?}", data);
+
+    let mut players = context.working_game_map.players.lock().await;
+
+    if let Some(player) = players.get_mut(&data.character_id) {
+        // println!("selling player {:?}", player);
+
+        // let mut updated_player_entity = player.clone();
+        let result = player.remove_inventory_item(InventoryItem{
+            item_id: data.old_item_id,
+            level: 1,
+            quality: 1,
+            amount: data.amount,
+        });// add soft currency
+
+        if !result 
+        {
+            let mut response = Response::new(Body::from(String::from("transaction failed")));
+            *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+            return Ok(response);
+        }
+
+        player.add_inventory_item(InventoryItem{
+            item_id: 0,
+            level: 1,
+            quality: 1,
+            amount: 1,
+        });// add soft currency
+
+        let saved_char = SellItemResponse{
+            new_item_id: 0,
+            amount: 1,
+        };
+
+        let response = serde_json::to_vec(&saved_char).unwrap();
+        Ok(Response::new(Body::from(response)))
+    }
+    else {
+        let mut response = Response::new(Body::from(String::from("Player not found")));
+        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+        return Ok(response);
+    }
 }
 
 async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
@@ -630,13 +699,18 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "player_data" => handle_player_request(context, req).await,
             "character_creation" => handle_create_character(context, req).await,
             "join_with_character" => handle_login_character(context, req).await,
+            "sell_item" => handle_sell_item(context, req).await,
             _ => {
-                Ok(Response::new(Body::from("Resource not found")))
+                let mut response = Response::new(Body::from(String::from("route not found")));
+                *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                return Ok(response);
             }
         }
     }
     else {
-            Ok(Response::new(Body::from("No resource defined")))
+        let mut response = Response::new(Body::from(String::from("missing route")));
+        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+        return Ok(response);
     }
 }
 
