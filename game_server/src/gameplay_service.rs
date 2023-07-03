@@ -238,7 +238,7 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
                 }
-                else if player_command.action == character_command::ATTACK_ACTION { // respawn, we only update health for the moment
+                else if player_command.action == character_command::ATTACK_ACTION { 
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
@@ -267,6 +267,7 @@ pub fn start_service(
                                 target_player_id: cloned_data.other_player_id,
                                 damage: 2,
                                 skill_id: 0,
+                                target_tile_id: TetrahedronId::from_string("a0"), // we need a default value
                             };
                             player_attacks_summary.push(attack);
                         }
@@ -320,8 +321,6 @@ pub fn start_service(
                             },
                             MapCommandInfo::ChangeHealth(player_id, damage) => {
                                 println!("Change tile health!!!");
-                                
-
                                 let previous_health = tile.health;
 
                                 // this means this tile is being built
@@ -399,7 +398,6 @@ pub fn start_service(
                                             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                                             players_summary.push(player_entity.clone());
                                         }
-
                                     }
                                 }
                                 else
@@ -591,6 +589,103 @@ pub fn start_service(
                                     tiles_summary.push(updated_tile.clone());
                                 }
                             },
+                            // this is very similar to change health command, but here we need to send and arrow.
+                            MapCommandInfo::AttackMob(player_id, damage) => {
+                                println!("Change mob health!!!");
+                                let previous_health = tile.health;
+                                let tile_id = tile.id.clone();
+
+                                // this means this tile is being built
+                                if tile.health > tile.constitution 
+                                {
+                                    updated_tile.constitution = i32::max(0, updated_tile.constitution as i32 - *damage as i32) as u32;
+                                    updated_tile.version += 1;
+                                    if updated_tile.constitution == 0
+                                    {
+                                        updated_tile.prop = 0;
+                                        updated_tile.health = 0;
+                                    }
+
+                                    tiles_summary.push(updated_tile.clone());
+                                    *tile = updated_tile;
+
+                                    let capacity = tx_me_gameplay_longterm.capacity();
+                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    let capacity = tx_me_gameplay_webservice.capacity();
+                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                    // sending the updated tile somewhere.
+                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                }
+                                else if previous_health > 0
+                                {
+                                    let collected_prop = updated_tile.prop;
+                                    updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
+                                    updated_tile.version += 1;
+                                    if updated_tile.health == 0
+                                    {
+                                        updated_tile.prop = 0;
+                                    }
+                                    tiles_summary.push(updated_tile.clone());
+                                    *tile = updated_tile;
+
+                                    let capacity = tx_me_gameplay_longterm.capacity();
+                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    let capacity = tx_me_gameplay_webservice.capacity();
+                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+
+                                    // sending the updated tile somewhere.
+                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+
+
+                                    if tile.health == 0
+                                    {
+                                        let player_option = player_entities.get_mut(&player_id);
+                                        if let Some(player_entity) = player_option {
+                                            println!("Add inventory item for player");
+                                            let new_item = InventoryItem {
+                                                item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                                                level: 1,
+                                                quality: 1,
+                                                amount: 1,
+                                            };
+
+
+                                            player_entity.add_inventory_item(new_item.clone());
+                                            // we should also give the player the reward
+                                            let reward = CharacterReward {
+                                                player_id: *player_id,
+                                                item_id: new_item.item_id,
+                                                level: new_item.level,
+                                                quality: new_item.quality,
+                                                amount: new_item.amount,
+                                                inventory_hash : player_entity.inventory_hash
+                                            };
+
+                                            println!("reward {:?}", reward);
+
+                                            players_rewards_summary.push(reward);
+                                            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                                            players_summary.push(player_entity.clone());
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    tiles_summary.push(updated_tile.clone());
+                                }
+                                
+                                let attack = CharacterAttack{
+                                    player_id: *player_id,
+                                    target_player_id: 0,
+                                    damage: 2,
+                                    skill_id: 0,
+                                    target_tile_id: tile_id,
+                                };
+                                player_attacks_summary.push(attack);
+                            }
                         }
                     }
                     None => println!("tile not found {}" , tile_command.0),

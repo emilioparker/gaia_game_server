@@ -165,7 +165,7 @@ impl CharacterEntity {
             }
         }
 
-        if !successfuly_removed {
+        if successfuly_removed {
             self.inventory_hash = self.calculate_inventory_hash();
         }
         successfuly_removed
