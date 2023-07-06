@@ -225,7 +225,7 @@ fn load_regions_data_into_game_map(
 }
 
 async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> Vec<u8> {
-    let file_name = format!("map_initial_data/{}_{}_props.bytes",world_id, region_id);
+    let file_name = format!("../map_initial_data/{}_{}_props.bytes",world_id, region_id);
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
     println!("reading file {}", file_name);
 
