@@ -12,6 +12,8 @@ use crate::character::character_reward::{CharacterReward, CHARACTER_REWARD_SIZE,
 use crate::character::character_presentation::{CharacterPresentation, CHARACTER_PRESENTATION_SIZE};
 use crate::map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity};
 use crate::real_time_service::client_handler::StateUpdate;
+use futures_util::lock::MutexGuard;
+use hyper::Server;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::{sync::Mutex};
 use std::collections::HashMap;
@@ -58,6 +60,11 @@ pub fn start_service(
 
     let tile_commands_agregator_from_client_lock = tile_commands_mutex.clone();
     let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
+
+    //delayed commands for attacks so they struck a bit later.
+    let delayed_tile_commands = Vec::<(u32, MapCommand)>::new();
+    let delayed_tile_commands_mutex = Arc::new(Mutex::new(delayed_tile_commands));
+    let delayed_tile_commands_lock = delayed_tile_commands_mutex.clone();
 
     let mut seq = 0;
 
@@ -161,14 +168,33 @@ pub fn start_service(
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
             let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
 
+            // check for delayed_commands
+            let mut delayed_commands_lock = delayed_tile_commands_lock.lock().await;
+
+            let mut items_to_execute = Vec::<MapCommand>::new();
+            let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+
+            delayed_commands_lock.retain(|b| {
+                let should_execute = b.0 <= current_time;
+                println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+                if should_execute
+                {
+                    items_to_execute.push(b.1.clone());
+                }
+
+                !should_execute // we keep items that we didn't execute
+            });
+
+            drop(delayed_commands_lock);
+
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
-            if player_commands_data.len() <= 0  && tile_commands_data.len() <= 0{
+            if player_commands_data.len() <= 0  && tile_commands_data.len() <= 0 && items_to_execute.len() <= 0{
                 continue;
             }
 
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
-            let mut player_entities = map.players.lock().await;
+            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
             for item in player_commands_data.iter()
             {
                 let player_command = item.1;
@@ -239,6 +265,22 @@ pub fn start_service(
                     }
                 }
                 else if player_command.action == character_command::ATTACK_ACTION { 
+
+                    // we anounce the attack
+                    let attack = CharacterAttack{
+                        player_id: cloned_data.player_id,
+                        target_player_id: cloned_data.other_player_id,
+                        damage: 2,
+                        skill_id: 0,
+                        target_tile_id: TetrahedronId::from_string("a0"), // we need a default value
+                    };
+                    player_attacks_summary.push(attack);
+
+
+                    if player_command.required_time > 1 {
+
+                    }
+
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
@@ -250,6 +292,7 @@ pub fn start_service(
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
 
+                        // solo hay que aplicar el danio 
                         if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
                             let result = other_entity.health.saturating_sub(player_attack);
                             let updated_player_entity = CharacterEntity {
@@ -261,17 +304,7 @@ pub fn start_service(
                             *other_entity = updated_player_entity;
                             tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
                             players_summary.push(other_entity.clone());
-
-                            let attack = CharacterAttack{
-                                player_id: cloned_data.player_id,
-                                target_player_id: cloned_data.other_player_id,
-                                damage: 2,
-                                skill_id: 0,
-                                target_tile_id: TetrahedronId::from_string("a0"), // we need a default value
-                            };
-                            player_attacks_summary.push(attack);
                         }
-// updating target entity, we usually substrack health I think ?
                     }
                 }
                 else if player_command.action == character_command::ATTACK_TILE_ACTION
@@ -294,7 +327,79 @@ pub fn start_service(
                 // }
             }
 
+            drop(player_entities);
 
+            for tile_command in items_to_execute.iter()
+            {
+                let region = map.get_region_from_child(&tile_command.id);
+                let mut tiles = region.lock().await;
+
+                match &tile_command.info {
+                    MapCommandInfo::Touch() => todo!(),
+                    MapCommandInfo::ChangeHealth(_, _) => todo!(),
+                    MapCommandInfo::LayFoundation(_, _, _, _, _) => todo!(),
+                    MapCommandInfo::BuildStructure(_, _) => todo!(),
+                    MapCommandInfo::AttackWalker(player_id, _required_time) => {
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                        let player_option = player_entities.get_mut(&player_id);
+                        if let Some(player_entity) = player_option {
+                            if player_entity.health > 0  
+                                // && updated_tile.faction != 0 
+                                // && updated_tile.faction != player_entity.faction 
+                            {
+                                let result = player_entity.health.saturating_sub(2);
+                                let updated_player_entity = CharacterEntity {
+                                    action: player_entity.action,
+                                    health: result,
+                                    ..player_entity.clone()
+                                };
+
+                                *player_entity = updated_player_entity.clone();
+                                drop(player_entities);
+                                tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
+                                players_summary.push(updated_player_entity.clone());
+                            }
+                        }
+                    },
+                    MapCommandInfo::SpawnMob(_) => todo!(),
+                    MapCommandInfo::MoveMob(_, _, _, _) => todo!(),
+                    MapCommandInfo::ControlMob(_, _) => todo!(),
+                    MapCommandInfo::AttackMob(player_id, damage, _required_time) => {
+
+                        if let Some(tile) = tiles.get_mut(&tile_command.id) {
+                            let (updated_tile, reward) = process_tile_attack(
+                                damage, 
+                                tile, 
+                            );
+                            
+                            *tile = updated_tile.clone();
+                            drop(tiles);
+
+                            report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
+
+                            // sending the updated tile somewhere.
+                            tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                            tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+                            tiles_summary.push(updated_tile.clone());
+
+                            if let Some(reward) = reward {
+                                let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                                let player_option = player_entities.get_mut(&player_id);
+                                if let Some(player_entity) = player_option {
+                                    update_character_entity(player_entity,reward,&mut players_rewards_summary, &mut players_summary);
+                                    let updated_player_entity = player_entity.clone();
+                                    drop(player_entities);
+                                    // we try to drop any locks before doing an await
+                                    tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
+                                }
+                            }
+                            println!("process tile attack ended");
+                        } // end of if let
+                    } // end of map command map
+                }
+            }
+
+            // drop(delayed_commands_lock);
 
             for tile_command in tile_commands_data.iter()
             {
@@ -307,17 +412,14 @@ pub fn start_service(
                         // in theory we do something cool here with the tile!!!!
                         match &tile_command.1.info {
                             MapCommandInfo::Touch() => {
-                                tiles_summary.push(updated_tile);
+                                tiles_summary.push(updated_tile.clone());
 
-                                let capacity = tx_me_gameplay_longterm.capacity();
-                                server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-
-                                let capacity = tx_me_gameplay_webservice.capacity();
-                                server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                drop(tiles);
+                                report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                 // sending the updated tile somewhere.
-                                tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(player_id, damage) => {
                                 println!("Change tile health!!!");
@@ -335,16 +437,14 @@ pub fn start_service(
                                     }
 
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else if previous_health > 0
                                 {
@@ -356,20 +456,19 @@ pub fn start_service(
                                         updated_tile.prop = 0;
                                     }
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
 
 
-                                    if tile.health == 0
+                                    if updated_tile.health == 0
                                     {
+                                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                                         let player_option = player_entities.get_mut(&player_id);
                                         if let Some(player_entity) = player_option {
                                             println!("Add inventory item for player");
@@ -382,6 +481,10 @@ pub fn start_service(
 
 
                                             player_entity.add_inventory_item(new_item.clone());
+
+                                            let updated_player_entity = player_entity.clone();
+
+                                            drop(player_entities);
                                             // we should also give the player the reward
                                             let reward = CharacterReward {
                                                 player_id: *player_id,
@@ -389,14 +492,14 @@ pub fn start_service(
                                                 level: new_item.level,
                                                 quality: new_item.quality,
                                                 amount: new_item.amount,
-                                                inventory_hash : player_entity.inventory_hash
+                                                inventory_hash : updated_player_entity.inventory_hash
                                             };
 
                                             println!("reward {:?}", reward);
 
                                             players_rewards_summary.push(reward);
-                                            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                                            players_summary.push(player_entity.clone());
+                                            tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
+                                            players_summary.push(updated_player_entity.clone());
                                         }
                                     }
                                 }
@@ -413,23 +516,25 @@ pub fn start_service(
                                     updated_tile.constitution = 0;
                                     updated_tile.prop = *prop;
 
+                                    let player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+
                                     let player_option = player_entities.get(&player_id);
                                     if let Some(player_entity) = player_option {
                                         updated_tile.faction = player_entity.faction;
                                     }
 
+                                    drop(player_entities);
+
                                     updated_tile.version += 1;
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else {
                                     tiles_summary.push(updated_tile.clone());
@@ -442,16 +547,14 @@ pub fn start_service(
                                     updated_tile.constitution = i32::min(updated_tile.health as i32, updated_tile.constitution as i32 + *increment as i32) as u32;
                                     updated_tile.version += 1;
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else {
                                     // we send the tile in case the one thinking that the structure is not built yet will receive the tile
@@ -460,44 +563,61 @@ pub fn start_service(
                                     // structure is already built!
                                 }
                             },
-                            MapCommandInfo::AttackWalker(player_id) => {
-                                let player_option = player_entities.get_mut(&player_id);
-                                if let Some(player_entity) = player_option {
+                            MapCommandInfo::AttackWalker(player_id, required_time) => {
+                                if *required_time > 0 {
+                                    let mut lock = delayed_tile_commands_lock.lock().await;
 
-                                    if player_entity.health > 0  
-                                        && updated_tile.faction != 0 
-                                        && updated_tile.faction != player_entity.faction 
-                                    {
-                                        let result = player_entity.health.saturating_sub(2);
+                                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                    let info = MapCommandInfo::AttackWalker(*player_id, *required_time);
+                                    let map_action = MapCommand { id: tile.id.clone(), info };
+                                    lock.push((current_time + *required_time as u32, map_action));
 
-                                        let updated_player_entity = CharacterEntity {
-                                            action: player_entity.action,
-                                            health: result,
-                                            ..player_entity.clone()
-                                        };
-
-                                        *player_entity = updated_player_entity;
-                                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                                        players_summary.push(player_entity.clone());
-
-                                        updated_tile.version += 1;
-
-                                        if updated_tile.owner_id == *player_id {
-                                            // the controller is fighting this mob, we give him more control
-                                            let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                                            updated_tile.ownership_time = current_time + 5; // more seconds of control
-                                            // println!("updating ownership tile {}", updated_tile.ownership_time);
-                                        }
-                                        let attack = TileAttack{
-                                            tile_id: updated_tile.id.clone(),
-                                            target_player_id: *player_id,
-                                            damage: 2,
-                                            skill_id: 0,
-                                        };
-                                        tile_attacks_summary.push(attack);
-                                    }
-
+                                    drop(lock);
                                 }
+                                else {
+                                    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                                    let player_option = player_entities.get_mut(&player_id);
+                                    if let Some(player_entity) = player_option {
+                                        if player_entity.health > 0  
+                                            // && updated_tile.faction != 0 
+                                            // && updated_tile.faction != player_entity.faction 
+                                        {
+                                            let result = player_entity.health.saturating_sub(2);
+                                            let updated_player_entity = CharacterEntity {
+                                                action: player_entity.action,
+                                                health: result,
+                                                ..player_entity.clone()
+                                            };
+
+                                            *player_entity = updated_player_entity.clone();
+                                            drop(player_entities);
+                                            tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
+                                            players_summary.push(updated_player_entity.clone());
+
+                                        }
+                                    }
+                                }
+
+
+                                // updating tile stuff inmediately.
+                                updated_tile.version += 1;
+
+                                if updated_tile.owner_id == *player_id {
+                                    // the controller is fighting this mob, we give him more control
+                                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                    updated_tile.ownership_time = current_time + 5; // more seconds of control
+                                }
+                                *tile = updated_tile.clone();
+                                drop(tiles);
+
+
+                                let attack = TileAttack{
+                                    tile_id: updated_tile.id.clone(),
+                                    target_player_id: *player_id,
+                                    damage: 2,
+                                    skill_id: 0,
+                                };
+                                tile_attacks_summary.push(attack);
                             },
                             MapCommandInfo::SpawnMob(mob_id) => {
 
@@ -512,16 +632,14 @@ pub fn start_service(
 
                                     updated_tile.version += 1;
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else {
                                     tiles_summary.push(updated_tile.clone());
@@ -546,16 +664,14 @@ pub fn start_service(
                                     // println!("updating ownership time {}" , updated_tile.ownership_time);
 
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else {
                                     tiles_summary.push(updated_tile.clone());
@@ -573,16 +689,14 @@ pub fn start_service(
                                     // println!("new time {}", updated_tile.ownership_time);
 
                                     tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                    *tile = updated_tile.clone();
+                                    drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                    report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
                                     // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                    tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                                 }
                                 else {
                                     // println!("Somethign failed {current_time} {}", updated_tile.ownership_time);
@@ -590,99 +704,59 @@ pub fn start_service(
                                 }
                             },
                             // this is very similar to change health command, but here we need to send and arrow.
-                            MapCommandInfo::AttackMob(player_id, damage) => {
-                                println!("Change mob health!!!");
-                                let previous_health = tile.health;
+                            MapCommandInfo::AttackMob(player_id, damage, required_time) => {
                                 let tile_id = tile.id.clone();
+                                println!("required time for attack {required_time}");
+                                if *required_time > 0 {
+                                    let mut lock = delayed_tile_commands_lock.lock().await;
 
-                                // this means this tile is being built
-                                if tile.health > tile.constitution 
-                                {
-                                    updated_tile.constitution = i32::max(0, updated_tile.constitution as i32 - *damage as i32) as u32;
-                                    updated_tile.version += 1;
-                                    if updated_tile.constitution == 0
-                                    {
-                                        updated_tile.prop = 0;
-                                        updated_tile.health = 0;
-                                    }
+                                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                    let info = MapCommandInfo::AttackMob(*player_id, *damage, *required_time);
+                                    let map_action = MapCommand { id: tile.id.clone(), info };
+                                    lock.push((current_time + *required_time as u32, map_action));
 
-                                    tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
-
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
-
-                                    // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                    drop(lock);
                                 }
-                                else if previous_health > 0
-                                {
-                                    let collected_prop = updated_tile.prop;
-                                    updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
-                                    updated_tile.version += 1;
-                                    if updated_tile.health == 0
+                                else {
+                                    // this code is repeated
+                                    // if let Some(tile) = tiles.get_mut(&tile_command.id)
                                     {
-                                        updated_tile.prop = 0;
-                                    }
-                                    tiles_summary.push(updated_tile.clone());
-                                    *tile = updated_tile;
+                                        let (updated_tile, reward) = process_tile_attack(
+                                            damage, 
+                                            tile, 
+                                        );
+                                        
+                                        *tile = updated_tile.clone();
+                                        drop(tiles);
 
-                                    let capacity = tx_me_gameplay_longterm.capacity();
-                                    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                                    let capacity = tx_me_gameplay_webservice.capacity();
-                                    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                                        report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
 
-                                    // sending the updated tile somewhere.
-                                    tx_me_gameplay_longterm.send(tile.clone()).await.unwrap();
-                                    tx_me_gameplay_webservice.send(tile.clone()).await.unwrap();
+                                        // sending the updated tile somewhere.
+                                        tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                                        tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+                                        tiles_summary.push(updated_tile.clone());
 
-
-                                    if tile.health == 0
-                                    {
-                                        let player_option = player_entities.get_mut(&player_id);
-                                        if let Some(player_entity) = player_option {
-                                            println!("Add inventory item for player");
-                                            let new_item = InventoryItem {
-                                                item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                                                level: 1,
-                                                quality: 1,
-                                                amount: 1,
-                                            };
-
-
-                                            player_entity.add_inventory_item(new_item.clone());
-                                            // we should also give the player the reward
-                                            let reward = CharacterReward {
-                                                player_id: *player_id,
-                                                item_id: new_item.item_id,
-                                                level: new_item.level,
-                                                quality: new_item.quality,
-                                                amount: new_item.amount,
-                                                inventory_hash : player_entity.inventory_hash
-                                            };
-
-                                            println!("reward {:?}", reward);
-
-                                            players_rewards_summary.push(reward);
-                                            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                                            players_summary.push(player_entity.clone());
+                                        if let Some(reward) = reward {
+                                            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                                            let player_option = player_entities.get_mut(&player_id);
+                                            if let Some(player_entity) = player_option {
+                                                update_character_entity(player_entity,reward,&mut players_rewards_summary, &mut players_summary);
+                                                let updated_player_entity = player_entity.clone();
+                                                drop(player_entities);
+                                                // we try to drop any locks before doing an await
+                                                tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
+                                            }
                                         }
-                                    }
+                                        // println!("process tile attack ended");
+                                    } // end of if let
                                 }
-                                else
-                                {
-                                    tiles_summary.push(updated_tile.clone());
-                                }
-                                
+
                                 let attack = CharacterAttack{
                                     player_id: *player_id,
                                     target_player_id: 0,
                                     damage: 2,
                                     skill_id: 0,
-                                    target_tile_id: tile_id,
+                                    target_tile_id: tile_id.clone(),
                                 };
                                 player_attacks_summary.push(attack);
                             }
@@ -749,11 +823,92 @@ pub fn start_service(
     (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, tx_mc_webservice_gameplay)
 }
 
+pub fn update_character_entity(
+    player_entity : &mut CharacterEntity, 
+    reward : InventoryItem,
+    players_rewards_summary : &mut Vec<CharacterReward>,
+    players_summary : &mut Vec<CharacterEntity>)
+{
+        player_entity.add_inventory_item(reward.clone());
+        // we should also give the player the reward
+        let reward = CharacterReward {
+            player_id: player_entity.character_id,
+            item_id: reward.item_id,
+            level: reward.level,
+            quality: reward.quality,
+            amount: reward.amount,
+            inventory_hash : player_entity.inventory_hash
+        };
+
+        println!("reward {:?}", reward);
+
+        players_rewards_summary.push(reward);
+        players_summary.push(player_entity.clone());
+}
+
+pub fn report_capacity(
+    tx_me_gameplay_longterm : &Sender<MapEntity>,
+    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    server_state : Arc<ServerState>
+){
+    let capacity = tx_me_gameplay_longterm.capacity();
+    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+    let capacity = tx_me_gameplay_webservice.capacity();
+    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn process_tile_attack(
+    damage: &u16, 
+    tile : &mut MapEntity, 
+) -> (MapEntity, Option<InventoryItem>)
+{
+    // let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut updated_tile : MapEntity = tile.clone();
+    let mut reward : Option<InventoryItem> = None;
+    println!("Change mob health!!!");
+    let previous_health = tile.health;
+
+    // this means this tile is being built
+    if tile.health > tile.constitution 
+    {
+        updated_tile.constitution = i32::max(0, updated_tile.constitution as i32 - *damage as i32) as u32;
+        updated_tile.version += 1;
+        if updated_tile.constitution == 0
+        {
+            updated_tile.prop = 0;
+            updated_tile.health = 0;
+        }
+    }
+    else if previous_health > 0
+    {
+        let collected_prop = updated_tile.prop;
+        updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
+        updated_tile.version += 1;
+        if updated_tile.health == 0
+        {
+            updated_tile.prop = 0;
+        }
+
+        if tile.health == 0
+        {
+            println!("Add inventory item for player");
+
+            reward = Some(InventoryItem {
+                item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                level: 1,
+                quality: 1,
+                amount: 1,
+            });
+        }
+    }
+    (updated_tile, reward)
+}
+
 pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
     *packet_number += 1u64;
     // println!("{packet_number} -A");
 
-    let mut buffer = [0u8; 5000];
+let mut buffer = [0u8; 5000];
     let mut start: usize = 1;
     buffer[0] = crate::protocols::Protocol::GlobalState as u8;
 

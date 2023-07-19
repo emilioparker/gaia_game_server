@@ -69,11 +69,11 @@ pub enum MapCommandInfo {
     ChangeHealth(u16,u16),
     LayFoundation(u16,u32, f32, f32, f32),
     BuildStructure(u16,u32),
-    AttackWalker(u16),
+    AttackWalker(u16, u16),
     SpawnMob(u32),
     MoveMob(u16,u32, TetrahedronId, f32),
     ControlMob(u16, u32),
-    AttackMob(u16,u16),
+    AttackMob(u16,u16,u16),
 }
 
 #[derive(Debug, Clone)]

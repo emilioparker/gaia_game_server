@@ -14,13 +14,14 @@ pub struct CharacterCommand {
     pub second_position: [f32;3],
     pub other_player_id:u16,
     pub action:u32,
+    pub required_time:u16,
     pub skill_id:u32, // if a attack action happens, we need to map that to a skill and calculate the damage.
 }
 
 impl CharacterCommand {
     // used by the test_client ignores the protocol byte.
-    pub fn to_bytes(&self) -> [u8;32] {
-        let mut buffer = [0u8; 32];
+    pub fn to_bytes(&self) -> [u8;34] {
+        let mut buffer = [0u8; 34];
 
         let mut start : usize = 0;
         let mut end : usize = 2;
@@ -95,6 +96,11 @@ impl CharacterCommand {
 
         end = start + 4;
         let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
+
+        end = start + 2;
+        let required_time = u16::from_le_bytes(data[start..end].try_into().unwrap());
+        start = end;
 
         let client_action = CharacterCommand {
             player_id,
@@ -102,6 +108,7 @@ impl CharacterCommand {
             second_position: direction,
             other_player_id,
             action,
+            required_time,
             skill_id: 0,
         };
 
