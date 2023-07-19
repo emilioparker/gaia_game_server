@@ -66,6 +66,11 @@ pub fn start_service(
     let delayed_tile_commands_mutex = Arc::new(Mutex::new(delayed_tile_commands));
     let delayed_tile_commands_lock = delayed_tile_commands_mutex.clone();
 
+    //delayed commands for attacks so they struck a bit later.
+    let delayed_player_commands = Vec::<(u32, u16)>::new();
+    let delayed_player_commands_mutex = Arc::new(Mutex::new(delayed_player_commands));
+    let delayed_player_commands_lock = delayed_player_commands_mutex.clone();
+
     let mut seq = 0;
 
     let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
@@ -187,6 +192,25 @@ pub fn start_service(
 
             drop(delayed_commands_lock);
 
+            // check for delayed_commands from player
+            let mut delayed_commands_lock = delayed_player_commands_lock.lock().await;
+
+            let mut player_commands_to_execute = Vec::<u16>::new();
+            let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+
+            delayed_commands_lock.retain(|b| {
+                let should_execute = b.0 <= current_time;
+                println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
+                if should_execute
+                {
+                    player_commands_to_execute.push(b.1);
+                }
+
+                !should_execute // we keep items that we didn't execute
+            });
+
+            drop(delayed_commands_lock);
+
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
             if player_commands_data.len() <= 0  && tile_commands_data.len() <= 0 && items_to_execute.len() <= 0{
@@ -276,25 +300,30 @@ pub fn start_service(
                     };
                     player_attacks_summary.push(attack);
 
-
-                    if player_command.required_time > 1 {
-
-                    }
-
+                    let mut player_attack : Option<u16> = None;
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             ..player_entity.clone()
                         };
-                        let player_attack = updated_player_entity.attack;
+                        player_attack = Some(updated_player_entity.attack);
                         *player_entity = updated_player_entity;
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
+                    }
 
+                    if player_command.required_time > 1 {
+                        let mut lock = delayed_player_commands_lock.lock().await;
+                        let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                        lock.push((current_time + player_command.required_time as u32, player_command.other_player_id));
+                        drop(lock);
+                    }
+                    else if let Some(attack) = player_attack {
                         // solo hay que aplicar el danio 
-                        if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id){
-                            let result = other_entity.health.saturating_sub(player_attack);
+                        if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id)
+                        {
+                            let result = other_entity.health.saturating_sub(attack);
                             let updated_player_entity = CharacterEntity {
                                 action: other_entity.action,
                                 health: result,
@@ -325,6 +354,23 @@ pub fn start_service(
                 // else {
                 //     println!("got an unknown player command {}", player_command.action)
                 // }
+            }
+            
+            for player_command in player_commands_to_execute.iter()
+            {
+                if let Some(other_entity) = player_entities.get_mut(player_command)
+                {
+                    let result = other_entity.health.saturating_sub(11);
+                    let updated_player_entity = CharacterEntity {
+                        action: other_entity.action,
+                        health: result,
+                        ..other_entity.clone()
+                    };
+
+                    *other_entity = updated_player_entity;
+                    tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
+                    players_summary.push(other_entity.clone());
+                }
             }
 
             drop(player_entities);
