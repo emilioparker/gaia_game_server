@@ -360,6 +360,7 @@ pub fn start_service(
             {
                 if let Some(other_entity) = player_entities.get_mut(player_command)
                 {
+                    println!("this should count as an attack!!! what is going on??");
                     let result = other_entity.health.saturating_sub(11);
                     let updated_player_entity = CharacterEntity {
                         action: other_entity.action,
@@ -370,6 +371,7 @@ pub fn start_service(
                     *other_entity = updated_player_entity;
                     tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
                     players_summary.push(other_entity.clone());
+                    println!("did everything to make this attack valid");
                 }
             }
 
