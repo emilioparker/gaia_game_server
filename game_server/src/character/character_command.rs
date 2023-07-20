@@ -14,7 +14,7 @@ pub struct CharacterCommand {
     pub second_position: [f32;3],
     pub other_player_id:u16,
     pub action:u32,
-    pub required_time:u16,
+    pub required_time:u32,
     pub skill_id:u32, // if a attack action happens, we need to map that to a skill and calculate the damage.
 }
 
@@ -98,8 +98,8 @@ impl CharacterCommand {
         let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        end = start + 2;
-        let required_time = u16::from_le_bytes(data[start..end].try_into().unwrap());
+        end = start + 4;
+        let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         let client_action = CharacterCommand {

@@ -18,10 +18,10 @@ pub async fn process_ping(
     let end = start + 2;
     let id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
-    let mut buffer = [0u8; 7];
+    let mut buffer = [0u8; 11];
 
     let time = &map.time.load(std::sync::atomic::Ordering::Relaxed);
-    let time_bytes = u32::to_le_bytes(*time);
+    let time_bytes = u64::to_le_bytes(*time);
 
     let id_bytes = u16::to_le_bytes(id);
 
@@ -34,7 +34,7 @@ pub async fn process_ping(
     buffer[start..end].copy_from_slice(&id_bytes);
     start = end;
 
-    end = start + 4;
+    end = start + 8;
     buffer[start..end].copy_from_slice(&time_bytes);
     start = end;
 

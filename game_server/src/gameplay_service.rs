@@ -62,12 +62,12 @@ pub fn start_service(
     let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
-    let delayed_tile_commands = Vec::<(u32, MapCommand)>::new();
+    let delayed_tile_commands = Vec::<(u64, MapCommand)>::new();
     let delayed_tile_commands_mutex = Arc::new(Mutex::new(delayed_tile_commands));
     let delayed_tile_commands_lock = delayed_tile_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
-    let delayed_player_commands = Vec::<(u32, u16)>::new();
+    let delayed_player_commands = Vec::<(u64, u16)>::new();
     let delayed_player_commands_mutex = Arc::new(Mutex::new(delayed_player_commands));
     let delayed_player_commands_lock = delayed_player_commands_mutex.clone();
 
@@ -158,7 +158,7 @@ pub fn start_service(
             interval.tick().await;
 
             let result = std::time::SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            let current_time = result.ok().map(|d| d.as_secs() as u32);
+            let current_time = result.ok().map(|d| d.as_millis() as u64);
 
             let time = &map.time;
             if let Some(new_time) = current_time {
@@ -181,7 +181,7 @@ pub fn start_service(
 
             delayed_commands_lock.retain(|b| {
                 let should_execute = b.0 <= current_time;
-                println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+                // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
                 if should_execute
                 {
                     items_to_execute.push(b.1.clone());
@@ -200,7 +200,7 @@ pub fn start_service(
 
             delayed_commands_lock.retain(|b| {
                 let should_execute = b.0 <= current_time;
-                println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
+                // println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
                 if should_execute
                 {
                     player_commands_to_execute.push(b.1);
@@ -316,7 +316,7 @@ pub fn start_service(
                     if player_command.required_time > 1 {
                         let mut lock = delayed_player_commands_lock.lock().await;
                         let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                        lock.push((current_time + player_command.required_time as u32, player_command.other_player_id));
+                        lock.push((current_time + player_command.required_time as u64, player_command.other_player_id));
                         drop(lock);
                     }
                     else if let Some(attack) = player_attack {
@@ -360,7 +360,6 @@ pub fn start_service(
             {
                 if let Some(other_entity) = player_entities.get_mut(player_command)
                 {
-                    println!("this should count as an attack!!! what is going on??");
                     let result = other_entity.health.saturating_sub(11);
                     let updated_player_entity = CharacterEntity {
                         action: other_entity.action,
@@ -371,7 +370,6 @@ pub fn start_service(
                     *other_entity = updated_player_entity;
                     tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
                     players_summary.push(other_entity.clone());
-                    println!("did everything to make this attack valid");
                 }
             }
 
@@ -412,8 +410,7 @@ pub fn start_service(
                     MapCommandInfo::SpawnMob(_) => todo!(),
                     MapCommandInfo::MoveMob(_, _, _, _) => todo!(),
                     MapCommandInfo::ControlMob(_, _) => todo!(),
-                    MapCommandInfo::AttackMob(player_id, damage, _required_time) => {
-
+                    MapCommandInfo::AttackMob(player_id, damage, required_time) => {
                         if let Some(tile) = tiles.get_mut(&tile_command.id) {
                             let (updated_tile, reward) = process_tile_attack(
                                 damage, 
@@ -441,7 +438,6 @@ pub fn start_service(
                                     tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
                                 }
                             }
-                            println!("process tile attack ended");
                         } // end of if let
                     } // end of map command map
                 }
@@ -618,7 +614,7 @@ pub fn start_service(
                                     let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
                                     let info = MapCommandInfo::AttackWalker(*player_id, *required_time);
                                     let map_action = MapCommand { id: tile.id.clone(), info };
-                                    lock.push((current_time + *required_time as u32, map_action));
+                                    lock.push((current_time + *required_time as u64, map_action));
 
                                     drop(lock);
                                 }
@@ -653,7 +649,7 @@ pub fn start_service(
                                 if updated_tile.owner_id == *player_id {
                                     // the controller is fighting this mob, we give him more control
                                     let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                                    updated_tile.ownership_time = current_time + 5; // more seconds of control
+                                    updated_tile.ownership_time = (current_time / 1000) as u32 + 5; // more seconds of control
                                 }
                                 *tile = updated_tile.clone();
                                 drop(tiles);
@@ -695,7 +691,8 @@ pub fn start_service(
                             },
                             MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance) => {
 
-                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+                                let current_time = current_time as u32;
                                 // we also need to be sure this player has control over the tile
                                 if updated_tile.prop == *mob_id // we are mostly sure you know this is a mob and wants to move 
                                     && &updated_tile.target_id != new_tile_id
@@ -704,7 +701,7 @@ pub fn start_service(
                                 {
                                     updated_tile.version += 1;
                                     let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
-                                    updated_tile.time = current_time + required_time;
+                                    updated_tile.time = (current_time / 1000) + required_time;
                                     updated_tile.origin_id = tile.target_id.clone();
                                     updated_tile.target_id = new_tile_id.clone();
 
@@ -726,7 +723,8 @@ pub fn start_service(
                                 }
                             },
                             MapCommandInfo::ControlMob(player_id, mob_id) => {
-                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed) / 1000;
+                                let current_time = current_time as u32;
                                 if updated_tile.prop == *mob_id // we are mostly sure you know this is a mob and wants to move 
                                     && updated_tile.ownership_time < current_time // owner timeout
                                 {
@@ -754,14 +752,14 @@ pub fn start_service(
                             // this is very similar to change health command, but here we need to send and arrow.
                             MapCommandInfo::AttackMob(player_id, damage, required_time) => {
                                 let tile_id = tile.id.clone();
-                                println!("required time for attack {required_time}");
+                                // println!("required time for attack {required_time}");
                                 if *required_time > 0 {
                                     let mut lock = delayed_tile_commands_lock.lock().await;
 
                                     let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
                                     let info = MapCommandInfo::AttackMob(*player_id, *damage, *required_time);
                                     let map_action = MapCommand { id: tile.id.clone(), info };
-                                    lock.push((current_time + *required_time as u32, map_action));
+                                    lock.push((current_time + *required_time as u64, map_action));
 
                                     drop(lock);
                                 }
@@ -814,7 +812,6 @@ pub fn start_service(
                 }
             }
             // println!("tiles summary {} ", tiles_summary.len());
-
             tile_commands_data.clear();
             player_commands_data.clear();
 

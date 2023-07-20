@@ -26,8 +26,8 @@ pub async fn process(
         let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        end = start + 2;
-        let required_time = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        end = start + 4;
+        let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
         let map_action = MapCommand{
