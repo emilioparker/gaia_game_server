@@ -198,6 +198,8 @@ pub fn start_service(
             let mut player_commands_to_execute = Vec::<u16>::new();
             let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
 
+            // println!("checking delayed plaeyr commands {}" , delayed_commands_lock.len());
+
             delayed_commands_lock.retain(|b| {
                 let should_execute = b.0 <= current_time;
                 // println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
@@ -213,7 +215,11 @@ pub fn start_service(
 
             let mut player_commands_data = player_commands_processor_lock.lock().await;
             let mut tile_commands_data = tile_commands_processor_lock.lock().await;
-            if player_commands_data.len() <= 0  && tile_commands_data.len() <= 0 && items_to_execute.len() <= 0{
+            if player_commands_data.len() <= 0  
+                && tile_commands_data.len() <= 0 
+                && items_to_execute.len() <= 0 
+                && player_commands_to_execute.len() <=0
+            {
                 continue;
             }
 
@@ -313,28 +319,29 @@ pub fn start_service(
                         players_summary.push(player_entity.clone());
                     }
 
-                    if player_command.required_time > 1 {
-                        let mut lock = delayed_player_commands_lock.lock().await;
-                        let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                        lock.push((current_time + player_command.required_time as u64, player_command.other_player_id));
-                        drop(lock);
-                    }
-                    else if let Some(attack) = player_attack {
-                        // solo hay que aplicar el danio 
-                        if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id)
-                        {
-                            let result = other_entity.health.saturating_sub(attack);
-                            let updated_player_entity = CharacterEntity {
-                                action: other_entity.action,
-                                health: result,
-                                ..other_entity.clone()
-                            };
+                    // if player_command.required_time > 1 {
+                    let mut lock = delayed_player_commands_lock.lock().await;
+                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                    println!("push attack in required time {}", player_command.required_time);
+                    lock.push((current_time + player_command.required_time as u64, player_command.other_player_id));
+                    drop(lock);
+                    // }
+                    // else if let Some(attack) = player_attack {
+                    //     // solo hay que aplicar el danio 
+                    //     if let Some(other_entity) = player_entities.get_mut(&cloned_data.other_player_id)
+                    //     {
+                    //         let result = other_entity.health.saturating_sub(attack);
+                    //         let updated_player_entity = CharacterEntity {
+                    //             action: other_entity.action,
+                    //             health: result,
+                    //             ..other_entity.clone()
+                    //         };
 
-                            *other_entity = updated_player_entity;
-                            tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
-                            players_summary.push(other_entity.clone());
-                        }
-                    }
+                    //         *other_entity = updated_player_entity;
+                    //         tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
+                    //         players_summary.push(other_entity.clone());
+                    //     }
+                    // }
                 }
                 else if player_command.action == character_command::ATTACK_TILE_ACTION
                 || player_command.action == character_command::BUILD_ACTION { // respawn, we only update health for the moment
@@ -355,7 +362,8 @@ pub fn start_service(
                 //     println!("got an unknown player command {}", player_command.action)
                 // }
             }
-            
+
+            // println!("delayed player commands to execute {}" , player_commands_to_execute.len()); 
             for player_command in player_commands_to_execute.iter()
             {
                 if let Some(other_entity) = player_entities.get_mut(player_command)
@@ -753,49 +761,14 @@ pub fn start_service(
                             MapCommandInfo::AttackMob(player_id, damage, required_time) => {
                                 let tile_id = tile.id.clone();
                                 // println!("required time for attack {required_time}");
-                                if *required_time > 0 {
-                                    let mut lock = delayed_tile_commands_lock.lock().await;
 
-                                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                                    let info = MapCommandInfo::AttackMob(*player_id, *damage, *required_time);
-                                    let map_action = MapCommand { id: tile.id.clone(), info };
-                                    lock.push((current_time + *required_time as u64, map_action));
+                                let mut lock = delayed_tile_commands_lock.lock().await;
+                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                let info = MapCommandInfo::AttackMob(*player_id, *damage, *required_time);
+                                let map_action = MapCommand { id: tile.id.clone(), info };
+                                lock.push((current_time + *required_time as u64, map_action));
 
-                                    drop(lock);
-                                }
-                                else {
-                                    // this code is repeated
-                                    // if let Some(tile) = tiles.get_mut(&tile_command.id)
-                                    {
-                                        let (updated_tile, reward) = process_tile_attack(
-                                            damage, 
-                                            tile, 
-                                        );
-                                        
-                                        *tile = updated_tile.clone();
-                                        drop(tiles);
-
-                                        report_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
-
-                                        // sending the updated tile somewhere.
-                                        tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
-                                        tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
-                                        tiles_summary.push(updated_tile.clone());
-
-                                        if let Some(reward) = reward {
-                                            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-                                            let player_option = player_entities.get_mut(&player_id);
-                                            if let Some(player_entity) = player_option {
-                                                update_character_entity(player_entity,reward,&mut players_rewards_summary, &mut players_summary);
-                                                let updated_player_entity = player_entity.clone();
-                                                drop(player_entities);
-                                                // we try to drop any locks before doing an await
-                                                tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
-                                            }
-                                        }
-                                        // println!("process tile attack ended");
-                                    } // end of if let
-                                }
+                                drop(lock);
 
                                 let attack = CharacterAttack{
                                     player_id: *player_id,
