@@ -322,7 +322,7 @@ pub fn start_service(
                     // if player_command.required_time > 1 {
                     let mut lock = delayed_player_commands_lock.lock().await;
                     let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                    println!("push attack in required time {}", player_command.required_time);
+                    // println!("push attack in required time {}", player_command.required_time);
                     lock.push((current_time + player_command.required_time as u64, player_command.other_player_id));
                     drop(lock);
                     // }
@@ -416,7 +416,7 @@ pub fn start_service(
                         }
                     },
                     MapCommandInfo::SpawnMob(_) => todo!(),
-                    MapCommandInfo::MoveMob(_, _, _, _) => todo!(),
+                    MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
                     MapCommandInfo::ControlMob(_, _) => todo!(),
                     MapCommandInfo::AttackMob(player_id, damage, required_time) => {
                         if let Some(tile) = tiles.get_mut(&tile_command.id) {
@@ -697,7 +697,7 @@ pub fn start_service(
                                     tiles_summary.push(updated_tile.clone());
                                 }
                             },
-                            MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance) => {
+                            MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance, required_time) => {
 
                                 let current_time = time.load(std::sync::atomic::Ordering::Relaxed) / 1000;
                                 let current_time = current_time as u32;
@@ -708,7 +708,9 @@ pub fn start_service(
                                     && updated_tile.owner_id == *player_id
                                 {
                                     updated_tile.version += 1;
-                                    let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
+                                    // let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
+                                    let required_time = required_time.round() as u32;
+                                    // println!("required time {} " , required_time);
                                     updated_tile.time = (current_time / 1000) + required_time;
                                     updated_tile.origin_id = tile.target_id.clone();
                                     updated_tile.target_id = new_tile_id.clone();

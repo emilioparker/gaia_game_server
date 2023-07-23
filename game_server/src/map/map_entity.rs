@@ -71,7 +71,7 @@ pub enum MapCommandInfo {
     BuildStructure(u16,u32),
     AttackWalker(u16, u32),
     SpawnMob(u32),
-    MoveMob(u16,u32, TetrahedronId, f32),
+    MoveMob(u16,u32, TetrahedronId, f32, f32),
     ControlMob(u16, u32),
     AttackMob(u16,u16,u32),
 }
