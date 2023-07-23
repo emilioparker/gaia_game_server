@@ -16,6 +16,14 @@ pub async fn process_ping(
 {
     let mut start = 1;
     let end = start + 2;
+    let _player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+
+    let start = end;
+    let end = start + 8;
+    let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+
+    let start = end;
+    let end = start + 2;
     let id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
     let mut buffer = [0u8; 11];

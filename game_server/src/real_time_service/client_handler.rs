@@ -34,7 +34,7 @@ pub async fn spawn_client_process(
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    channel_tx : mpsc::Sender<std::net::SocketAddr>,
+    channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<CharacterCommand>,
     initial_data : [u8; 508])
@@ -93,7 +93,7 @@ pub async fn spawn_client_process(
         }
 
         // if we are here, this task expired and we need to remove the key from the hashset
-        channel_tx.send(from_address).await.unwrap();
+        channel_tx.send((from_address, session_id)).await.unwrap();
 
     });
     // borrowed_socket

@@ -61,7 +61,7 @@ pub fn start_server(
     tokio::spawn(async move {
 
         //use to communicate that the client disconnected
-        let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<std::net::SocketAddr>(100);
+        let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<(std::net::SocketAddr, u64)>(100);
 
         let mut buf_udp = [0u8; 508];
         loop {
@@ -96,6 +96,7 @@ pub fn start_server(
                             // };
 
                             let key_value = map.logged_in_players.get_key_value(&player_id);
+                            println!("key value for player id {} is {:?}", player_id, key_value);
 
                             let session_id = match key_value {
                                 Some((_stored_player_id, stored_session_id)) => 
@@ -137,13 +138,22 @@ pub fn start_server(
                         }
                     }
                 }
-                Some(res) = rx_addr_client_realtime.recv() => {
+                Some((socket, active_session_id)) = rx_addr_client_realtime.recv() => {
                     println!("removing entry from hash set");
                     let mut clients_data = server_lock.lock().await;
-                    let removed_value = clients_data.remove(&res);
-                    if let Some(session_id) = removed_value.map(|id| map.logged_in_players.get(&id)).flatten()
+                    let character_id = clients_data.get(&socket);
+                    if let Some(session_id) = character_id.map(|id| map.logged_in_players.get(&id)).flatten()
                     {
-                        session_id.store(0, std::sync::atomic::Ordering::Relaxed);
+                        let current_session_id = session_id.load(std::sync::atomic::Ordering::Relaxed);
+                        if current_session_id == active_session_id
+                        {
+                            session_id.store(0, std::sync::atomic::Ordering::Relaxed);
+                            let _removed_player_id = clients_data.remove(&socket);
+                        }
+                        else
+                        {
+                            println!("probably a reconnection {:?}", character_id);
+                        }
                     }
                 }
             }
