@@ -418,7 +418,7 @@ pub fn start_service(
                     MapCommandInfo::SpawnMob(_) => todo!(),
                     MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
                     MapCommandInfo::ControlMob(_, _) => todo!(),
-                    MapCommandInfo::AttackMob(player_id, damage, required_time) => {
+                    MapCommandInfo::AttackMob(player_id, damage, _required_time) => {
                         if let Some(tile) = tiles.get_mut(&tile_command.id) {
                             let (updated_tile, reward) = process_tile_attack(
                                 damage, 
@@ -436,6 +436,7 @@ pub fn start_service(
                             tiles_summary.push(updated_tile.clone());
 
                             if let Some(reward) = reward {
+                                println!("We got some reward {:?}", reward);
                                 let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                                 let player_option = player_entities.get_mut(&player_id);
                                 if let Some(player_entity) = player_option {
@@ -530,7 +531,6 @@ pub fn start_service(
                                                 quality: 1,
                                                 amount: 1,
                                             };
-
 
                                             player_entity.add_inventory_item(new_item.clone());
 
@@ -697,7 +697,7 @@ pub fn start_service(
                                     tiles_summary.push(updated_tile.clone());
                                 }
                             },
-                            MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance, required_time) => {
+                            MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, _distance, required_time) => {
 
                                 let current_time = time.load(std::sync::atomic::Ordering::Relaxed) / 1000;
                                 let current_time = current_time as u32;
@@ -879,14 +879,14 @@ pub fn report_capacity(
 
 pub fn process_tile_attack(
     damage: &u16, 
-    tile : &mut MapEntity, 
+    tile : &MapEntity, 
 ) -> (MapEntity, Option<InventoryItem>)
 {
     // let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
     let mut updated_tile : MapEntity = tile.clone();
     let mut reward : Option<InventoryItem> = None;
-    println!("Change mob health!!!");
     let previous_health = tile.health;
+    println!("Change mob health!!! {}" ,previous_health);
 
     // this means this tile is being built
     if tile.health > tile.constitution 
@@ -904,12 +904,13 @@ pub fn process_tile_attack(
         let collected_prop = updated_tile.prop;
         updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
         updated_tile.version += 1;
+        println!("new health {}", updated_tile.health);
         if updated_tile.health == 0
         {
             updated_tile.prop = 0;
         }
 
-        if tile.health == 0
+        if updated_tile.health == 0
         {
             println!("Add inventory item for player");
 
