@@ -95,9 +95,10 @@ pub fn start_server(
                                 let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
                                 if packet_id != 0 
                                 {
-                                    if let Some((old_id, old_data)) = previous_packages.iter().find(|(id, data)| packet_id == *id)
+                                    if let Some((old_id, old_data)) = previous_packages.iter().find(|(id, _data)| packet_id == *id)
                                     {
                                         // sending missing data if found
+                                        println!("sending missing packet with id {packet_id}");
                                         let result = send_udp_socket.try_send_to(old_data, client.0.clone());
                                         match result {
                                             Ok(_) => {
