@@ -116,7 +116,7 @@ pub fn start_server(
                 for packet in packet_list.into_iter()
                 {
                     previous_packages.push_front(packet);
-                    if previous_packages.len() > 20
+                    if previous_packages.len() > 100
                     {
                         let _pop_result = previous_packages.pop_back();
                     }
