@@ -309,7 +309,6 @@ pub fn start_service(
                     };
                     player_attacks_summary.push(attack);
 
-                    let mut player_attack : Option<u16> = None;
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
@@ -317,7 +316,6 @@ pub fn start_service(
                             version: player_entity.version + 1,
                             ..player_entity.clone()
                         };
-                        player_attack = Some(updated_player_entity.attack);
                         *player_entity = updated_player_entity;
                         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                         players_summary.push(player_entity.clone());
@@ -400,6 +398,7 @@ pub fn start_service(
                     MapCommandInfo::LayFoundation(_, _, _, _, _) => todo!(),
                     MapCommandInfo::BuildStructure(_, _) => todo!(),
                     MapCommandInfo::AttackWalker(player_id, _required_time) => {
+                        drop(tiles);
                         let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                         let player_option = player_entities.get_mut(&player_id);
                         if let Some(player_entity) = player_option {
@@ -625,43 +624,8 @@ pub fn start_service(
                                 }
                             },
                             MapCommandInfo::AttackWalker(player_id, required_time) => {
-                                if *required_time > 0 {
-                                    let mut lock = delayed_tile_commands_lock.lock().await;
 
-                                    let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                                    let info = MapCommandInfo::AttackWalker(*player_id, *required_time);
-                                    let map_action = MapCommand { id: tile.id.clone(), info };
-                                    lock.push((current_time + *required_time as u64, map_action));
-
-                                    drop(lock);
-                                }
-                                else {
-                                    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-                                    let player_option = player_entities.get_mut(&player_id);
-                                    if let Some(player_entity) = player_option {
-                                        if player_entity.health > 0  
-                                            // && updated_tile.faction != 0 
-                                            // && updated_tile.faction != player_entity.faction 
-                                        {
-                                            let result = player_entity.health.saturating_sub(2);
-                                            let updated_player_entity = CharacterEntity {
-                                                action: player_entity.action,
-                                                health: result,
-                                                version : player_entity.version + 1,
-                                                ..player_entity.clone()
-                                            };
-
-                                            *player_entity = updated_player_entity.clone();
-                                            drop(player_entities);
-                                            tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
-                                            players_summary.push(updated_player_entity.clone());
-
-                                        }
-                                    }
-                                }
-
-
-                                // updating tile stuff inmediately.
+                                // updating tile stuff inmediately and releasing lock before another await.
                                 updated_tile.version += 1;
 
                                 if updated_tile.owner_id == *player_id {
@@ -670,8 +634,8 @@ pub fn start_service(
                                     updated_tile.ownership_time = (current_time / 1000) as u32 + 5; // more seconds of control
                                 }
                                 *tile = updated_tile.clone();
+                                let tile_id = tile.id.clone();
                                 drop(tiles);
-
 
                                 let attack = TileAttack{
                                     tile_id: updated_tile.id.clone(),
@@ -680,6 +644,17 @@ pub fn start_service(
                                     skill_id: 0,
                                 };
                                 tile_attacks_summary.push(attack);
+
+                                // now we push the delayed message.
+
+                                let mut lock = delayed_tile_commands_lock.lock().await;
+                                let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+                                let info = MapCommandInfo::AttackWalker(*player_id, *required_time);
+
+                                let map_action = MapCommand { id: tile_id, info };
+                                lock.push((current_time + *required_time as u64, map_action));
+                                drop(lock);
+
                             },
                             MapCommandInfo::SpawnMob(mob_id) => {
 
