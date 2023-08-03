@@ -355,6 +355,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
     let stored_character = StoredCharacter{
         id: None,
         player_id,
+        version:1,
         world_id: context.working_game_map.world_id.clone(),
         world_name: context.working_game_map.world_name.clone(),
         character_id: new_id,
@@ -382,6 +383,7 @@ async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->
         player_id,
         character_name : data.character_name.clone(),
         character_id: new_id,
+        version:1,
         faction: CharacterEntity::get_faction_code(&data.faction),
         action: 0,
         position: [0.0, 0.0, 0.0],

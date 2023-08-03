@@ -2,7 +2,7 @@ use std::{hash::Hash, collections::HashMap};
 
 use bson::oid::ObjectId;
 
-pub const CHARACTER_ENTITY_SIZE: usize = 45;
+pub const CHARACTER_ENTITY_SIZE: usize = 47;
 pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -10,6 +10,7 @@ pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 pub struct CharacterEntity {
     pub object_id: Option<ObjectId>,
     pub player_id: Option<ObjectId>,
+    pub version: u16, // 2 bytes
     pub character_name: String,
     pub character_id: u16,
     pub faction:u8,
@@ -66,6 +67,11 @@ impl CharacterEntity {
         end = offset + 2;
         let player_id_bytes = u16::to_le_bytes(self.character_id); // 2 bytes
         buffer[..end].copy_from_slice(&player_id_bytes);
+        offset = end;
+
+        end = offset + 2;
+        let version_bytes = u16::to_le_bytes(self.version); // 2 bytes
+        buffer[offset..end].copy_from_slice(&version_bytes);
         offset = end;
 
         end = offset + 1;
@@ -260,6 +266,7 @@ mod tests {
         let mut entity = CharacterEntity{
             object_id: None,
             player_id: None,
+            version:1,
             character_name: "a".to_owned(),
             character_id: 1234,
             faction:0,

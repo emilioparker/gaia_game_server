@@ -68,8 +68,8 @@ pub fn start_server(
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
-                    for (packet_id, data) in packet_list.iter(){
-                        println!("sending packet with id {packet_id}");
+                    for (_packet_id, data) in packet_list.iter(){
+                        // println!("sending packet with id {packet_id}");
                         if client.1 == &0u16 {
                             // let first_byte = packet[0]; // this is the protocol
                             // the packet is compress, I can't read the sequence number

@@ -14,7 +14,7 @@ pub fn process_request(
     let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
-    println!("set missing packages for character {player_id}");
+    // println!("set missing packages for character {player_id}");
     if let Some(group) = missing_packages.get(&player_id)
     {
         for index in 0..10 
@@ -22,7 +22,7 @@ pub fn process_request(
             end = start + 8;
             let missing_packet = u64::from_le_bytes(data[start..end].try_into().unwrap());
             start = end;
-            println!("set missing {index} packet {missing_packet}");
+            // println!("set missing {index} packet {missing_packet}");
             group[index].store(missing_packet, std::sync::atomic::Ordering::Relaxed);
         }
     }

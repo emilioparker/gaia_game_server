@@ -11,6 +11,7 @@ pub struct StoredCharacter {
     pub world_id: Option<ObjectId>,
     pub world_name: String,
     pub player_id: Option<ObjectId>,
+    pub version: u16, // 2 bytes
     pub character_id: u16,
     pub faction: String,
     pub character_name: String,

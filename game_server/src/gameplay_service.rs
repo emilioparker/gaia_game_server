@@ -239,6 +239,7 @@ pub fn start_service(
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
+                            version: player_entity.version + 1,
                             position: player_command.position,
                             second_position: player_command.second_position,
                             ..player_entity.clone()
@@ -271,6 +272,7 @@ pub fn start_service(
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
                             health: player_entity.constitution,
+                            version: player_entity.version + 1,
                             ..player_entity.clone()
                         };
 
@@ -284,6 +286,7 @@ pub fn start_service(
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
+                            version: player_entity.version + 1,
                             position: player_command.position,
                             second_position: player_command.second_position,
                             ..player_entity.clone()
@@ -311,6 +314,7 @@ pub fn start_service(
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
+                            version: player_entity.version + 1,
                             ..player_entity.clone()
                         };
                         player_attack = Some(updated_player_entity.attack);
@@ -349,6 +353,7 @@ pub fn start_service(
                     if let Some(player_entity) = player_option {
                         let updated_player_entity = CharacterEntity {
                             action: player_command.action,
+                            version: player_entity.version + 1,
                             ..player_entity.clone()
                         };
 
@@ -371,6 +376,7 @@ pub fn start_service(
                     let result = other_entity.health.saturating_sub(11);
                     let updated_player_entity = CharacterEntity {
                         action: other_entity.action,
+                        version: other_entity.version + 1,
                         health: result,
                         ..other_entity.clone()
                     };
@@ -404,6 +410,7 @@ pub fn start_service(
                                 let result = player_entity.health.saturating_sub(2);
                                 let updated_player_entity = CharacterEntity {
                                     action: player_entity.action,
+                                    version: player_entity.version + 1,
                                     health: result,
                                     ..player_entity.clone()
                                 };
@@ -534,6 +541,7 @@ pub fn start_service(
                                             };
 
                                             player_entity.add_inventory_item(new_item.clone());
+                                            player_entity.version += 1;
 
                                             let updated_player_entity = player_entity.clone();
 
@@ -639,6 +647,7 @@ pub fn start_service(
                                             let updated_player_entity = CharacterEntity {
                                                 action: player_entity.action,
                                                 health: result,
+                                                version : player_entity.version + 1,
                                                 ..player_entity.clone()
                                             };
 
@@ -850,6 +859,7 @@ pub fn update_character_entity(
     players_summary : &mut Vec<CharacterEntity>)
 {
         player_entity.add_inventory_item(reward.clone());
+        player_entity.version += 1;
         // we should also give the player the reward
         let reward = CharacterReward {
             player_id: player_entity.character_id,
