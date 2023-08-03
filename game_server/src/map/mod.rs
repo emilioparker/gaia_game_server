@@ -21,6 +21,7 @@ pub struct GameMap {
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Arc<HashMap<u16, AtomicU64>>,
     pub players : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
+    // pub sent_packages : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
 }
 
 impl GameMap {
@@ -53,7 +54,6 @@ impl GameMap {
             active_players_set.insert(i, AtomicU64::new(0));
             logged_in_players_set.insert(i, AtomicU64::new(0));
         }
-
 
         for player in &players
         {

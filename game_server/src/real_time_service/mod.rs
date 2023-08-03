@@ -1,7 +1,9 @@
 pub mod client_handler;
 pub mod utils;
 
+use std::collections::VecDeque;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use std::{collections::HashMap};
 use crate::ServerState;
 use crate::map::GameMap;
@@ -14,11 +16,11 @@ use tokio::sync::mpsc::{Receiver, Sender};
 pub fn start_server(
     map : Arc<GameMap>,
     server_state: Arc<ServerState>
-) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Sender<Arc<Vec<Vec<u8>>>>) {
+) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Sender<Vec<(u64,Vec<u8>)>>) {
 
 
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(200);
-    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Arc<Vec<Vec<u8>>>>(200);
+    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64,Vec<u8>)>>(200);
     let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
 
     let client_connections:HashMap<std::net::SocketAddr, u16> = HashMap::new();
@@ -31,13 +33,43 @@ pub fn start_server(
     let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
     let send_udp_socket = udp_socket.clone();
 
+    let mut previous_packages : VecDeque<(u64, Vec<u8>)> = VecDeque::new();
+
+    // let mut missing_packages_record = []
+    let mut player_missing_packets = HashMap::<u16, [AtomicU64;10]>::new();
+
+    let mut i:u16 = 0;
+
+    while i < u16::MAX {
+        i = i + 1;
+        let data = [
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+            AtomicU64::new(0),
+        ];
+        player_missing_packets.insert(i, data);
+    }
+
+    let shared_player_missing_packets = Arc::new(player_missing_packets);
+    let executer_shared_player_missing_packets = shared_player_missing_packets.clone();
+    let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
+
     tokio::spawn(async move {
+
         loop {
             if let Some(packet_list) = rx_bytes_state_socket.recv().await {
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
-                    for packet in packet_list.iter(){
+                    for (packet_id, data) in packet_list.iter(){
+                        println!("sending packet with id {packet_id}");
                         if client.1 == &0u16 {
                             // let first_byte = packet[0]; // this is the protocol
                             // the packet is compress, I can't read the sequence number
@@ -45,15 +77,50 @@ pub fn start_server(
                             // println!("sending {}", packet_sequence_number);
                         }
                         // todo: only send data if client is correctly validated, add state to clients_data
-                        let result = send_udp_socket.send_to(packet, client.0).await;
+                        let result = send_udp_socket.try_send_to(data, client.0.clone());
                         match result {
                             Ok(_) => {
                                 // println!("data sent to client {}", packet.len());
                             },
                             Err(_) => println!("error sending data through socket"),
                         }
+
+                        // we will try to send missing packages.
+
+                        if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(client.1) 
+                        {
+                            // this should never fail
+                            for missing_packet in missing_packages_for_player
+                            {
+                                let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
+                                if packet_id != 0 
+                                {
+                                    if let Some((old_id, old_data)) = previous_packages.iter().find(|(id, data)| packet_id == *id)
+                                    {
+                                        // sending missing data if found
+                                        let result = send_udp_socket.try_send_to(old_data, client.0.clone());
+                                        match result {
+                                            Ok(_) => {
+                                                // println!("data sent to client {}", packet.len());
+                                            },
+                                            Err(_) => println!("error sending old data through socket {} ", old_id),
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
+                for packet in packet_list.into_iter()
+                {
+                    previous_packages.push_front(packet);
+                    if previous_packages.len() > 20
+                    {
+                        let _pop_result = previous_packages.pop_back();
+                    }
+                }
+                // println!("storing packages {}", previous_packages.len());
             }
         }
     });
@@ -124,6 +191,7 @@ pub fn start_server(
                                     tx_addr_client_realtime.clone(), 
                                     tx_mc_client_statesys.clone(), 
                                     tx_pc_client_statesys.clone(), 
+                                    updater_shared_player_missing_packets.clone(),
                                     buf_udp,
                                 ).await;
                             } 

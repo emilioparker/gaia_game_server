@@ -9,9 +9,12 @@ pub mod spawn_mob_protocol;
 pub mod mob_moves_protocol;
 pub mod claim_mob_ownership;
 pub mod attack_mob_protocol;
+pub mod missing_packages_protocol;
 
 
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
@@ -35,6 +38,7 @@ pub enum Protocol{
     MobMoves = 10,
     ControlMob = 11,
     AttackMob = 12,
+    MissingPackets = 13,
 }
     
 pub async fn route_packet(
@@ -43,6 +47,7 @@ pub async fn route_packet(
     data : &[u8; 508],
     map : Arc<GameMap>,
     server_state: &Arc<ServerState>,
+    missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     channel_tx : &Sender<CharacterCommand>,
     channel_map_tx : &Sender<MapCommand>
 ){
@@ -96,6 +101,11 @@ pub async fn route_packet(
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             attack_mob_protocol::process(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::MissingPackets as u8 => {
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            missing_packages_protocol::process_request(player_id, data, missing_packets);
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

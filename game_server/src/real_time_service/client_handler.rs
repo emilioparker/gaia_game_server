@@ -1,7 +1,9 @@
 
 // mod create:utils;
 
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::{mpsc};
@@ -37,6 +39,7 @@ pub async fn spawn_client_process(
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<CharacterCommand>,
+    missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508])
 {
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
@@ -56,6 +59,7 @@ pub async fn spawn_client_process(
             &initial_data, 
             map.clone(),
             &server_state,
+            missing_packets.clone(),
             &channel_action_tx, 
             &channel_map_action_tx).await;
 
@@ -76,6 +80,7 @@ pub async fn spawn_client_process(
                                 &child_buff, 
                                 map.clone(),
                                 &server_state,
+                                missing_packets.clone(),
                                 &channel_action_tx, 
                                 &channel_map_action_tx).await;
                         }

@@ -38,7 +38,7 @@ pub fn start_service(
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Arc<Vec<Vec<u8>>>>
+    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, Vec<u8>)>>
 ) -> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Sender<MapCommand>) {
 
     let (tx_mc_webservice_gameplay, mut rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
@@ -475,7 +475,7 @@ pub fn start_service(
                                 tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                             },
                             MapCommandInfo::ChangeHealth(player_id, damage) => {
-                                println!("Change tile health!!!");
+                                println!("Change tile health!!! {}", tile.prop);
                                 let previous_health = tile.health;
 
                                 // this means this tile is being built
@@ -507,6 +507,7 @@ pub fn start_service(
                                     if updated_tile.health == 0
                                     {
                                         updated_tile.prop = 0;
+                                        println!("updated tile is now 0");
                                     }
                                     tiles_summary.push(updated_tile.clone());
                                     *tile = updated_tile.clone();
@@ -832,10 +833,9 @@ pub fn start_service(
             {
                 let packages = create_data_packets(filtered_summary, &mut packet_number);
                 // the data that will be sent to each client is not copied.
-                let arc_summary = Arc::new(packages);
                 let capacity = tx_bytes_game_socket.capacity();
                 server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
-                tx_bytes_game_socket.send(arc_summary).await.unwrap();
+                tx_bytes_game_socket.send(packages).await.unwrap();
             }
         }
     });
@@ -925,11 +925,11 @@ pub fn process_tile_attack(
     (updated_tile, reward)
 }
 
-pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<Vec<u8>> {
+pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, Vec<u8>)> {
     *packet_number += 1u64;
     // println!("{packet_number} -A");
 
-let mut buffer = [0u8; 5000];
+    let mut buffer = [0u8; 5000];
     let mut start: usize = 1;
     buffer[0] = crate::protocols::Protocol::GlobalState as u8;
 
@@ -953,7 +953,7 @@ let mut buffer = [0u8; 5000];
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
 
 
-    let mut packets = Vec::<Vec<u8>>::new();
+    let mut packets = Vec::<(u64,Vec<u8>)>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
     // println!("data to send {}" , data.len());
@@ -988,7 +988,7 @@ let mut buffer = [0u8; 5000];
             encoder.write_all(buffer.as_slice()).unwrap();
             let compressed_bytes = encoder.reset(Vec::new()).unwrap();
             // println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
-            packets.push(compressed_bytes); // this is a copy!
+            packets.push((*packet_number, compressed_bytes)); // this is a copy!
 
             start = 1;
             stored_states = 0;
@@ -1105,7 +1105,7 @@ let mut buffer = [0u8; 5000];
         // println!("{:#04X?}", buffer);
 
         // println!("decoded data: {}", (buffer == *decoded_data_array));
-        packets.push(compressed_bytes); // this is a copy!
+        packets.push((*packet_number, compressed_bytes)); // this is a copy!
     }
 
     // let all_data : Vec<u8> = packets.iter().flat_map(|d| d.clone()).collect();
