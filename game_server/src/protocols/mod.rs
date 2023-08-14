@@ -10,7 +10,7 @@ pub mod mob_moves_protocol;
 pub mod claim_mob_ownership;
 pub mod attack_mob_protocol;
 pub mod missing_packages_protocol;
-
+pub mod attack_tower_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -23,9 +23,11 @@ use crate::ServerState;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::character::character_command::CharacterCommand;
+use crate::tower::TowerCommand;
 
 
-pub enum Protocol{
+pub enum Protocol
+{
     Ping = 1,
     Action = 2,
     GlobalState = 3,
@@ -39,6 +41,7 @@ pub enum Protocol{
     ControlMob = 11,
     AttackMob = 12,
     MissingPackets = 13,
+    AttackTower = 14,
 }
     
 pub async fn route_packet(
@@ -49,7 +52,8 @@ pub async fn route_packet(
     server_state: &Arc<ServerState>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     channel_tx : &Sender<CharacterCommand>,
-    channel_map_tx : &Sender<MapCommand>
+    channel_map_tx : &Sender<MapCommand>,
+    channel_tower_tx : &Sender<TowerCommand>
 ){
 
     match data.get(0) {
@@ -106,6 +110,11 @@ pub async fn route_packet(
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             missing_packages_protocol::process_request(player_id, data, missing_packets);
+        },
+        Some(protocol) if *protocol == Protocol::AttackTower as u8 => {
+            let capacity = channel_tower_tx.capacity();
+            server_state.tx_tc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            attack_tower_protocol::process(socket, data, channel_tower_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

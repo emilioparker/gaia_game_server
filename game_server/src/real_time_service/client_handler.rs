@@ -16,6 +16,7 @@ use crate::character::character_reward::CharacterReward;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tile_attack::TileAttack;
+use crate::tower::TowerCommand;
 use crate::{protocols, ServerState};
 
 
@@ -39,6 +40,7 @@ pub async fn spawn_client_process(
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<CharacterCommand>,
+    channel_tower_action_tx : mpsc::Sender<TowerCommand>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508])
 {
@@ -61,7 +63,9 @@ pub async fn spawn_client_process(
             &server_state,
             missing_packets.clone(),
             &channel_action_tx, 
-            &channel_map_action_tx).await;
+            &channel_map_action_tx,
+            &channel_tower_action_tx,
+        ).await;
 
         let mut child_buff = [0u8; 508];
         'main_loop : loop {
@@ -82,7 +86,9 @@ pub async fn spawn_client_process(
                                 &server_state,
                                 missing_packets.clone(),
                                 &channel_action_tx, 
-                                &channel_map_action_tx).await;
+                                &channel_map_action_tx,
+                                &channel_tower_action_tx,
+                            ).await;
                         }
                         Err(error) => {
                             println!("we got an error {:?}", error);

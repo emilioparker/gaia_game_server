@@ -1,0 +1,226 @@
+use bson::oid::ObjectId;
+
+use crate::map::tetrahedron_id::TetrahedronId;
+
+pub const TOWER_ENTITY_SIZE: usize = 63; // 13  + 50 bytes for the damage
+pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
+
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct TowerEntity {
+    pub object_id: Option<ObjectId>,
+    pub version: u16, // 2 bytes
+    pub tetrahedron_id : TetrahedronId, // 6 bytes
+    pub event_id:u16,
+    pub faction:u8,
+    pub total_damage:u16,
+    pub damage_received_in_event : Vec<DamageByFaction>,// this one is not serializable  normally
+}
+
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct DamageByFaction{
+    pub event_id : u16, // 2
+    pub faction : u8, //1
+    pub amount : u16, //2
+}
+
+impl DamageByFaction {
+    pub fn to_bytes(&self, offset : &mut usize, buffer : &mut [u8; TOWER_ENTITY_SIZE])
+    {
+        // let mut offset = 0;
+        // let mut buffer = [0u8;TOWER_DAMAGE_RECORD_SIZE];
+        let mut local_offset = *offset;
+
+        let event_id_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
+        let end = local_offset + 2; 
+        buffer[local_offset..end].copy_from_slice(&event_id_bytes);
+        local_offset = end;
+
+        buffer[local_offset] = self.faction; //1 byte
+        local_offset += 1;
+
+        let damage_amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
+        let end = local_offset + 2; 
+        buffer[local_offset..end].copy_from_slice(&damage_amount_bytes);
+        local_offset = end;
+
+        *offset = local_offset;
+    }
+}
+
+
+impl TowerEntity {
+    pub fn to_bytes(&self) -> [u8;TOWER_ENTITY_SIZE] {
+        let mut buffer = [0u8; TOWER_ENTITY_SIZE];
+        let mut offset = 0;
+        let mut end = 0;
+
+        end = offset + 2;
+        let version_bytes = u16::to_le_bytes(self.version); // 2 bytes
+        buffer[..end].copy_from_slice(&version_bytes);
+        offset = end;
+
+        end = offset + 6;
+        let tile_id = self.tetrahedron_id.to_bytes(); // 6 bytes
+        buffer[offset..end].copy_from_slice(&tile_id);
+        offset = end;
+
+        end = offset + 2;
+        let version_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
+        buffer[offset..end].copy_from_slice(&version_bytes);
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.faction;
+        offset = end;
+
+        end = offset + 2;
+        let total_damage_bytes = u16::to_le_bytes(self.total_damage); // 2 bytes
+        buffer[offset..end].copy_from_slice(&total_damage_bytes);
+        offset = end;
+
+        let mut count = 0;
+        for item in &self.damage_received_in_event {
+            if item.event_id == self.event_id && count < 10
+            {
+                item.to_bytes(&mut offset, &mut buffer);
+                count += 1;
+            }
+        }
+
+        let padding = 10 - count;
+
+        let empty_damage_record = DamageByFaction {
+            event_id: 0,
+            faction: 0,
+            amount: 0,
+        };
+
+        // fill in extra items to get to the right amount.
+        for _ in 0..padding
+        {
+            empty_damage_record.to_bytes(&mut offset, &mut buffer);
+        }
+
+        buffer
+    }
+
+    pub fn add_damage_record(&mut self, faction : u8, event_id:u16, amount : u16)
+    {
+        let mut found = false;
+        for item in &mut self.damage_received_in_event {
+            if item.faction == faction && item.event_id == event_id
+            {
+                item.amount = item.amount.saturating_add(amount);
+                found = true;
+            }
+        }
+
+        if !found {
+            self.damage_received_in_event.push(DamageByFaction { event_id, faction, amount});
+        }
+
+        self.total_damage = self.calculate_total_damage();
+    }
+
+    pub fn get_damage_by_faction(&self, faction : u8) -> u16
+    {
+        let mut total_damage : u16 = 0;
+        for item in &self.damage_received_in_event 
+        {
+            if item.event_id == self.event_id && item.faction == faction
+            {
+                total_damage = total_damage.saturating_add(item.amount);
+            }
+        }
+        total_damage
+    }
+
+    pub fn calculate_total_damage(&self) -> u16
+    {
+        let mut total_damage : u16 = 0;
+        for item in &self.damage_received_in_event 
+        {
+            if item.event_id == self.event_id
+            {
+                total_damage = total_damage.saturating_add(item.amount);        
+            }
+        }
+        total_damage
+    }
+    
+    // this code is repeated
+    pub fn get_faction_code(faction : &str) -> u8
+    {
+        match faction {
+            "none" => 0,
+            "red" => 1,
+            "green" => 2,
+            "blue" => 3,
+            _ => 255
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::Wrapping;
+
+    use crate::{tower::tower_entity::TOWER_ENTITY_SIZE, map::tetrahedron_id::TetrahedronId};
+
+    use super::TowerEntity;
+
+    #[test]
+    fn test_encode_decode_tower()
+    {
+        let mut tower_entity = TowerEntity 
+        {
+            object_id: None,
+            tetrahedron_id: TetrahedronId::from_string("a0"),
+            version: 0,
+            event_id: 1,
+            faction: 0,
+            total_damage: 0,
+            damage_received_in_event: Vec::new()
+        };
+
+        tower_entity.add_damage_record(0, 1, 10);
+        tower_entity.add_damage_record(1, 1, 12);
+        tower_entity.add_damage_record(1, 1, 5);
+
+        let data = tower_entity.to_bytes();
+        assert_eq!(data.len(), TOWER_ENTITY_SIZE);
+    }
+
+    #[test]
+    fn test_add_damage_record()
+    {
+        let mut entity = TowerEntity{
+            object_id: None,
+            tetrahedron_id: TetrahedronId::from_string("a0"),
+            version: 0,
+            event_id: 0,
+            faction: 0,
+            total_damage: 0,
+            damage_received_in_event: Vec::new(),
+        };
+
+        entity.add_damage_record(0, 0, 10);
+        entity.add_damage_record(1, 0, 12);
+        entity.add_damage_record(1, 0, 5);
+
+        assert!(entity.damage_received_in_event.len() == 2);
+        assert!(entity.total_damage == 27);
+
+        let damage = entity.get_damage_by_faction(1);
+        assert_eq!(damage, 17);
+
+        //add more damage
+        entity.add_damage_record(1, 0, 9);
+        let damage = entity.get_damage_by_faction(1);
+        assert_eq!(damage, 26);
+
+        println!("{:?}", entity.damage_received_in_event);
+    }
+}
