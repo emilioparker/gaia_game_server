@@ -3,7 +3,8 @@ use serde::{Serialize, Deserialize};
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct StoredRegion {
+pub struct StoredRegion 
+{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub world_id: Option<ObjectId>,
@@ -16,7 +17,7 @@ pub struct StoredRegion {
 
 #[cfg(test)]
 mod tests {
-    use bson::{Binary, doc, oid::ObjectId};
+    use bson::doc;
     use mongodb::{Client, options::{ClientOptions, ResolverConfig}, Collection};
 
     use crate::long_term_storage_service::db_region::StoredRegion;

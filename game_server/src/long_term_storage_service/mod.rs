@@ -11,8 +11,7 @@ pub mod towers_service;
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use bson::{oid::ObjectId, document};
+    use bson::oid::ObjectId;
     use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
     use chrono::{TimeZone, Utc};
     use mongodb::bson::doc;
@@ -25,7 +24,7 @@ mod tests {
         "title": "Parasite",
         "year": 2020,
         "plot": "A poor family, the Kims, con their way into becoming the servants of a rich family, the Parks. But their easy life gets complicated when their deception is threatened with exposure.",
-        "released": Utc.ymd(2020, 2, 7).and_hms_opt(0, 0, 0),
+        // "released": Utc.ymd(2020, 2, 7).and_hms_opt(0, 0, 0),
         };
 
         println!("{}", new_doc);
@@ -47,7 +46,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_something_async() {
-        let new_doc = doc! {
+        let _new_doc = doc! {
             "title": "Parasite",
             "year": 2020,
             "plot": "A poor family, the Kims, con their way into becoming the servants of a rich family, the Parks. But their easy life gets complicated when their deception is threatened with exposure.",
@@ -71,7 +70,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_insert() {
-        let new_doc = doc! {
+        let _new_doc = doc! {
             "title": "Parasite",
             "year": 2020,
             "plot": "A poor family, the Kims, con their way into becoming the servants of a rich family, the Parks. But their easy life gets complicated when their deception is threatened with exposure.",
@@ -118,7 +117,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_insert_struct() {
-        let new_doc = doc! {
+        let _new_doc = doc! {
             "title": "Parasite",
             "year": 2020,
             "plot": "A poor family, the Kims, con their way into becoming the servants of a rich family, the Parks. But their easy life gets complicated when their deception is threatened with exposure.",
