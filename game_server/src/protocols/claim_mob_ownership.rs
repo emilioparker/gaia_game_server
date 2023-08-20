@@ -17,7 +17,7 @@ pub async fn process(
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         end = start + 4;
@@ -28,7 +28,7 @@ pub async fn process(
         let mut buffer = [0u8;6];
         buffer.copy_from_slice(&data[start..end]);
         let tile_id = TetrahedronId::from_bytes(&buffer);
-        start = end;
+        // start = end;
 
         let map_action = MapCommand{
             id: tile_id,

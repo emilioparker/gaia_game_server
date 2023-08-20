@@ -48,7 +48,7 @@ pub async fn get_characters_from_db_by_world(
                     character_id: doc.character_id,
                     player_id: doc.player_id,
                     version:doc.version,
-                    faction: CharacterEntity::get_faction_code(&doc.faction),
+                    faction: crate::get_faction_code(&doc.faction),
                     object_id: doc.id,
                     position: doc.position,
                     second_position: doc.position,

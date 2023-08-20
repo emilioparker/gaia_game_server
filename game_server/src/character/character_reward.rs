@@ -63,7 +63,7 @@ impl CharacterReward {
 
         end = start + 4;
         let inventory_hash = u32::from_le_bytes(data[start..end].try_into().unwrap());
-        start = end;
+        //start = end;
 
         CharacterReward { player_id, item_id, level, quality, amount, inventory_hash}
     }

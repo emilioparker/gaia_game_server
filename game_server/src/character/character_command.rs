@@ -70,7 +70,7 @@ impl CharacterCommand {
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
@@ -100,7 +100,7 @@ impl CharacterCommand {
 
         end = start + 4;
         let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
-        start = end;
+        //start = end;
 
         let client_action = CharacterCommand {
             player_id,

@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}};
+use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
 
 
 pub async fn process(
@@ -17,7 +17,7 @@ pub async fn process(
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         // current tile, it must be a mob
@@ -43,7 +43,7 @@ pub async fn process(
         
         end = start + 4;
         let required_time = f32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        // start = end;
 
         let map_action = MapCommand{
             id: tile_id,

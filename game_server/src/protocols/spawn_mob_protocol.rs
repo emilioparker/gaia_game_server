@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}};
+use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
 
 
 pub async fn process(
@@ -13,11 +13,11 @@ pub async fn process(
 
         start = 1; // ignoring first byte
         end = start + 2;
-        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        let _player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         end = start + 6;
@@ -28,7 +28,7 @@ pub async fn process(
 
         end = start + 4;
         let mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        // start = end;
 
         let map_action = MapCommand{
             id: tile_id,

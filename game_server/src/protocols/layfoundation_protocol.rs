@@ -18,7 +18,7 @@ pub async fn process_construction(
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         end = start + 2;

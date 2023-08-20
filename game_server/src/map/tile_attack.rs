@@ -3,7 +3,8 @@ use super::tetrahedron_id::TetrahedronId;
 pub const TILE_ATTACK_SIZE: usize = 16;
 
 #[derive(Debug, Clone)]
-pub struct TileAttack {
+pub struct TileAttack 
+{
     pub tile_id: TetrahedronId, // 6 bytes
     pub target_player_id: u16, // 2 bytes
     pub damage: u32, // 4 bytes
@@ -11,11 +12,12 @@ pub struct TileAttack {
 }
 
 impl TileAttack {
-    pub fn to_bytes(&self) -> [u8;16] {
+    pub fn to_bytes(&self) -> [u8;16] 
+    {
         let mut buffer = [0u8; 16];
 
-        let mut start : usize = 0;
-        let mut end : usize = 0;
+        let mut start : usize;
+        let mut end : usize;
 
         start = 0;
         end = start + 6;

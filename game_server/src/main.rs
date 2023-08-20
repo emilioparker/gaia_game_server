@@ -62,29 +62,40 @@ async fn main() {
         let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
         println!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
-        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), regions_data.clone(), working_players));
-        storage_game_map = Some(GameMap::new(world.id, world.world_name, regions_data, storage_players));
+
+
+        // let (towers, _) = load_files_into_regions_hashset(world_name).await;
+        // long_term_storage_service::towers_service::preload_db(world_name, world.id, towers, db_client.clone()).await;
+        let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
+
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), regions_data.clone(), working_players, world_towers.clone()));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, regions_data, storage_players, world_towers));
     }
     else{
         println!("Creating world from scratch, because it was not found in the database");
         // any errors will just crash the app.
 
         let world_id = long_term_storage_service::world_service::init_world_state(world_name, db_client.clone()).await;
-        if let Some(id) = world_id{
+        if let Some(id) = world_id
+        {
             println!("Creating world with id {}", id);
             let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world_id, db_client.clone()).await;
             //used and updated by the long storage system
             let storage_players = working_players.clone();
 
-            let regions_data = load_files_into_regions_hashset(world_name).await;
+            let (towers, regions_data) = load_files_into_regions_hashset(world_name).await;
             long_term_storage_service::world_service::preload_db(world_name, world_id, regions_data, db_client.clone()).await;
+            long_term_storage_service::towers_service::preload_db(world_name, world_id, towers, db_client.clone()).await;
 
             // reading what we just created because we need the object ids!
             let regions_data_from_db = long_term_storage_service::world_service::get_regions_from_db(world_id, db_client.clone()).await;
 
             let regions_data = load_regions_data_into_game_map(&regions_data_from_db);
-            working_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data.clone(), working_players));
-            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data, storage_players));
+
+            let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world_id, db_client.clone()).await;
+
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data.clone(), working_players, world_towers.clone()));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data, storage_players, world_towers));
         }
         else {
             println!("Error creating world in db");
@@ -111,7 +122,8 @@ async fn main() {
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
                 rx_pe_gameplay_longterm,
-                tx_mc_webservice_gameplay,
+                rx_te_gameplay_longterm,
+                _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
@@ -132,13 +144,20 @@ async fn main() {
                 storage_game_map_reference.clone(), 
                 db_client.clone()
             );
+
+            // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
+            long_term_storage_service::towers_service::start_server(
+                rx_te_gameplay_longterm,
+                storage_game_map_reference.clone(), 
+                db_client.clone()
+            );
             
             web_service::start_server(
                 working_game_map_reference, 
                 storage_game_map_reference, 
                 db_client.clone(),
                 rx_me_gameplay_webservice,
-                tx_mc_webservice_gameplay,
+                // tx_mc_webservice_gameplay,
                 rx_saved_longterm_web_service,
             );
         // ---------------------------------------------------
@@ -227,7 +246,8 @@ fn load_regions_data_into_game_map(
     // GameMap::new(regions_data)
 }
 
-async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> Vec<u8> {
+async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> (Vec<TetrahedronId>, Vec<u8>)
+{
     let file_name = format!("../../map_initial_data/{}_{}_props.bytes",world_id, region_id);
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
     println!("reading file {}", file_name);
@@ -239,9 +259,16 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     let mut start = 0;
     let mut end = MapEntity::get_size();
 
+    let mut towers_in_region = Vec::new();
+
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
+        let tile = MapEntity::from_bytes(&buffer);
+        if tile.prop == 35 // magic tower
+        {
+            towers_in_region.push(tile.id);
+        }
 
         start = end;
         end = end + MapEntity::get_size();
@@ -252,31 +279,31 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     }
 
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    compressed_bytes
+    (towers_in_region, compressed_bytes)
 }
 
-async fn load_files_into_regions_hashset(world_id : &str) -> HashMap<TetrahedronId, Vec<u8>> {
-
+async fn load_files_into_regions_hashset(world_id : &str) -> (Vec<TetrahedronId>, HashMap<TetrahedronId, Vec<u8>>) 
+{
+    let mut towers = Vec::new();
     let regions = game_server::map::get_region_ids(2);
     let mut regions_data = HashMap::<TetrahedronId, Vec<u8>>::new();
     for region in regions
     {
-        let data = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
+        let (mut towers_in_region, data) = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
         regions_data.insert(region, data);
+        towers.append(&mut towers_in_region);
     }
-    regions_data
+    (towers, regions_data)
 }
 
 
 #[cfg(test)]
 mod tests {
-    use std::{env, io::Write, collections::HashMap};
-    use bson::{oid::ObjectId, document};
-    use game_server::{long_term_storage_service::{self, db_region::StoredRegion}, map::{GameMap, tetrahedron_id::{self, TetrahedronId}, map_entity::MapEntity}};
+    use std::{io::Write, collections::HashMap};
+    
+    use game_server::{long_term_storage_service::db_region::StoredRegion, map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity}};
     use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
-    use chrono::{TimeZone, Utc};
     use mongodb::bson::doc;
-    use serde::{Serialize, Deserialize};
     use flate2::{write::ZlibEncoder, Compression};
 
     use crate::load_regions_data_into_game_map;

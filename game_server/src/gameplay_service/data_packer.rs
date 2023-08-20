@@ -6,6 +6,7 @@ use crate::gameplay_service::DataType;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
 use crate::map::tile_attack::TILE_ATTACK_SIZE;
 use crate::real_time_service::client_handler::StateUpdate;
+use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
 
 
 use std::io::prelude::*;
@@ -53,8 +54,9 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
             StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
             StateUpdate::PlayerAttackState(_) => CHARACTER_ATTACK_SIZE as u32 + 1,
-            StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 +1,
-            StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 +1,
+            StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 + 1,
+            StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 + 1,
+            StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -88,7 +90,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         }
 
         match state_update{
-            StateUpdate::PlayerState(player_state) => {
+            StateUpdate::PlayerState(player_state) => 
+            {
                 
                 buffer[start] = DataType::PlayerState as u8;
                 start += 1;
@@ -100,7 +103,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::TileState(tile_state) => {
+            StateUpdate::TileState(tile_state) => 
+            {
                 buffer[start] = DataType::TileState as u8;
                 start += 1;
 
@@ -111,7 +115,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             }
-            StateUpdate::PlayerGreetings(presentation) => {
+            StateUpdate::PlayerGreetings(presentation) => 
+            {
                 buffer[start] = DataType::PlayerPresentation as u8;
                 start += 1;
 
@@ -122,7 +127,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::PlayerAttackState(player_attack) => {
+            StateUpdate::PlayerAttackState(player_attack) => 
+            {
                 buffer[start] = DataType::PlayerAttack as u8;
                 start += 1;
 
@@ -133,7 +139,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::Rewards(player_reward) => {
+            StateUpdate::Rewards(player_reward) => 
+            {
                 buffer[start] = DataType::PlayerReward as u8; // 30
                 start += 1;
 
@@ -144,7 +151,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::TileAttackState(tile_attack) => {
+            StateUpdate::TileAttackState(tile_attack) => 
+            {
                 buffer[start] = DataType::TileAttack as u8;
                 start += 1;
 
@@ -152,6 +160,18 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + TILE_ATTACK_SIZE;
                 buffer[start..next].copy_from_slice(&attack_bytes);
                 stored_bytes = stored_bytes + TILE_ATTACK_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::TowerState(tower_entity) => 
+            {
+                buffer[start] = DataType::TowerState as u8;
+                start += 1;
+
+                let tower_bytes = tower_entity.to_bytes(); //63
+                let next = start + TOWER_ENTITY_SIZE;
+                buffer[start..next].copy_from_slice(&tower_bytes);
+                stored_bytes = stored_bytes +  TOWER_ENTITY_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

@@ -17,15 +17,18 @@ use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tile_attack::TileAttack;
 use crate::tower::TowerCommand;
+use crate::tower::tower_entity::TowerEntity;
 use crate::{protocols, ServerState};
 
 
 #[derive(Debug)]
-pub enum StateUpdate {
+pub enum StateUpdate 
+{
     PlayerState(CharacterEntity),
     PlayerGreetings(CharacterPresentation), 
     Rewards(CharacterReward),
     TileState(MapEntity),
+    TowerState(TowerEntity),
     PlayerAttackState(CharacterAttack),
     TileAttackState(TileAttack),
 }

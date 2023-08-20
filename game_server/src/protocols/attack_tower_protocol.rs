@@ -26,13 +26,17 @@ pub async fn process(
         let faction = data[start]; 
         start = end;
 
+        end = start + 2;
+        let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        start = end;
+
         end = start + 4;
         let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        // start = end;
 
         let tower_action = TowerCommand{
             id: tile_id,
-            info: TowerCommandInfo::AttackTower(player_id, faction, required_time)
+            info: TowerCommandInfo::AttackTower(player_id, faction, damage, required_time)
         };
 
         // println!("got a {:?}", map_action);

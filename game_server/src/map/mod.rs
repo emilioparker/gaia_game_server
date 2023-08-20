@@ -1,9 +1,9 @@
-use std::{collections::{HashMap}, sync::{Arc, atomic::{AtomicU64, AtomicU32, AtomicU16}}};
+use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::character::character_entity::CharacterEntity;
+use crate::{character::character_entity::CharacterEntity, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -12,24 +12,26 @@ pub mod tetrahedron_id;
 pub mod tile_attack;
 
 
-pub struct GameMap { 
+pub struct GameMap 
+{ 
     pub world_id : Option<ObjectId>,
     pub world_name : String,
     pub id_generator : AtomicU16,
-    pub time : AtomicU64,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Arc<HashMap<u16, AtomicU64>>,
     pub players : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
-    // pub sent_packages : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
+    pub towers : Arc<Mutex<HashMap<TetrahedronId, TowerEntity>>>,
 }
 
-impl GameMap {
+impl GameMap 
+{
     pub fn new(
         world_id: Option<ObjectId>,
         world_name:String,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
         players : HashMap<u16, CharacterEntity>,
+        towers : HashMap<TetrahedronId, TowerEntity>,
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
@@ -40,8 +42,6 @@ impl GameMap {
             arc_regions.insert(key.clone(), Arc::new(Mutex::new(value)));
             region_keys.push(key);
         }
-
-        let result = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
 
         let mut active_players_set = HashMap::<u16, AtomicU64>::new();
         let mut logged_in_players_set = HashMap::<u16, AtomicU64>::new();
@@ -62,9 +62,9 @@ impl GameMap {
             }
         }
 
-        let current_time_raw = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH);
-        let current_time = current_time_raw.ok().map(|d| d.as_millis() as u64).unwrap();
-        println!(" current_time {:?}", current_time);
+        // let current_time_raw = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH);
+        // let current_time = current_time_raw.ok().map(|d| d.as_millis() as u64).unwrap();
+        // println!(" current_time {:?}", current_time);
 
         GameMap{
             world_id,
@@ -74,7 +74,7 @@ impl GameMap {
             logged_in_players : Arc::new(logged_in_players_set),
             regions : arc_regions,
             players : Arc::new(Mutex::new(players)),
-            time : AtomicU64::new(current_time),
+            towers : Arc::new(Mutex::new(towers)),
         }
     }
 

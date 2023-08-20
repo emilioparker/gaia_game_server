@@ -11,7 +11,7 @@ pub fn process_request(
     let mut start = 1;
     let mut end = start + 8;
 
-    let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     // println!("set missing packages for character {player_id}");

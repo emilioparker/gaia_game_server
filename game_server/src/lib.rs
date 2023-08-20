@@ -19,3 +19,27 @@ pub struct ServerState {
     pub tx_me_gameplay_webservice:AtomicUsize,
     pub tx_pe_gameplay_longterm:AtomicUsize
 }
+
+pub fn get_faction_code(faction : &str) -> u8
+{
+    match faction {
+        "none" => 0,
+        "red" => 1,
+        "green" => 2,
+        "blue" => 3,
+        "corruption" => 4,
+        _ => 255
+    }
+}
+
+pub fn get_faction_from_code(faction : u8) -> String 
+{
+    match faction {
+        0 => "none".to_owned(),
+        1 => "red".to_owned(),
+        2 => "green".to_owned(),
+        3 => "blue".to_owned(),
+        4 => "corruption".to_owned(),
+        _ => "none".to_owned()
+    }
+}

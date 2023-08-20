@@ -1,9 +1,5 @@
-
-use std::sync::Arc;
-
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use crate::map::GameMap;
 use crate::character::character_command::CharacterCommand;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
@@ -11,10 +7,9 @@ use flate2::write::ZlibEncoder;
 pub async fn process_ping(
     socket:&UdpSocket, 
     data : &[u8; 508],
-    map : Arc<GameMap>,
     _channel_tx : &Sender<CharacterCommand>)
 {
-    let mut start = 1;
+    let start = 1;
     let end = start + 2;
     let _player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
 
@@ -28,11 +23,12 @@ pub async fn process_ping(
 
     let mut buffer = [0u8; 11];
 
-    let time = &map.time.load(std::sync::atomic::Ordering::Relaxed);
-    let time_bytes = u64::to_le_bytes(*time);
+    let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+    let current_time_in_millis = current_time.as_millis() as u64;
+
+    let time_bytes = u64::to_le_bytes(current_time_in_millis);
 
     let id_bytes = u16::to_le_bytes(id);
-
 
     let mut encoder = ZlibEncoder::new(Vec::new(),Compression::new(9));        
     buffer[0] = crate::protocols::Protocol::Ping as u8;
@@ -44,7 +40,7 @@ pub async fn process_ping(
 
     end = start + 8;
     buffer[start..end].copy_from_slice(&time_bytes);
-    start = end;
+    //start = end;
 
     std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();

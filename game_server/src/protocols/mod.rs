@@ -58,7 +58,7 @@ pub async fn route_packet(
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
-            ping_protocol::process_ping(socket, data, map, channel_tx).await;
+            ping_protocol::process_ping(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map, channel_tx).await;

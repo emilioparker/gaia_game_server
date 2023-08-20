@@ -1,4 +1,4 @@
-use std::{hash::Hash, collections::HashMap};
+use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
@@ -7,7 +7,8 @@ pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct CharacterEntity {
+pub struct CharacterEntity 
+{
     pub object_id: Option<ObjectId>,
     pub player_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
@@ -28,14 +29,16 @@ pub struct CharacterEntity {
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct InventoryItem{
+pub struct InventoryItem
+{
     pub item_id : u32, //4
     pub level : u8, //1
     pub quality : u8,//1
     pub amount : u16 // 2
 }
 
-impl InventoryItem {
+impl InventoryItem 
+{
     pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]{
         let offset = 0;
         let mut buffer = [0u8;CHARACTER_INVENTORY_SIZE];
@@ -62,7 +65,7 @@ impl CharacterEntity {
     pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] {
         let mut buffer = [0u8; CHARACTER_ENTITY_SIZE];
         let mut offset = 0;
-        let mut end = 0;
+        let mut end;
 
         end = offset + 2;
         let player_id_bytes = u16::to_le_bytes(self.character_id); // 2 bytes
@@ -129,7 +132,7 @@ impl CharacterEntity {
         end = offset + 2;
         let agility_bytes = u16::to_le_bytes(self.agility); // 2 bytes
         buffer[offset..end].copy_from_slice(&agility_bytes);
-        offset = end;
+        //offset = end;
 
         buffer
     }
@@ -188,19 +191,10 @@ impl CharacterEntity {
         hash
     }
 
-    pub fn get_faction_code(faction : &str) -> u8
-    {
-        match faction {
-            "none" => 0,
-            "red" => 1,
-            "green" => 2,
-            "blue" => 3,
-            _ => 255
-        }
-    }
 }
 
-impl Hash for CharacterEntity {
+impl Hash for CharacterEntity 
+{
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.action.hash(state);
     }

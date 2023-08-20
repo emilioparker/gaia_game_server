@@ -17,7 +17,7 @@ pub async fn process(
         start = end;
 
         end = start + 8;
-        let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
         end = start + 6;
@@ -28,7 +28,7 @@ pub async fn process(
 
         end = start + 4;
         let increment = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        // start = end;
 
         let map_action = MapCommand{
             id: tile_id,

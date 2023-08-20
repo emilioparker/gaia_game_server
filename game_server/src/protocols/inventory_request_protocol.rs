@@ -24,12 +24,12 @@ pub async fn process_request(
     start = end;
 
     end = start + 8;
-    let session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
-    end = start + 1;
-    let page = data[start];
-    start = end;
+    //end = start + 1;
+    let _page = data[start];
+    //start = end;
 
     let player_entities = map.players.lock().await;
     let player_option = player_entities.get(&requested_player_id);

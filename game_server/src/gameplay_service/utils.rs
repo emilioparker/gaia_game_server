@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::map_entity::{MapEntity, MapCommand}, ServerState};
+use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::map_entity::{MapEntity, MapCommand}, ServerState, tower::tower_entity::TowerEntity};
 
 
 pub fn update_character_entity(
@@ -29,7 +29,7 @@ pub fn update_character_entity(
         players_summary.push(player_entity.clone());
 }
 
-pub fn report_capacity(
+pub fn report_map_process_capacity(
     tx_me_gameplay_longterm : &Sender<MapEntity>,
     tx_me_gameplay_webservice : &Sender<MapEntity>,
     server_state : Arc<ServerState>
@@ -38,6 +38,17 @@ pub fn report_capacity(
     server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
     let capacity = tx_me_gameplay_webservice.capacity();
     server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn report_tower_process_capacity(
+    tx_te_gameplay_longterm : &Sender<TowerEntity>,
+    // tx_me_gameplay_webservice : &Sender<TowerEntity>,
+    server_state : Arc<ServerState>
+){
+    let capacity = tx_te_gameplay_longterm.capacity();
+    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+    // let capacity = tx_te_gameplay_webservice.capacity();
+    // server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
 }
 
 pub fn process_tile_attack(

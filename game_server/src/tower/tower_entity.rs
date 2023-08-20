@@ -7,7 +7,8 @@ pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct TowerEntity {
+pub struct TowerEntity 
+{
     pub object_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub tetrahedron_id : TetrahedronId, // 6 bytes
@@ -19,13 +20,15 @@ pub struct TowerEntity {
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct DamageByFaction{
+pub struct DamageByFaction
+{
     pub event_id : u16, // 2
     pub faction : u8, //1
     pub amount : u16, //2
 }
 
-impl DamageByFaction {
+impl DamageByFaction 
+{
     pub fn to_bytes(&self, offset : &mut usize, buffer : &mut [u8; TOWER_ENTITY_SIZE])
     {
         // let mut offset = 0;
@@ -50,11 +53,12 @@ impl DamageByFaction {
 }
 
 
-impl TowerEntity {
+impl TowerEntity 
+{
     pub fn to_bytes(&self) -> [u8;TOWER_ENTITY_SIZE] {
         let mut buffer = [0u8; TOWER_ENTITY_SIZE];
         let mut offset = 0;
-        let mut end = 0;
+        let mut end;
 
         end = offset + 2;
         let version_bytes = u16::to_le_bytes(self.version); // 2 bytes
@@ -67,8 +71,8 @@ impl TowerEntity {
         offset = end;
 
         end = offset + 2;
-        let version_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
-        buffer[offset..end].copy_from_slice(&version_bytes);
+        let event_id_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
+        buffer[offset..end].copy_from_slice(&event_id_bytes);
         offset = end;
 
         end = offset + 1;
@@ -81,7 +85,8 @@ impl TowerEntity {
         offset = end;
 
         let mut count = 0;
-        for item in &self.damage_received_in_event {
+        for item in &self.damage_received_in_event 
+        {
             if item.event_id == self.event_id && count < 10
             {
                 item.to_bytes(&mut offset, &mut buffer);
@@ -91,7 +96,8 @@ impl TowerEntity {
 
         let padding = 10 - count;
 
-        let empty_damage_record = DamageByFaction {
+        let empty_damage_record = DamageByFaction 
+        {
             event_id: 0,
             faction: 0,
             amount: 0,
@@ -137,29 +143,29 @@ impl TowerEntity {
         total_damage
     }
 
-    pub fn calculate_total_damage(&self) -> u16
+    pub fn calculate_total_damage(&mut self) -> u16
     {
         let mut total_damage : u16 = 0;
+        let mut old_event_records_found = false;
         for item in &self.damage_received_in_event 
         {
             if item.event_id == self.event_id
             {
                 total_damage = total_damage.saturating_add(item.amount);        
             }
+            else
+            {
+                old_event_records_found = true;
+                // we should clean this old items
+            }
         }
+
+        if old_event_records_found
+        {
+            self.damage_received_in_event.retain(|r| r.event_id == self.event_id);
+        }
+
         total_damage
-    }
-    
-    // this code is repeated
-    pub fn get_faction_code(faction : &str) -> u8
-    {
-        match faction {
-            "none" => 0,
-            "red" => 1,
-            "green" => 2,
-            "blue" => 3,
-            _ => 255
-        }
     }
 }
 

@@ -1,0 +1,65 @@
+use futures_util::StreamExt;
+use hyper::{Response, Body};
+
+use crate::{long_term_storage_service::db_tower::StoredTower, tower::tower_entity::{TowerEntity, DamageByFaction}, get_faction_code, map::tetrahedron_id::TetrahedronId};
+
+
+
+pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hyper::Request<hyper::Body>) -> Result<hyper::Response<hyper::Body>, hyper::http::Error> 
+{
+    let mut binary_data = Vec::<u8>::new();
+    let data_collection: mongodb::Collection<StoredTower> = context.db_client.database("game").collection::<StoredTower>("towers");
+
+    // Look up one document:
+    let mut cursor = data_collection
+    .find(
+        bson::doc! {
+                "world_id": context.storage_game_map.world_id,
+        },
+        None,
+    ).await
+    .unwrap();
+
+    let mut towers_count = 0;
+
+    while let Some(result) = cursor.next().await 
+    {
+        match result 
+        {
+            Ok(doc) => 
+            {
+                let mut tower_entity = TowerEntity 
+                {
+                    object_id: doc.id,
+                    version: doc.version,
+                    tetrahedron_id: TetrahedronId::from_string(&doc.tetrahedron_id),
+                    event_id: doc.event_id,
+                    faction: get_faction_code(&doc.faction),
+                    total_damage: 0,
+                    damage_received_in_event: doc.damage_received_in_event.into_iter().map(|d| DamageByFaction
+                    {
+                        event_id: d.event_id,
+                        faction: get_faction_code(&d.faction),
+                        amount: d.amount,
+                    }).collect(),
+                };
+                towers_count += 1;
+                tower_entity.total_damage = tower_entity.calculate_total_damage();
+                let data_in_bytes = tower_entity.to_bytes();
+                binary_data.extend_from_slice(&data_in_bytes);
+            },
+            Err(error_details) => 
+            {
+                println!("error getting towers from db with {:?}", error_details);
+            },
+        }
+    }
+    println!("----- towers {}", towers_count);
+
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(binary_data))
+        .expect("Failed to create response");
+    Ok(response)
+}
