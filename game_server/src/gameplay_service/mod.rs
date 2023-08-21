@@ -42,7 +42,7 @@ pub fn start_service(
 -> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Receiver<TowerEntity>, Sender<MapCommand>) 
 {
 
-    let (tx_mc_webservice_gameplay, mut rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
+    let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<CharacterEntity>(1000);
@@ -61,7 +61,7 @@ pub fn start_service(
     let tile_commands_processor_lock = tile_commands_mutex.clone();
 
     let tile_commands_agregator_from_client_lock = tile_commands_mutex.clone();
-    let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
+    // let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
 
     //tower commands -------------------------------------
     let tower_commands = Vec::<TowerCommand>::new();
@@ -125,15 +125,15 @@ pub fn start_service(
     });
 
     // task that gathers world changes comming from web service into a list.
-    tokio::spawn(async move {
-        // let mut sequence_number:u64 = 101;
-        loop {
-            let message = rx_mc_webservice_gameplay.recv().await.unwrap();
-            // println!("got a tile change data {}", message.id);
-            let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
-            data.push(message);
-        }
-    });
+    // tokio::spawn(async move {
+    //     // let mut sequence_number:u64 = 101;
+    //     loop {
+    //         let message = rx_mc_webservice_gameplay.recv().await.unwrap();
+    //         // println!("got a tile change data {}", message.id);
+    //         let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
+    //         data.push(message);
+    //     }
+    // });
 
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move {

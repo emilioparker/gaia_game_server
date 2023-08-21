@@ -18,7 +18,7 @@ pub struct StoredRegion
 #[cfg(test)]
 mod tests {
     use bson::doc;
-    use mongodb::{Client, options::{ClientOptions, ResolverConfig}, Collection};
+    use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
 
     use crate::long_term_storage_service::db_region::StoredRegion;
 
