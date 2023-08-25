@@ -9,6 +9,8 @@ pub struct StoredTower {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub tetrahedron_id : String,
+    #[serde(default)]
+    pub cooldown: u32,
     pub world_id: Option<ObjectId>,
     pub world_name: String,
     pub version: u16, // 2 bytes

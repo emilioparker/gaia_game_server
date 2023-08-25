@@ -1,8 +1,10 @@
+use std::time::SystemTime;
+
 use bson::oid::ObjectId;
 
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const TOWER_ENTITY_SIZE: usize = 63; // 13  + 50 bytes for the damage
+pub const TOWER_ENTITY_SIZE: usize = 67; // 13  + 50 bytes for the damage
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
 
 #[derive(Debug)]
@@ -12,6 +14,7 @@ pub struct TowerEntity
     pub object_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub tetrahedron_id : TetrahedronId, // 6 bytes
+    pub cooldown : u32,// 4 bytes
     pub event_id:u16,
     pub faction:u8,
     pub total_damage:u16,
@@ -70,6 +73,11 @@ impl TowerEntity
         buffer[offset..end].copy_from_slice(&tile_id);
         offset = end;
 
+        end = offset + 4;
+        let cooldown_bytes = u32::to_le_bytes(self.cooldown); // 2 bytes
+        buffer[offset..end].copy_from_slice(&cooldown_bytes);
+        offset = end;
+
         end = offset + 2;
         let event_id_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
         buffer[offset..end].copy_from_slice(&event_id_bytes);
@@ -114,6 +122,11 @@ impl TowerEntity
 
     pub fn add_damage_record(&mut self, faction : u8, event_id:u16, amount : u16)
     {
+        if self.faction == faction 
+        {
+            return;
+        }
+
         let mut found = false;
         for item in &mut self.damage_received_in_event {
             if item.faction == faction && item.event_id == event_id
@@ -146,26 +159,40 @@ impl TowerEntity
     pub fn calculate_total_damage(&mut self) -> u16
     {
         let mut total_damage : u16 = 0;
-        let mut old_event_records_found = false;
         for item in &self.damage_received_in_event 
         {
             if item.event_id == self.event_id
             {
                 total_damage = total_damage.saturating_add(item.amount);        
             }
-            else
-            {
-                old_event_records_found = true;
-                // we should clean this old items
-            }
-        }
-
-        if old_event_records_found
-        {
-            self.damage_received_in_event.retain(|r| r.event_id == self.event_id);
         }
 
         total_damage
+    }
+
+    pub fn remove_old_event_entries(&mut self)
+    {
+        self.damage_received_in_event.retain(|r| r.event_id == self.event_id);
+    }
+
+    pub fn finish_event(&mut self)
+    {
+        self.remove_old_event_entries(); // this will remove old event entries.
+        let winner = self.damage_received_in_event.iter().max_by(|a, b| a.amount.cmp(&b.amount));
+        if let Some(winner) = winner 
+        {
+            self.faction = winner.faction;
+        }
+        self.event_id += 1;
+
+        let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+        if let Ok(elapsed) = result 
+        {
+            self.cooldown = elapsed.as_secs() as u32 + 20 * 60; // 20 min of cooldown
+        }
+
+        self.damage_received_in_event.clear();
+        self.total_damage = 0;
     }
 }
 
@@ -184,6 +211,7 @@ mod tests {
         {
             object_id: None,
             tetrahedron_id: TetrahedronId::from_string("a0"),
+            cooldown: 0,
             version: 0,
             event_id: 1,
             faction: 0,
@@ -202,9 +230,11 @@ mod tests {
     #[test]
     fn test_add_damage_record()
     {
-        let mut entity = TowerEntity{
+        let mut entity = TowerEntity
+        {
             object_id: None,
             tetrahedron_id: TetrahedronId::from_string("a0"),
+            cooldown : 0,
             version: 0,
             event_id: 0,
             faction: 0,

@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ServerState;
+use crate::character::character_attack::CharacterAttack;
 use crate::character::character_command::CharacterCommand;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
@@ -118,7 +120,7 @@ pub fn start_service(
         // let mut sequence_number:u64 = 101;
         loop {
             let message = rx_tc_client_game.recv().await.unwrap();
-            // println!("got a tile change data {}", message.id);
+            println!("got a tower change data {}", message.id);
             let mut data = tower_commands_agregator_from_client_lock.lock().await;
             data.push(message);
         }
@@ -233,12 +235,14 @@ pub fn start_service(
 
             // process tower stuff.
             let mut tower_commands_data = tower_commands_processor_lock.lock().await;
+            // println!("tower commands len {}", tower_commands_data.len());
             if tower_commands_data.len() > 0 
             {
                 for tower_command in tower_commands_data.iter()
                 {
                     // let cloned_data = tower_command.to_owned();
                     let mut towers = map.towers.lock().await;
+                    println!("towers count {}", towers.len());
                     let tower_option = towers.get_mut(&tower_command.id);
 
 
@@ -247,20 +251,61 @@ pub fn start_service(
                         match &tower_command.info 
                         {
                             TowerCommandInfo::Touch() => todo!(),
-                            TowerCommandInfo::AttackTower(_player_id,faction, damage, _required_time) => 
+                            TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
                             {
-                                let mut updated_tower = tower.clone();
-                                updated_tower.add_damage_record(*faction, updated_tower.event_id, *damage);
+                                let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+                                let current_time_in_seconds = current_time.as_secs() as u32;
 
-                                report_tower_process_capacity(&tx_te_gameplay_longterm, server_state.clone());
+                                if tower.cooldown < current_time_in_seconds
+                                {
+                                    let attack = CharacterAttack
+                                    {
+                                        player_id: *player_id,
+                                        target_player_id: 0,
+                                        damage: 2,
+                                        skill_id: 0,
+                                        target_tile_id: tower_command.id.clone(),
+                                    };
+                                    player_attacks_summary.push(attack);
 
-                                // sending the updated tile somewhere.
-                                tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
-                                // tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
-                                towers_summary.push(updated_tower.clone());
-                                *tower = updated_tower;
+                                    println!("Got a tower attack");
+                                    let mut updated_tower = tower.clone();
+                                    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                                    let player_option = player_entities.get_mut(&player_id);
+                                    if let Some(player_entity) = player_option 
+                                    {
+                                        updated_tower.add_damage_record(player_entity.faction, updated_tower.event_id, *damage);
+                                    }
+                                    drop(player_entities);
+
+                                    if updated_tower.total_damage > 600 
+                                    {
+                                        // you defeated the tower!
+                                        updated_tower.finish_event();
+                                    }
+
+                                    updated_tower.version += 1;
+
+                                    report_tower_process_capacity(&tx_te_gameplay_longterm, server_state.clone());
+
+                                    // sending the updated tile somewhere.
+                                    tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
+                                    // tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+                                    towers_summary.push(updated_tower.clone());
+                                    *tower = updated_tower;
+                                }
+                                else
+                                {
+                                    println!("Tower is in cool down");
+                                }
+
+                                // println!("Got a tower attack towers {}", map.to);
                             },
                         }
+                    }
+                    else
+                    {
+                        println!("tower not found with id {}", tower_command.id);
                     }
 
                 }

@@ -49,15 +49,20 @@ pub async fn get_towers_from_db_by_world(
                     faction: get_faction_code(&item.faction),
                 }).collect();
 
-                let tower =  TowerEntity{
+                let mut tower =  TowerEntity
+                {
                     object_id: doc.id,
                     version:doc.version,
                     tetrahedron_id: TetrahedronId::from_string(&doc.tetrahedron_id),
+                    cooldown: doc.cooldown,
                     event_id: doc.event_id,
                     faction:get_faction_code(&doc.faction),
                     total_damage: 0,
                     damage_received_in_event: record,
                 };
+
+                tower.total_damage = tower.calculate_total_damage();
+                println!("-------Add tower {}", tower.tetrahedron_id);
                 count += 1;
                 data.insert(tower.tetrahedron_id.clone(), tower);
             },
@@ -84,9 +89,11 @@ pub async fn preload_db(
 
     for tower_id in towers
     {
-        let data = StoredTower {
+        let data = StoredTower 
+        {
             id : None,
             tetrahedron_id : tower_id.to_string(),
+            cooldown :0,
             world_id : world_id,
             world_name : world_name.to_owned(),
             version : 0,
@@ -180,7 +187,7 @@ pub fn start_server(
                     doc! {
                         "$set": {
                             "damage_record" : serialized_data,
-                            "faction": bson::to_bson(&tower.faction).unwrap(),
+                            "faction": get_faction_from_code(tower.faction),
                             "event_id" :bson::to_bson(&tower.event_id).unwrap(),
                             "version" :bson::to_bson(&tower.version).unwrap(),
                         }
