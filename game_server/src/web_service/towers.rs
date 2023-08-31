@@ -36,7 +36,6 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
                     cooldown: doc.cooldown,
                     event_id: doc.event_id,
                     faction: get_faction_code(&doc.faction),
-                    total_damage: 0,
                     damage_received_in_event: doc.damage_received_in_event.into_iter().map(|d| DamageByFaction
                     {
                         event_id: d.event_id,
@@ -45,7 +44,6 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
                     }).collect(),
                 };
                 towers_count += 1;
-                tower_entity.total_damage = tower_entity.calculate_total_damage();
                 let data_in_bytes = tower_entity.to_bytes();
                 binary_data.extend_from_slice(&data_in_bytes);
             },

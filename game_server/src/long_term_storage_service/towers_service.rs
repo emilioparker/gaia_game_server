@@ -49,7 +49,7 @@ pub async fn get_towers_from_db_by_world(
                     faction: get_faction_code(&item.faction),
                 }).collect();
 
-                let mut tower =  TowerEntity
+                let tower =  TowerEntity
                 {
                     object_id: doc.id,
                     version:doc.version,
@@ -57,11 +57,9 @@ pub async fn get_towers_from_db_by_world(
                     cooldown: doc.cooldown,
                     event_id: doc.event_id,
                     faction:get_faction_code(&doc.faction),
-                    total_damage: 0,
                     damage_received_in_event: record,
                 };
 
-                tower.total_damage = tower.calculate_total_damage();
                 println!("-------Add tower {}", tower.tetrahedron_id);
                 count += 1;
                 data.insert(tower.tetrahedron_id.clone(), tower);

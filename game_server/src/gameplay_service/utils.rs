@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::map_entity::{MapEntity, MapCommand}, ServerState, tower::tower_entity::TowerEntity};
+use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::map_entity::{MapEntity, MapCommand}, ServerState, tower::{tower_entity::TowerEntity, TowerCommand}};
 
 
 pub fn update_character_entity(
@@ -105,7 +105,28 @@ pub fn get_tile_commands_to_execute(current_time : u64, delayed_tile_commands_gu
     let mut items_to_execute = Vec::<MapCommand>::new();
     // let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
 
-    delayed_tile_commands_guard.retain(|b| {
+    delayed_tile_commands_guard.retain(|b| 
+    {
+        let should_execute = b.0 <= current_time;
+        // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+        if should_execute
+        {
+            items_to_execute.push(b.1.clone());
+        }
+
+        !should_execute // we keep items that we didn't execute
+    });
+
+    items_to_execute
+}
+
+pub fn get_tower_commands_to_execute(current_time : u64, delayed_tower_commands_guard : &mut Vec<(u64, TowerCommand)>) -> Vec<TowerCommand>
+{
+    let mut items_to_execute = Vec::<TowerCommand>::new();
+    // let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+
+    delayed_tower_commands_guard.retain(|b| 
+        {
         let should_execute = b.0 <= current_time;
         // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute

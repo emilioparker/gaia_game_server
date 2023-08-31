@@ -15,11 +15,12 @@ use crate::tower::tower_entity::TowerEntity;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 
-use self::utils::{get_tile_commands_to_execute, get_player_commands_to_execute, report_tower_process_capacity};
+use self::utils::{get_tile_commands_to_execute, get_player_commands_to_execute, report_tower_process_capacity, get_tower_commands_to_execute};
 pub mod data_packer;
 pub mod utils;
 pub mod player_commands_processor;
 pub mod tile_commands_processor;
+pub mod tower_commands_processor;
 
 pub enum DataType
 {
@@ -82,6 +83,10 @@ pub fn start_service(
     let delayed_player_commands_mutex = Arc::new(Mutex::new(delayed_player_commands));
     let delayed_player_commands_lock = delayed_player_commands_mutex.clone();
 
+    //delayed commands for attacks so they struck a bit later.
+    let delayed_tower_commands = Vec::<(u64, TowerCommand)>::new();
+    let delayed_tower_commands_mutex = Arc::new(Mutex::new(delayed_tower_commands));
+    let delayed_tower_commands_lock = delayed_tower_commands_mutex.clone();
 
     let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
 
@@ -233,85 +238,32 @@ pub fn start_service(
                 &mut tile_attacks_summary,
                 delayed_tile_commands_lock.clone()).await;
 
-            // process tower stuff.
-            let mut tower_commands_data = tower_commands_processor_lock.lock().await;
-            // println!("tower commands len {}", tower_commands_data.len());
-            if tower_commands_data.len() > 0 
-            {
-                for tower_command in tower_commands_data.iter()
-                {
-                    // let cloned_data = tower_command.to_owned();
-                    let mut towers = map.towers.lock().await;
-                    println!("towers count {}", towers.len());
-                    let tower_option = towers.get_mut(&tower_command.id);
+            let mut delayed_tower_commands_guard = delayed_tower_commands_lock.lock().await;
+            let delayed_tower_commands_to_execute = get_tower_commands_to_execute(current_time_in_millis, &mut delayed_tower_commands_guard);
+            drop(delayed_tower_commands_guard);
 
+            tower_commands_processor::process_delayed_tower_commands(
+                map.clone(),
+                server_state.clone(),
+                &tx_te_gameplay_longterm,
+                // &tx_te_gameplay_webservice,
+                // &tx_pe_gameplay_longterm,
+                &mut towers_summary,
+                &mut players_summary,
+                &mut players_rewards_summary,
+                delayed_tower_commands_to_execute).await;
 
-                    if let Some(tower) = tower_option
-                    {
-                        match &tower_command.info 
-                        {
-                            TowerCommandInfo::Touch() => todo!(),
-                            TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
-                            {
-                                let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
-                                let current_time_in_seconds = current_time.as_secs() as u32;
+            tower_commands_processor::process_tower_commands(
+                map.clone(),
+                server_state.clone(),
+                tower_commands_processor_lock.clone(),
+                &tx_te_gameplay_longterm,
+                // &tx_te_gameplay_webservice,
+                // &tx_pe_gameplay_longterm,
+                &mut towers_summary,
+                &mut player_attacks_summary,
+                delayed_tower_commands_lock.clone()).await;
 
-                                if tower.cooldown < current_time_in_seconds
-                                {
-                                    let attack = CharacterAttack
-                                    {
-                                        player_id: *player_id,
-                                        target_player_id: 0,
-                                        damage: 2,
-                                        skill_id: 0,
-                                        target_tile_id: tower_command.id.clone(),
-                                    };
-                                    player_attacks_summary.push(attack);
-
-                                    println!("Got a tower attack");
-                                    let mut updated_tower = tower.clone();
-                                    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-                                    let player_option = player_entities.get_mut(&player_id);
-                                    if let Some(player_entity) = player_option 
-                                    {
-                                        updated_tower.add_damage_record(player_entity.faction, updated_tower.event_id, *damage);
-                                    }
-                                    drop(player_entities);
-
-                                    if updated_tower.total_damage > 600 
-                                    {
-                                        // you defeated the tower!
-                                        updated_tower.finish_event();
-                                    }
-
-                                    updated_tower.version += 1;
-
-                                    report_tower_process_capacity(&tx_te_gameplay_longterm, server_state.clone());
-
-                                    // sending the updated tile somewhere.
-                                    tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
-                                    // tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
-                                    towers_summary.push(updated_tower.clone());
-                                    *tower = updated_tower;
-                                }
-                                else
-                                {
-                                    println!("Tower is in cool down");
-                                }
-
-                                // println!("Got a tower attack towers {}", map.to);
-                            },
-                        }
-                    }
-                    else
-                    {
-                        println!("tower not found with id {}", tower_command.id);
-                    }
-
-                }
-            }
-            tower_commands_data.clear();
-            drop(tower_commands_data);
 
             // println!("tiles summary {} ", tiles_summary.len());
 

@@ -18,6 +18,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::character::character_entity::InventoryItem;
+use crate::tower::tower_entity::TowerEntity;
 
 pub mod characters;
 pub mod map;
@@ -25,7 +26,8 @@ pub mod towers;
 
 
 #[derive(Deserialize, Serialize, Debug)]
-struct SellItemRequest {
+struct SellItemRequest 
+{
     player_token: String,
     character_id:u16,
     old_item_id:u32,
@@ -33,13 +35,15 @@ struct SellItemRequest {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct SellItemResponse {
+struct SellItemResponse 
+{
     new_item_id:u32,
     amount:u16,
 }
 
 #[derive(Clone)]
-pub struct AppContext {
+pub struct AppContext 
+{
     last_presentation_update: Arc<AtomicU64>,
     presentation_data: Arc<Mutex<HashMap<u16, [u8;22]>>>,
     compressed_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
@@ -47,10 +51,12 @@ pub struct AppContext {
     storage_game_map : Arc<GameMap>,
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
-    temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>
+    temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
+    // temp_towers : Arc::<HashMap::<TetrahedronId, Arc<Mutex<Vec<TowerEntity>>>>>
 }
 
-async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> {
+async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+{
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: SellItemRequest = serde_json::from_slice(&data).unwrap();

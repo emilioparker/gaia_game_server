@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const TOWER_ENTITY_SIZE: usize = 67; // 13  + 50 bytes for the damage
+pub const TOWER_ENTITY_SIZE: usize = 65; // 10  + 50 bytes for the damage
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
 
 #[derive(Debug)]
@@ -17,7 +17,6 @@ pub struct TowerEntity
     pub cooldown : u32,// 4 bytes
     pub event_id:u16,
     pub faction:u8,
-    pub total_damage:u16,
     pub damage_received_in_event : Vec<DamageByFaction>,// this one is not serializable  normally
 }
 
@@ -87,11 +86,6 @@ impl TowerEntity
         buffer[offset] = self.faction;
         offset = end;
 
-        end = offset + 2;
-        let total_damage_bytes = u16::to_le_bytes(self.total_damage); // 2 bytes
-        buffer[offset..end].copy_from_slice(&total_damage_bytes);
-        offset = end;
-
         let mut count = 0;
         for item in &self.damage_received_in_event 
         {
@@ -120,27 +114,25 @@ impl TowerEntity
         buffer
     }
 
-    pub fn add_damage_record(&mut self, faction : u8, event_id:u16, amount : u16)
+    pub fn add_damage_record(&mut self, faction : u8, event_id:u16, amount : u16) -> u16
     {
         if self.faction == faction 
         {
-            return;
+            return 0;
         }
 
-        let mut found = false;
-        for item in &mut self.damage_received_in_event {
+        for item in &mut self.damage_received_in_event 
+        {
             if item.faction == faction && item.event_id == event_id
             {
                 item.amount = item.amount.saturating_add(amount);
-                found = true;
+                // it should be only one item
+                return item.amount;
             }
         }
 
-        if !found {
-            self.damage_received_in_event.push(DamageByFaction { event_id, faction, amount});
-        }
-
-        self.total_damage = self.calculate_total_damage();
+        self.damage_received_in_event.push(DamageByFaction { event_id, faction, amount});
+        return amount;
     }
 
     pub fn get_damage_by_faction(&self, faction : u8) -> u16
@@ -192,7 +184,6 @@ impl TowerEntity
         }
 
         self.damage_received_in_event.clear();
-        self.total_damage = 0;
     }
 }
 
@@ -215,7 +206,6 @@ mod tests {
             version: 0,
             event_id: 1,
             faction: 0,
-            total_damage: 0,
             damage_received_in_event: Vec::new()
         };
 
@@ -238,7 +228,6 @@ mod tests {
             version: 0,
             event_id: 0,
             faction: 0,
-            total_damage: 0,
             damage_received_in_event: Vec::new(),
         };
 
@@ -247,7 +236,6 @@ mod tests {
         entity.add_damage_record(1, 0, 5);
 
         assert!(entity.damage_received_in_event.len() == 2);
-        assert!(entity.total_damage == 27);
 
         let damage = entity.get_damage_by_faction(1);
         assert_eq!(damage, 17);
