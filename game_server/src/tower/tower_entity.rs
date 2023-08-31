@@ -135,6 +135,22 @@ impl TowerEntity
         return amount;
     }
 
+    pub fn repair_damage(&mut self, faction : u8, event_id:u16, amount : u16)
+    {
+        if self.faction != faction 
+        {
+            return;
+        }
+
+        for item in &mut self.damage_received_in_event 
+        {
+            if item.faction != faction && item.event_id == event_id
+            {
+                item.amount = item.amount.saturating_sub(amount);
+            }
+        }
+    }
+
     pub fn get_damage_by_faction(&self, faction : u8) -> u16
     {
         let mut total_damage : u16 = 0;

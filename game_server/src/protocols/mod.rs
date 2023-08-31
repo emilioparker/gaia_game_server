@@ -11,6 +11,7 @@ pub mod claim_mob_ownership;
 pub mod attack_mob_protocol;
 pub mod missing_packages_protocol;
 pub mod attack_tower_protocol;
+pub mod repair_tower_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -42,6 +43,7 @@ pub enum Protocol
     AttackMob = 12,
     MissingPackets = 13,
     AttackTower = 14,
+    RepairTower = 15,
 }
     
 pub async fn route_packet(
@@ -115,6 +117,11 @@ pub async fn route_packet(
             let capacity = channel_tower_tx.capacity();
             server_state.tx_tc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             attack_tower_protocol::process(socket, data, channel_tower_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
+            let capacity = channel_tower_tx.capacity();
+            server_state.tx_tc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            repair_tower_protocol::process(socket, data, channel_tower_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

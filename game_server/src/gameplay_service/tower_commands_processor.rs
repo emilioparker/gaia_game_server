@@ -31,6 +31,19 @@ pub async fn process_tower_commands (
                 match &tower_command.info 
                 {
                     TowerCommandInfo::Touch() => todo!(),
+                    TowerCommandInfo::RepairTower(player_id, repair_amount) => 
+                    {
+                        let mut updated_tower = tower.clone();
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                        // we won't update the player, but might do it eventually. So I am paying the cost already.
+                        let player_option = player_entities.get_mut(&player_id);
+                        if let Some(player_entity) = player_option 
+                        {
+                            updated_tower.repair_damage(player_entity.faction, updated_tower.event_id, *repair_amount);
+                        }
+
+                        drop(player_entities);
+                    },
                     TowerCommandInfo::AttackTower(player_id, damage, required_time) => 
                     {
                         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
@@ -100,6 +113,10 @@ pub async fn process_delayed_tower_commands (
                 match &tower_command.info 
                 {
                     TowerCommandInfo::Touch() => todo!(),
+                    TowerCommandInfo::RepairTower(_player_id, _repair_amount) => 
+                    {
+                        // repair should not be a delayed command.
+                    },
                     TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
                     {
                         println!("Got a tower attack");

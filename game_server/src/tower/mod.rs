@@ -6,7 +6,8 @@ pub mod tower_entity;
 pub enum TowerCommandInfo 
 {
     Touch(),
-    AttackTower(u16,u16, u32), // faction might be unnecessary
+    AttackTower(u16,u16, u32),
+    RepairTower(u16,u16),
 }
 
 #[derive(Debug, Clone)]
