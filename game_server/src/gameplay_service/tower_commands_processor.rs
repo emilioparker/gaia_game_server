@@ -8,7 +8,7 @@ pub async fn process_tower_commands (
     server_state: Arc<ServerState>,
     tower_commands_processor_lock : Arc<Mutex<Vec<TowerCommand>>>,
     tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    // tx_te_gameplay_webservice : &Sender<TowerEntity>,
+    tx_te_gameplay_webservice : &Sender<TowerEntity>,
     towers_summary : &mut Vec<TowerEntity>,
     player_attacks_summary : &mut  Vec<CharacterAttack>,
     delayed_tower_commands_lock : Arc<Mutex<Vec<(u64, TowerCommand)>>>
@@ -93,7 +93,7 @@ pub async fn process_delayed_tower_commands (
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    // tx_te_gameplay_webservice : &Sender<MapEntity>,
+    tx_te_gameplay_webservice : &Sender<TowerEntity>,
     // tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     towers_summary : &mut Vec<TowerEntity>,
     players_summary : &mut Vec<CharacterEntity>,
@@ -146,7 +146,7 @@ pub async fn process_delayed_tower_commands (
 
                         // sending the updated tile somewhere.
                         tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
-                        // tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+                        tx_te_gameplay_webservice.send(updated_tower.clone()).await.unwrap();
                         towers_summary.push(updated_tower.clone());
                         *tower = updated_tower;
                     }

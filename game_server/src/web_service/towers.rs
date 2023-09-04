@@ -3,6 +3,8 @@ use hyper::{Response, Body};
 
 use crate::{long_term_storage_service::db_tower::StoredTower, tower::tower_entity::{TowerEntity, DamageByFaction}, get_faction_code, map::tetrahedron_id::TetrahedronId};
 
+use super::AppContext;
+
 
 
 pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hyper::Request<hyper::Body>) -> Result<hyper::Response<hyper::Body>, hyper::http::Error> 
@@ -55,6 +57,24 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
     }
     println!("----- towers {}", towers_count);
 
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(binary_data))
+        .expect("Failed to create response");
+    Ok(response)
+}
+
+pub async fn handle_temp_tower_request(context: AppContext) -> Result<Response<Body>, hyper::http::Error>
+{
+    println!("request temp towers");
+    let mut binary_data = Vec::<u8>::new();
+    let temp_towers = context.temp_towers.lock().await;
+    let size = temp_towers.0;
+    println!("request temp towers {}", size);
+    binary_data.extend_from_slice(&temp_towers.1[..size]);
+
+    println!("sending data back");
     let response = Response::builder()
         .status(hyper::StatusCode::OK)
         .header("Content-Type", "application/octet-stream")

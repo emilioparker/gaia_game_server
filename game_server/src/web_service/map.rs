@@ -2,6 +2,8 @@ use hyper::{Body, Response, http::Error};
 use crate::{long_term_storage_service::db_region::StoredRegion, map::tetrahedron_id::TetrahedronId};
 use super::AppContext;
 
+
+// why would I grab it from the database if I can grab it from ram ?? LIke the temp regions.
 pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
 
     let mut iterator = data.into_iter();

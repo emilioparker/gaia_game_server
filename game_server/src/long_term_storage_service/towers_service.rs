@@ -19,7 +19,9 @@ use super::db_tower::StoredTower;
 pub async fn get_towers_from_db_by_world(
     world_id : Option<ObjectId>,
     db_client : Client
-) -> HashMap<TetrahedronId, TowerEntity> {
+) 
+-> HashMap<TetrahedronId, TowerEntity>
+{
     println!("get towers from db using {:?}", world_id);
 
     let mut data = HashMap::<TetrahedronId, TowerEntity>::new();
@@ -110,8 +112,11 @@ pub async fn preload_db(
 pub fn start_server(
     mut rx_te_realtime_longterm : Receiver<TowerEntity>,
     map : Arc<GameMap>,
-    db_client : Client){
+    db_client : Client)
+    -> Receiver<bool>
+    {
 
+    let (tx_te_saved_longterm_webservice, rx_te_saved_longterm_webservice) = tokio::sync::mpsc::channel::<bool>(10);
     let modified_towers = HashSet::<TetrahedronId>::new();
     let modified_towers_reference = Arc::new(Mutex::new(modified_towers));
 
@@ -122,7 +127,7 @@ pub fn start_server(
     let map_updater = map.clone();
 
 
-    // we keep track of which players have change in a hashset
+    // we keep track of which towers have change in a hashset
     // we also save the changed players
     tokio::spawn(async move {
         loop {
@@ -193,10 +198,13 @@ pub fn start_server(
                     None
                 ).await;
 
+
                 println!("updated tower result {:?}", update_result);
             }
+            let _result = tx_te_saved_longterm_webservice.send(true).await;
         }
     });
+    rx_te_saved_longterm_webservice
 }
 
 

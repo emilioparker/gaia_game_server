@@ -146,7 +146,9 @@ pub fn start_server(
     mut rx_me_realtime_longterm : Receiver<MapEntity>,
     map : Arc<GameMap>,
     db_client : Client
-) -> Receiver<u32> {
+) 
+-> Receiver<u32>
+{
     let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = tokio::sync::mpsc::channel::<u32>(10);
     let modified_regions = HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));

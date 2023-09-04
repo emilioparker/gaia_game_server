@@ -123,6 +123,7 @@ async fn main() {
                 rx_me_gameplay_webservice,
                 rx_pe_gameplay_longterm,
                 rx_te_gameplay_longterm,
+                rx_te_gameplay_webservice,
                 _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
@@ -133,7 +134,7 @@ async fn main() {
                 tx_bytes_gameplay_socket);
 
             // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
-            let rx_saved_longterm_web_service = long_term_storage_service::world_service::start_server(
+            let rx_me_saved_longterm_web= long_term_storage_service::world_service::start_server(
                 rx_me_gameplay_longterm,
                 storage_game_map_reference.clone(), 
                 db_client.clone()
@@ -146,7 +147,7 @@ async fn main() {
             );
 
             // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
-            long_term_storage_service::towers_service::start_server(
+            let rx_te_saved_longterm_web = long_term_storage_service::towers_service::start_server(
                 rx_te_gameplay_longterm,
                 storage_game_map_reference.clone(), 
                 db_client.clone()
@@ -158,7 +159,9 @@ async fn main() {
                 db_client.clone(),
                 rx_me_gameplay_webservice,
                 // tx_mc_webservice_gameplay,
-                rx_saved_longterm_web_service,
+                rx_te_gameplay_webservice,
+                rx_me_saved_longterm_web,
+                rx_te_saved_longterm_web,
             );
         // ---------------------------------------------------
         },

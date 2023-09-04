@@ -18,7 +18,8 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::character::character_entity::InventoryItem;
-use crate::tower::tower_entity::TowerEntity;
+use crate::tower;
+use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 
 pub mod characters;
 pub mod map;
@@ -52,7 +53,7 @@ pub struct AppContext
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
-    // temp_towers : Arc::<HashMap::<TetrahedronId, Arc<Mutex<Vec<TowerEntity>>>>>
+    temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>
 }
 
 async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
@@ -122,6 +123,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "character_creation" => characters::handle_create_character(context, req).await,
             "join_with_character" => characters::handle_login_character(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
+            "temp_towers" => towers::handle_temp_tower_request(context).await,
             "sell_item" => handle_sell_item(context, req).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));
@@ -155,10 +157,14 @@ pub fn start_server(
     storage_map: Arc<GameMap>, 
     db_client : mongodb :: Client,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
+    mut rx_te_realtime_webservice : Receiver<TowerEntity>,
     // tx_mc_webservice_gameplay : Sender<MapCommand>,
-    mut rx_saved_longterm_webservice : Receiver<u32>)
+    mut rx_saved_me_longterm_webservice : Receiver<u32>,
+    mut rx_saved_te_longterm_webservice : Receiver<bool>,
+)
     {
 
+    // temp tiles
     let regions = crate::map::get_region_ids(2);
     let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
 
@@ -173,6 +179,10 @@ pub fn start_server(
     let regions_cleaner_reference = regions_adder_reference.clone();
     let regions_reader_reference = regions_adder_reference.clone();
 
+    let towers = (0, [0; 100000]);
+    let towers_adder_reference= Arc::new(Mutex::new(towers));
+    let towers_cleaner_reference = towers_adder_reference.clone();
+    let towers_reader_reference = towers_adder_reference.clone();
 
     let context = AppContext 
     {
@@ -183,7 +193,8 @@ pub fn start_server(
         db_client : db_client,
         last_presentation_update: Arc::new(AtomicU64::new(0)),
         compressed_presentation_data: Arc::new(Mutex::new(Vec::new())),
-        temp_regions : regions_reader_reference
+        temp_regions : regions_reader_reference,
+        temp_towers : towers_reader_reference
     };
 
     tokio::spawn(async move {
@@ -242,8 +253,9 @@ pub fn start_server(
 
     tokio::spawn(async move {
         let regions = crate::map::get_region_ids(2);
-        loop {
-            let _message = rx_saved_longterm_webservice.recv().await.unwrap();
+        loop 
+        {
+            let _message = rx_saved_me_longterm_webservice.recv().await.unwrap();
 
             for region_id in &regions
             {
@@ -252,6 +264,38 @@ pub fn start_server(
                 region_map_lock.index = 0;
                 region_map_lock.tile_to_index.clear();
             }
+        }
+    });
+
+
+    // towers
+    tokio::spawn(async move 
+    {
+        loop 
+        {
+            let message = rx_te_realtime_webservice.recv().await.unwrap();
+            let mut towers = towers_adder_reference.lock().await;
+            let index = towers.0;
+            if index + TOWER_ENTITY_SIZE < 100000 
+            {
+                towers.1[index .. index + TOWER_ENTITY_SIZE].copy_from_slice(&message.to_bytes());
+                towers.0 = index + TOWER_ENTITY_SIZE;
+            }
+            else
+            {
+                println!("tower temp buffer max size reached");
+            }
+        }
+    });
+
+    tokio::spawn(async move {
+        loop 
+        {
+            // a message here means that all towers have been saved to disk.
+            let message = rx_saved_te_longterm_webservice.recv().await.unwrap();
+
+            let mut towers = towers_cleaner_reference.lock().await;
+            towers.0 = 0;
         }
     });
 }

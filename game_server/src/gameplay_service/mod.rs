@@ -42,14 +42,15 @@ pub fn start_service(
     server_state: Arc<ServerState>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, Vec<u8>)>>
 ) 
--> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Receiver<TowerEntity>, Sender<MapCommand>) 
+-> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Receiver<TowerEntity>, Receiver<TowerEntity>, Sender<MapCommand>) 
 {
 
     let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<CharacterEntity>(1000);
-    let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(1000);
+    let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(100);
+    let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = tokio::sync::mpsc::channel::<TowerEntity>(100);
 
     //players
     //player commands -------------------------------------
@@ -246,7 +247,7 @@ pub fn start_service(
                 map.clone(),
                 server_state.clone(),
                 &tx_te_gameplay_longterm,
-                // &tx_te_gameplay_webservice,
+                &tx_te_gameplay_webservice,
                 // &tx_pe_gameplay_longterm,
                 &mut towers_summary,
                 &mut players_summary,
@@ -258,7 +259,7 @@ pub fn start_service(
                 server_state.clone(),
                 tower_commands_processor_lock.clone(),
                 &tx_te_gameplay_longterm,
-                // &tx_te_gameplay_webservice,
+                &tx_te_gameplay_webservice,
                 // &tx_pe_gameplay_longterm,
                 &mut towers_summary,
                 &mut player_attacks_summary,
@@ -319,5 +320,5 @@ pub fn start_service(
         }
     });
 
-    (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, rx_te_gameplay_longterm, tx_mc_webservice_gameplay)
+    (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, rx_te_gameplay_longterm, rx_te_gameplay_webservice, tx_mc_webservice_gameplay)
 }
