@@ -13,6 +13,8 @@ use crate::character::character_command::CharacterCommand;
 use crate::character::character_entity::CharacterEntity;
 use crate::character::character_presentation::CharacterPresentation;
 use crate::character::character_reward::CharacterReward;
+use crate::chat::ChatCommand;
+use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tile_attack::TileAttack;
@@ -31,6 +33,7 @@ pub enum StateUpdate
     TowerState(TowerEntity),
     PlayerAttackState(CharacterAttack),
     TileAttackState(TileAttack),
+    ChatMessage(ChatEntry),
 }
 
 pub async fn spawn_client_process(
@@ -44,6 +47,7 @@ pub async fn spawn_client_process(
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_action_tx : mpsc::Sender<CharacterCommand>,
     channel_tower_action_tx : mpsc::Sender<TowerCommand>,
+    channel_chat_action_tx : mpsc::Sender<ChatCommand>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508])
 {
@@ -68,6 +72,7 @@ pub async fn spawn_client_process(
             &channel_action_tx, 
             &channel_map_action_tx,
             &channel_tower_action_tx,
+            &channel_chat_action_tx,
         ).await;
 
         let mut child_buff = [0u8; 508];
@@ -91,6 +96,7 @@ pub async fn spawn_client_process(
                                 &channel_action_tx, 
                                 &channel_map_action_tx,
                                 &channel_tower_action_tx,
+                                &channel_chat_action_tx,
                             ).await;
                         }
                         Err(error) => {

@@ -32,6 +32,7 @@ async fn main() {
         tx_mc_client_gameplay: AtomicUsize::new(0),
         tx_pc_client_gameplay: AtomicUsize::new(0),
         tx_tc_client_gameplay: AtomicUsize::new(0),
+        tx_cc_client_gameplay: AtomicUsize::new(0),
         tx_bytes_gameplay_socket: AtomicUsize::new(0),
         tx_me_gameplay_longterm:AtomicUsize::new(0),
         tx_me_gameplay_webservice:AtomicUsize::new(0),
@@ -110,10 +111,10 @@ async fn main() {
             let working_game_map_reference= Arc::new(working_game_map);
             let storage_game_map_reference= Arc::new(storage_game_map);
 
-
             let (rx_mc_client_gameplay,
                 rx_pc_client_gameplay, 
                 rx_tc_client_gameplay ,
+                rx_cc_client_gameplay ,
                 tx_bytes_gameplay_socket 
             ) =  real_time_service::start_server(
                 working_game_map_reference.clone(), 
@@ -129,6 +130,7 @@ async fn main() {
                 rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
                 rx_tc_client_gameplay,
+                rx_cc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),
                 tx_bytes_gameplay_socket);

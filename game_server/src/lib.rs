@@ -8,12 +8,14 @@ pub mod web_service;
 pub mod real_time_service;
 pub mod long_term_storage_service;
 pub mod tower;
+pub mod chat;
 
 #[derive(Debug)]
 pub struct ServerState {
     pub tx_mc_client_gameplay: AtomicUsize,
     pub tx_pc_client_gameplay: AtomicUsize,
     pub tx_tc_client_gameplay: AtomicUsize,
+    pub tx_cc_client_gameplay: AtomicUsize,
     pub tx_bytes_gameplay_socket: AtomicUsize,
     pub tx_me_gameplay_longterm:AtomicUsize,
     pub tx_me_gameplay_webservice:AtomicUsize,

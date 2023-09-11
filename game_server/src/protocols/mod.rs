@@ -12,6 +12,7 @@ pub mod attack_mob_protocol;
 pub mod missing_packages_protocol;
 pub mod attack_tower_protocol;
 pub mod repair_tower_protocol;
+pub mod chat_message_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,6 +22,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
 use crate::ServerState;
+use crate::chat::ChatCommand;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::character::character_command::CharacterCommand;
@@ -44,6 +46,7 @@ pub enum Protocol
     MissingPackets = 13,
     AttackTower = 14,
     RepairTower = 15,
+    ChatMessage = 16,
 }
     
 pub async fn route_packet(
@@ -55,7 +58,8 @@ pub async fn route_packet(
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     channel_tx : &Sender<CharacterCommand>,
     channel_map_tx : &Sender<MapCommand>,
-    channel_tower_tx : &Sender<TowerCommand>
+    channel_tower_tx : &Sender<TowerCommand>,
+    channel_chat_tx : &Sender<ChatCommand>
 ){
 
     match data.get(0) {
@@ -122,6 +126,16 @@ pub async fn route_packet(
             let capacity = channel_tower_tx.capacity();
             server_state.tx_tc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
             repair_tower_protocol::process(socket, data, channel_tower_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
+            let capacity = channel_tower_tx.capacity();
+            server_state.tx_tc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            repair_tower_protocol::process(socket, data, channel_tower_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::ChatMessage as u8 => {
+            let capacity = channel_chat_tx.capacity();
+            server_state.tx_cc_client_gameplay.store(capacity, std::sync::atomic::Ordering::Relaxed);
+            chat_message_protocol::process(socket, data, channel_chat_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

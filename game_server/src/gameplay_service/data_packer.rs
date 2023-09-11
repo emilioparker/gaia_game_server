@@ -2,6 +2,7 @@ use crate::character::character_attack::CHARACTER_ATTACK_SIZE;
 use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
 use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
 use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
+use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
 use crate::gameplay_service::DataType;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
 use crate::map::tile_attack::TILE_ATTACK_SIZE;
@@ -49,7 +50,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     // println!("data to send {}" , data.len());
     for state_update in data.iter()
     {
-        let required_space = match state_update{
+        let required_space = match state_update
+        {
             StateUpdate::PlayerState(_) => CHARACTER_ENTITY_SIZE as u32 + 1,
             StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
             StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
@@ -57,6 +59,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 + 1,
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 + 1,
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
+            StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -172,6 +175,18 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + TOWER_ENTITY_SIZE;
                 buffer[start..next].copy_from_slice(&tower_bytes);
                 stored_bytes = stored_bytes +  TOWER_ENTITY_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::ChatMessage(message) => 
+            {
+                buffer[start] = DataType::ChatMessage as u8;
+                start += 1;
+
+                let message_bytes = message.to_bytes(); //63
+                let next = start + CHAT_ENTRY_SIZE;
+                buffer[start..next].copy_from_slice(&message_bytes);
+                stored_bytes = stored_bytes +  CHAT_ENTRY_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

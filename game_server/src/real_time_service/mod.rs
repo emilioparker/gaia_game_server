@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::collections::HashMap;
 use crate::ServerState;
+use crate::chat::ChatCommand;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::character::character_command::CharacterCommand;
@@ -16,12 +17,13 @@ use tokio::sync::mpsc::{Receiver, Sender};
 pub fn start_server(
     map : Arc<GameMap>,
     server_state: Arc<ServerState>
-) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Receiver<TowerCommand>, Sender<Vec<(u64,Vec<u8>)>>) 
+) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Receiver<TowerCommand>, Receiver<ChatCommand>, Sender<Vec<(u64,Vec<u8>)>>) 
 {
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64,Vec<u8>)>>(200);
     let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
     let (tx_tc_client_statesys, rx_tc_client_statesys) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
+    let (tx_cc_client_statesys, rx_cc_client_statesys) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
 
     let client_connections:HashMap<std::net::SocketAddr, u16> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
@@ -193,6 +195,7 @@ pub fn start_server(
                                     tx_mc_client_statesys.clone(), 
                                     tx_pc_client_statesys.clone(), 
                                     tx_tc_client_statesys.clone(), 
+                                    tx_cc_client_statesys.clone(), 
                                     updater_shared_player_missing_packets.clone(),
                                     buf_udp,
                                 ).await;
@@ -230,7 +233,7 @@ pub fn start_server(
         }   
     });
 
-    (rx_mc_client_statesys, rx_pc_client_statesys, rx_tc_client_statesys, tx_bytes_statesys_socket)
+    (rx_mc_client_statesys, rx_pc_client_statesys, rx_tc_client_statesys, rx_cc_client_statesys, tx_bytes_statesys_socket)
 }
 
 
