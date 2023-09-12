@@ -125,6 +125,7 @@ async fn main() {
                 rx_pe_gameplay_longterm,
                 rx_te_gameplay_longterm,
                 rx_te_gameplay_webservice,
+                rx_ce_gameplay_webservice,
                 _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
@@ -162,6 +163,7 @@ async fn main() {
                 rx_me_gameplay_webservice,
                 // tx_mc_webservice_gameplay,
                 rx_te_gameplay_webservice,
+                rx_ce_gameplay_webservice,
                 rx_me_saved_longterm_web,
                 rx_te_saved_longterm_web,
             );

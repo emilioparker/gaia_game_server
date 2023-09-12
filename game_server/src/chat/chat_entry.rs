@@ -1,13 +1,14 @@
 
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const CHAT_ENTRY_SIZE: usize = 410;
+pub const CHAT_ENTRY_SIZE: usize = 414;
 
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct ChatEntry 
 {
     pub tetrahedron_id : TetrahedronId, // 6 bytes
+    pub timestamp : u32,
     pub faction: u8,
     pub player_id: u16, // 2 bytes
     pub message_length:u8, // 1 bytes
@@ -25,6 +26,11 @@ impl ChatEntry
         end = offset + 6;
         let tile_id = self.tetrahedron_id.to_bytes(); // 6 bytes
         buffer[offset..end].copy_from_slice(&tile_id);
+        offset = end;
+
+        end = offset + 4;
+        let timestamp_bytes = u32::to_le_bytes(self.timestamp);
+        buffer[offset..end].copy_from_slice(&timestamp_bytes);
         offset = end;
 
         end = offset + 2;

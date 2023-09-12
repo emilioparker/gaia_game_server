@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ServerState;
-use crate::character::character_attack::CharacterAttack;
 use crate::character::character_command::CharacterCommand;
 use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
@@ -12,12 +10,12 @@ use crate::character::character_entity::CharacterEntity;
 use crate::character::character_reward::CharacterReward;
 use crate::map::map_entity::MapEntity;
 use crate::real_time_service::client_handler::StateUpdate;
-use crate::tower::{TowerCommand, TowerCommandInfo};
+use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 
-use self::utils::{get_tile_commands_to_execute, get_player_commands_to_execute, report_tower_process_capacity, get_tower_commands_to_execute};
+use self::utils::{get_tile_commands_to_execute, get_player_commands_to_execute, get_tower_commands_to_execute};
 pub mod data_packer;
 pub mod utils;
 pub mod player_commands_processor;
@@ -47,7 +45,13 @@ pub fn start_service(
     server_state: Arc<ServerState>,
     tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, Vec<u8>)>>
 ) 
--> (Receiver<MapEntity>, Receiver<MapEntity>, Receiver<CharacterEntity>, Receiver<TowerEntity>, Receiver<TowerEntity>, Sender<MapCommand>) 
+-> (Receiver<MapEntity>, 
+    Receiver<MapEntity>, 
+    Receiver<CharacterEntity>, 
+    Receiver<TowerEntity>, 
+    Receiver<TowerEntity>, 
+    Receiver<ChatEntry>, 
+    Sender<MapCommand>) 
 {
 
     let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
@@ -56,6 +60,7 @@ pub fn start_service(
     let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<CharacterEntity>(1000);
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(100);
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = tokio::sync::mpsc::channel::<TowerEntity>(100);
+    let (tx_ce_gameplay_webservice, rx_ce_gameplay_webservice) = tokio::sync::mpsc::channel::<ChatEntry>(100);
 
     //players
     //player commands -------------------------------------
@@ -125,7 +130,8 @@ pub fn start_service(
     // task that gathers world changes comming from a client into a list.
     tokio::spawn(async move {
         // let mut sequence_number:u64 = 101;
-        loop {
+        loop 
+        {
             let message = rx_mc_client_game.recv().await.unwrap();
             // println!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_client_lock.lock().await;
@@ -133,10 +139,11 @@ pub fn start_service(
         }
     });
 
-    tokio::spawn(async move {
-
+    tokio::spawn(async move 
+    {
         // let mut sequence_number:u64 = 101;
-        loop {
+        loop
+        {
             let message = rx_tc_client_game.recv().await.unwrap();
             println!("got a tower change data {}", message.id);
             let mut data = tower_commands_agregator_from_client_lock.lock().await;
@@ -167,9 +174,11 @@ pub fn start_service(
     // });
 
     // task that will perdiodically send dta to all clients
-    tokio::spawn(async move {
+    tokio::spawn(async move 
+    {
         let mut packet_number = 1u64;
-        loop {
+        loop 
+        {
             // assuming 30 fps.
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
@@ -293,6 +302,7 @@ pub fn start_service(
                 map.clone(),
                 server_state.clone(),
                 chat_commands_processor_lock.clone(),
+                &tx_ce_gameplay_webservice,
                 &mut chat_summary,
                 ).await;
 
@@ -355,5 +365,5 @@ pub fn start_service(
         }
     });
 
-    (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, rx_te_gameplay_longterm, rx_te_gameplay_webservice, tx_mc_webservice_gameplay)
+    (rx_me_gameplay_longterm, rx_me_gameplay_webservice, rx_pe_gameplay_longterm, rx_te_gameplay_longterm, rx_te_gameplay_webservice, rx_ce_gameplay_webservice, tx_mc_webservice_gameplay)
 }

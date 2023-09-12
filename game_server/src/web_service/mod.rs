@@ -14,6 +14,7 @@ use std::net::SocketAddr;
 use hyper::{Body, Response, Server, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
+use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -24,6 +25,7 @@ use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 pub mod characters;
 pub mod map;
 pub mod towers;
+pub mod chat;
 
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -42,6 +44,13 @@ struct SellItemResponse
     amount:u16,
 }
 
+struct ChatStorage 
+{
+    index:usize,
+    count:usize,
+    record:[u8;CHAT_ENTRY_SIZE * 20]
+}
+
 #[derive(Clone)]
 pub struct AppContext 
 {
@@ -53,7 +62,8 @@ pub struct AppContext
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
-    temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>
+    temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>,
+    old_messages : Arc::<Mutex::<ChatStorage>>//index, offset, count, 20 messages
 }
 
 async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
@@ -69,7 +79,8 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
         // println!("selling player {:?}", player);
 
         // let mut updated_player_entity = player.clone();
-        let result = player.remove_inventory_item(InventoryItem{
+        let result = player.remove_inventory_item(InventoryItem
+        {
             item_id: data.old_item_id,
             level: 1,
             quality: 1,
@@ -125,6 +136,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             "sell_item" => handle_sell_item(context, req).await,
+            "chat_record" => chat::handle_chat_record_request(context).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));
                 *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
@@ -153,17 +165,17 @@ impl TempMapBuffer {
 }
 
 pub fn start_server(
-    working_map: Arc<GameMap>, 
-    storage_map: Arc<GameMap>, 
+    working_map: Arc<GameMap>,
+    storage_map: Arc<GameMap>,
     db_client : mongodb :: Client,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
+    mut rx_ce_realtime_webservice : Receiver<ChatEntry>,
     // tx_mc_webservice_gameplay : Sender<MapCommand>,
     mut rx_saved_me_longterm_webservice : Receiver<u32>,
     mut rx_saved_te_longterm_webservice : Receiver<bool>,
 )
-    {
-
+{
     // temp tiles
     let regions = crate::map::get_region_ids(2);
     let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
@@ -184,6 +196,10 @@ pub fn start_server(
     let towers_cleaner_reference = towers_adder_reference.clone();
     let towers_reader_reference = towers_adder_reference.clone();
 
+    let chat = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * 20] };
+    let chat_adder_reference= Arc::new(Mutex::new(chat));
+    let chat_reader_reference = chat_adder_reference.clone();
+
     let context = AppContext 
     {
         presentation_data : Arc::new(Mutex::new(HashMap::new())),
@@ -194,7 +210,8 @@ pub fn start_server(
         last_presentation_update: Arc::new(AtomicU64::new(0)),
         compressed_presentation_data: Arc::new(Mutex::new(Vec::new())),
         temp_regions : regions_reader_reference,
-        temp_towers : towers_reader_reference
+        temp_towers : towers_reader_reference,
+        old_messages : chat_reader_reference,
     };
 
     tokio::spawn(async move {
@@ -296,6 +313,27 @@ pub fn start_server(
 
             let mut towers = towers_cleaner_reference.lock().await;
             towers.0 = 0;
+        }
+    });
+
+    // we keep the last 20 messages just for fun
+    tokio::spawn(async move {
+        loop 
+        {
+            let message = rx_ce_realtime_webservice.recv().await.unwrap();
+            let message_bytes = message.to_bytes();
+            let mut chat = chat_adder_reference.lock().await;
+            let index = chat.index;
+
+            println!("chat index {index} {}", chat.count);
+
+            chat.count = usize::min(20, chat.count + 1);
+            chat.index = (index + 1) % 20;
+
+            let offset = index * CHAT_ENTRY_SIZE;
+            chat.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
+
+            println!("index {}", index)
         }
     });
 }

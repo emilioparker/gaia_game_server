@@ -100,7 +100,7 @@ pub fn start_server(
                                     if let Some((old_id, old_data)) = previous_packages.iter().find(|(id, _data)| packet_id == *id)
                                     {
                                         // sending missing data if found
-                                        println!("sending missing packet with id {packet_id}");
+                                        // println!("sending missing packet with id {packet_id}");
                                         let result = send_udp_socket.try_send_to(old_data, client.0.clone());
                                         match result {
                                             Ok(_) => {
