@@ -8,19 +8,20 @@ pub async fn process(
      data : &[u8; 508],
     channel_map_tx : &Sender<MapCommand>)
 {
-        let mut start : usize;
-        let mut end : usize;
+        let mut start = 1;
+        let mut end = start + 8;
+        let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
-        start = 1; // ignoring first byte
+        start = end;
         end = start + 2;
-        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
 
-        end = start + 8;
-        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
+        end = start + 1;
+        let faction = data[start];
 
         // current tile, it must be a mob
+        start = end;
         end = start + 6;
         let mut buffer = [0u8;6];
         buffer.copy_from_slice(&data[start..end]);

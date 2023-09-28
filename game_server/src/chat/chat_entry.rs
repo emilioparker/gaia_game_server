@@ -33,6 +33,7 @@ impl ChatEntry
         buffer[offset..end].copy_from_slice(&timestamp_bytes);
         offset = end;
 
+        println!("enconding chat entry player id {}", self.player_id);
         end = offset + 2;
         let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
         buffer[offset..end].copy_from_slice(&player_id_bytes);

@@ -9,6 +9,7 @@ pub mod real_time_service;
 pub mod long_term_storage_service;
 pub mod tower;
 pub mod chat;
+pub mod chat_service;
 
 #[derive(Debug)]
 pub struct ServerState {

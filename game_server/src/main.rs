@@ -6,6 +6,7 @@ use std::sync::atomic::AtomicUsize;
 
 use flate2::read::ZlibDecoder;
 use game_server::ServerState;
+use game_server::chat_service;
 use game_server::gameplay_service;
 use game_server::long_term_storage_service;
 use game_server::long_term_storage_service::db_region::StoredRegion;
@@ -125,12 +126,16 @@ async fn main() {
                 rx_pe_gameplay_longterm,
                 rx_te_gameplay_longterm,
                 rx_te_gameplay_webservice,
-                rx_ce_gameplay_webservice,
                 _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
                 rx_tc_client_gameplay,
+                working_game_map_reference.clone(), 
+                server_state.clone(),
+                tx_bytes_gameplay_socket.clone());
+                
+            let rx_ce_gameplay_webservice = chat_service::start_service(
                 rx_cc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),

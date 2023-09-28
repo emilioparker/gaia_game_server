@@ -27,6 +27,8 @@ pub mod map;
 pub mod towers;
 pub mod chat;
 
+pub const CHAT_STORAGE_SIZE: usize = 5;
+
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SellItemRequest 
@@ -48,7 +50,7 @@ struct ChatStorage
 {
     index:usize,
     count:usize,
-    record:[u8;CHAT_ENTRY_SIZE * 20]
+    record:[u8;CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE]
 }
 
 #[derive(Clone)]
@@ -63,7 +65,7 @@ pub struct AppContext
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
     temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>,
-    old_messages : Arc::<Mutex::<ChatStorage>>//index, offset, count, 20 messages
+    old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
 }
 
 async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
@@ -136,7 +138,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             "sell_item" => handle_sell_item(context, req).await,
-            "chat_record" => chat::handle_chat_record_request(context).await,
+            "chat_record" => chat::handle_chat_record_request(context, rest).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));
                 *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
@@ -196,8 +198,8 @@ pub fn start_server(
     let towers_cleaner_reference = towers_adder_reference.clone();
     let towers_reader_reference = towers_adder_reference.clone();
 
-    let chat = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * 20] };
-    let chat_adder_reference= Arc::new(Mutex::new(chat));
+    // let chat = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE] };
+    let chat_adder_reference= Arc::new(Mutex::new(HashMap::new()));
     let chat_reader_reference = chat_adder_reference.clone();
 
     let context = AppContext 
@@ -321,19 +323,28 @@ pub fn start_server(
         loop 
         {
             let message = rx_ce_realtime_webservice.recv().await.unwrap();
+
+
             let message_bytes = message.to_bytes();
             let mut chat = chat_adder_reference.lock().await;
-            let index = chat.index;
 
-            println!("chat index {index} {}", chat.count);
+            let message_faction = message.faction;
+            if !chat.contains_key(&message_faction)
+            {
+                let new_storage = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE] };
+                chat.insert(message_faction, new_storage);
+            }
 
-            chat.count = usize::min(20, chat.count + 1);
-            chat.index = (index + 1) % 20;
-
-            let offset = index * CHAT_ENTRY_SIZE;
-            chat.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
-
-            println!("index {}", index)
+            if let Some(messages) = chat.get_mut(&message_faction)
+            {
+                let index = messages.index;
+                println!("chat index {index} {}", messages.count);
+                messages.count = usize::min(CHAT_STORAGE_SIZE, messages.count + 1);
+                messages.index = (index + 1) % CHAT_STORAGE_SIZE;
+                let offset = index * CHAT_ENTRY_SIZE;
+                messages.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
+                println!("index {}", index)
+            }
         }
     });
 }

@@ -14,18 +14,36 @@ use crate::tower::TowerCommand;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
+pub enum DataType
+{
+    NoData = 25,
+    PlayerState = 26,
+    TileState = 27,
+    PlayerPresentation = 28,
+    PlayerAttack = 29,
+    PlayerReward = 30,
+    TileAttack = 31,
+    TowerState = 32,
+    ChatMessage = 33,
+}
+
 pub fn start_server(
     map : Arc<GameMap>,
     server_state: Arc<ServerState>
-) -> (Receiver<MapCommand>, Receiver<CharacterCommand>, Receiver<TowerCommand>, Receiver<ChatCommand>, Sender<Vec<(u64,Vec<u8>)>>) 
+) -> (
+    Receiver<MapCommand>,
+    Receiver<CharacterCommand>, 
+    Receiver<TowerCommand>, 
+    Receiver<ChatCommand>,
+    Sender<Vec<(u64,u8,Vec<u8>)>>) // packet number, faction, data
 {
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
-    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64,Vec<u8>)>>(200);
+    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(200);
     let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
     let (tx_tc_client_statesys, rx_tc_client_statesys) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
     let (tx_cc_client_statesys, rx_cc_client_statesys) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
 
-    let client_connections:HashMap<std::net::SocketAddr, u16> = HashMap::new();
+    let client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
     let server_lock = client_connections_mutex.clone();
@@ -35,7 +53,7 @@ pub fn start_server(
     let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
     let send_udp_socket = udp_socket.clone();
 
-    let mut previous_packages : VecDeque<(u64, Vec<u8>)> = VecDeque::new();
+    let mut previous_packages : VecDeque<(u64, u8, Vec<u8>)> = VecDeque::new();
 
     // let mut missing_packages_record = []
     let mut player_missing_packets = HashMap::<u16, [AtomicU64;10]>::new();
@@ -63,33 +81,43 @@ pub fn start_server(
     let executer_shared_player_missing_packets = shared_player_missing_packets.clone();
     let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
 
-    tokio::spawn(async move {
-
-        loop {
-            if let Some(packet_list) = rx_bytes_state_socket.recv().await {
+    tokio::spawn(async move 
+    {
+        loop 
+        {
+            // there are two sources of packets, chat and game. Each one has a differente packet id.
+            if let Some(packet_list) = rx_bytes_state_socket.recv().await 
+            {
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
-                    for (_packet_id, data) in packet_list.iter(){
+                    for (_packet_id, faction, data) in packet_list.iter()
+                    {
                         // println!("sending packet with id {packet_id}");
-                        if client.1 == &0u16 {
+                        if client.1.0 == 0u16 
+                        {
                             // let first_byte = packet[0]; // this is the protocol
                             // the packet is compress, I can't read the sequence number
                             // let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
                             // println!("sending {}", packet_sequence_number);
                         }
                         // todo: only send data if client is correctly validated, add state to clients_data
-                        let result = send_udp_socket.try_send_to(data, client.0.clone());
-                        match result {
-                            Ok(_) => {
-                                // println!("data sent to client {}", packet.len());
-                            },
-                            Err(_) => println!("error sending data through socket"),
+                        if client.1.1 == *faction || *faction == 0
+                        {
+                            let result = send_udp_socket.try_send_to(data, client.0.clone());
+                            match result 
+                            {
+                                Ok(_) => 
+                                {
+                                    // println!("data sent to client {}", packet.len());
+                                },
+                                Err(_) => println!("error sending data through socket"),
+                            }
                         }
 
                         // we will try to send missing packages.
 
-                        if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(client.1) 
+                        if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(&client.1.0) 
                         {
                             // this should never fail
                             for missing_packet in missing_packages_for_player
@@ -97,7 +125,7 @@ pub fn start_server(
                                 let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
                                 if packet_id != 0 
                                 {
-                                    if let Some((old_id, old_data)) = previous_packages.iter().find(|(id, _data)| packet_id == *id)
+                                    if let Some((old_id, _faction, old_data)) = previous_packages.iter().find(|(id, _faction, _data)| packet_id == *id)
                                     {
                                         // sending missing data if found
                                         // println!("sending missing packet with id {packet_id}");
@@ -117,10 +145,14 @@ pub fn start_server(
 
                 for packet in packet_list.into_iter()
                 {
-                    previous_packages.push_front(packet);
-                    if previous_packages.len() > 100
+                    // only global packets are stored. global is 0 in the faction field
+                    if packet.1 == 0 
                     {
-                        let _pop_result = previous_packages.pop_back();
+                        previous_packages.push_front(packet);
+                        if previous_packages.len() > 100
+                        {
+                            let _pop_result = previous_packages.pop_back();
+                        }
                     }
                 }
                 // println!("storing packages {}", previous_packages.len());
@@ -141,20 +173,26 @@ pub fn start_server(
             // tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
 
             tokio::select! {
-                result = socket_receive => {
-                    if let Ok((size, from_address)) = result {
+                result = socket_receive => 
+                {
+                    if let Ok((size, from_address)) = result 
+                    {
                         println!("Parent: {:?} bytes received from {}", size, from_address);
                         let mut clients_data = server_lock.lock().await;
                         if !clients_data.contains_key(&from_address)
                         {
                             // byte 0 is for the protocol, and we are sure the next 8 bytes are for the id.
                             let start = 1;
+                            let end = start + 8;
+                            let player_session_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
+
+                            let start = end;
                             let end = start + 2;
                             let player_id = u16::from_le_bytes(buf_udp[start..end].try_into().unwrap());
 
                             let start = end;
-                            let end = start + 8;
-                            let player_session_id = u64::from_le_bytes(buf_udp[start..end].try_into().unwrap());
+                            // let end = start + 1;
+                            let faction = buf_udp[start];
 
                             println!("--- create child for {} with session id {}", player_id, player_session_id);
                             // we need to create a struct that contains the tx and some client data that we can use to filter what we
@@ -179,7 +217,7 @@ pub fn start_server(
 
                             if session_id == player_session_id  && session_id != 0
                             {
-                                clients_data.insert(from_address, player_id);
+                                clients_data.insert(from_address, (player_id, faction));
                                 // each client can send a message to remove itself using tx,
                                 // each client can send actions to be processed using client_action_tx,
                                 // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
@@ -211,11 +249,12 @@ pub fn start_server(
                         }
                     }
                 }
-                Some((socket, active_session_id)) = rx_addr_client_realtime.recv() => {
+                Some((socket, active_session_id)) = rx_addr_client_realtime.recv() => 
+                {
                     println!("removing entry from hash set");
                     let mut clients_data = server_lock.lock().await;
                     let character_id = clients_data.get(&socket);
-                    if let Some(session_id) = character_id.map(|id| map.logged_in_players.get(&id)).flatten()
+                    if let Some(session_id) = character_id.map(|(id, _faction)| map.logged_in_players.get(&id)).flatten()
                     {
                         let current_session_id = session_id.load(std::sync::atomic::Ordering::Relaxed);
                         if current_session_id == active_session_id

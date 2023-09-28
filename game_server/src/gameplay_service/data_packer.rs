@@ -3,9 +3,9 @@ use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
 use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
 use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
 use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
-use crate::gameplay_service::DataType;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
 use crate::map::tile_attack::TILE_ATTACK_SIZE;
+use crate::real_time_service::DataType;
 use crate::real_time_service::client_handler::StateUpdate;
 use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
 
@@ -16,7 +16,8 @@ use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 
-pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, Vec<u8>)> {
+pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
+{
     *packet_number += 1u64;
     // println!("{packet_number} -A");
 
@@ -44,7 +45,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
 
 
-    let mut packets = Vec::<(u64,Vec<u8>)>::new();
+    let mut packets = Vec::<(u64, u8, Vec<u8>)>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
     // println!("data to send {}" , data.len());
@@ -69,7 +70,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             encoder.write_all(buffer.as_slice()).unwrap();
             let compressed_bytes = encoder.reset(Vec::new()).unwrap();
             // println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
-            packets.push((*packet_number, compressed_bytes)); // this is a copy!
+            packets.push((*packet_number, 0, compressed_bytes)); // this is a copy!
 
             start = 1;
             stored_states = 0;
@@ -216,7 +217,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
         // println!("{:#04X?}", buffer);
 
         // println!("decoded data: {}", (buffer == *decoded_data_array));
-        packets.push((*packet_number, compressed_bytes)); // this is a copy!
+        packets.push((*packet_number, 0, compressed_bytes)); // this is a copy!
     }
 
     // let all_data : Vec<u8> = packets.iter().flat_map(|d| d.clone()).collect();

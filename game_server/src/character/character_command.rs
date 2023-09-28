@@ -61,19 +61,20 @@ impl CharacterCommand {
         //1 - protocolo 1 bytes
         //2 - id 8 bytes
         // the rest depends on the code.
-
-        // we are ignoring the first byte because of the protocol
         let mut start = 1;
-        let mut end = start + 2;
+        let mut end = start + 8;
+        let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
+        start = end;
+        end = start + 2;
         let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
-        start = end;
 
-        end = start + 8;
-        let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
+        end = start + 1;
+        let faction = data[start];
 
         // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
+        start = end;
         end = start + 4;
         let pos_x = decode_float(data, &mut start, end);
         end = start + 4;

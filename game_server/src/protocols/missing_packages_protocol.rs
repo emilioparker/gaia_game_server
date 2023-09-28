@@ -10,11 +10,18 @@ pub fn process_request(
 {
     let mut start = 1;
     let mut end = start + 8;
+    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
-    let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
+    end = start + 2;
+    let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+
+    start = end;
+    end = start + 1;
+    let faction = data[start];
 
     // println!("set missing packages for character {player_id}");
+    start = end;
     if let Some(group) = missing_packages.get(&player_id)
     {
         for index in 0..10 

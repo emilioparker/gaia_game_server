@@ -15,24 +15,23 @@ pub async fn process_request(
     map : Arc<GameMap>,
     _channel_tx : &Sender<CharacterCommand>)
 {
-    let mut start = 1;
-    let mut end = start + 2;
+    let start = 1;
+    let end = start + 8;
+    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
+    let start = end;
+    let end = start + 2;
+    let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
 
-//TODO: WE USE THIS ONE BECUASE THE OTHER ID IS 0 THE FIRST TIME... NEED TO DEBUG...
-    let requested_player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
-    start = end;
+    let start = end;
+    let end = start + 1;
+    let faction = data[start];
 
-    end = start + 8;
-    let _session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
-    start = end;
-
-    //end = start + 1;
+    let start = end;
     let _page = data[start];
-    //start = end;
 
     let player_entities = map.players.lock().await;
-    let player_option = player_entities.get(&requested_player_id);
+    let player_option = player_entities.get(&player_id);
 
     let (inventory, hash) = if let Some(player_entity) = player_option {
         (player_entity.inventory.clone(), player_entity.inventory_hash)
