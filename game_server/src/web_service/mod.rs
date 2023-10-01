@@ -27,7 +27,7 @@ pub mod map;
 pub mod towers;
 pub mod chat;
 
-pub const CHAT_STORAGE_SIZE: usize = 5;
+pub const CHAT_STORAGE_SIZE: usize = 100;
 
 
 #[derive(Deserialize, Serialize, Debug)]
