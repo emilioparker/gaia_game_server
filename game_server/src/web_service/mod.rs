@@ -29,6 +29,17 @@ pub mod chat;
 
 pub const CHAT_STORAGE_SIZE: usize = 100;
 
+#[derive(Deserialize, Serialize, Debug)]
+struct ClientVersionRequest 
+{
+    client_version: u16,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct ClientVersionResponse 
+{
+    server_version:u16,
+}
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SellItemRequest 
@@ -118,6 +129,21 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
     }
 }
 
+async fn handle_check_version(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+{
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
+    println!("handling request {:?}", data);
+
+    let response = ClientVersionResponse
+    {
+        server_version : 1
+    };
+    let response = serde_json::to_vec(&response).unwrap();
+    Ok(Response::new(Body::from(response)))
+}
+
 
 
 async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>, Error> {
@@ -139,6 +165,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
+            "check_version" => handle_check_version(context, req).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));
                 *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
