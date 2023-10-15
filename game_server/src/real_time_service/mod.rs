@@ -25,6 +25,7 @@ pub enum DataType
     TileAttack = 31,
     TowerState = 32,
     ChatMessage = 33,
+    ServerStatus = 34,
 }
 
 pub fn start_server(
@@ -169,7 +170,6 @@ pub fn start_server(
         loop {
             let socket_receive = udp_socket.recv_from(&mut buf_udp);
 
-
             // tokio::time::sleep(tokio::time::Duration::from_millis(30)).await;
 
             tokio::select! {
@@ -195,24 +195,8 @@ pub fn start_server(
                             let faction = buf_udp[start];
 
                             println!("--- create child for {} with session id {}", player_id, player_session_id);
-                            // we need to create a struct that contains the tx and some client data that we can use to filter what we
-                            // send, this will be epic
-                            // let (server_state_tx, client_state_rx ) = tokio::sync::mpsc::channel::<Arc<Vec<[u8;508]>>>(20);
-                            // let player_entity = PlayerConnection{
-                            //     player_id : player_id, // we need to get this data from the packet
-                            //     // tx : server_state_tx
-                            // };
-
-                            let key_value = map.logged_in_players.get_key_value(&player_id);
-                            println!("key value for player id {} is {:?}", player_id, key_value);
-
-                            let session_id = match key_value {
-                                Some((_stored_player_id, stored_session_id)) => 
-                                {
-                                    stored_session_id.load(std::sync::atomic::Ordering::Relaxed)
-                                },
-                                None => 0,
-                            };
+                            let stored_session_id = &map.logged_in_players[player_id as usize];
+                            let session_id = stored_session_id.load(std::sync::atomic::Ordering::Relaxed);
                             println!("comparing {} with server {}", player_session_id, session_id);
 
                             if session_id == player_session_id  && session_id != 0
@@ -254,7 +238,7 @@ pub fn start_server(
                     println!("removing entry from hash set");
                     let mut clients_data = server_lock.lock().await;
                     let character_id = clients_data.get(&socket);
-                    if let Some(session_id) = character_id.map(|(id, _faction)| map.logged_in_players.get(&id)).flatten()
+                    if let Some(session_id) = character_id.map(|(id, _faction)| &map.logged_in_players[*id as usize])
                     {
                         let current_session_id = session_id.load(std::sync::atomic::Ordering::Relaxed);
                         if current_session_id == active_session_id

@@ -1,3 +1,4 @@
+use crate::{SERVER_STATE_SIZE, ServerState};
 use crate::character::character_attack::CHARACTER_ATTACK_SIZE;
 use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
 use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
@@ -61,6 +62,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 + 1,
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
             StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
+            StateUpdate::ServerStatus(_) => SERVER_STATE_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -188,6 +190,19 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + CHAT_ENTRY_SIZE;
                 buffer[start..next].copy_from_slice(&message_bytes);
                 stored_bytes = stored_bytes +  CHAT_ENTRY_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::ServerStatus(status) =>
+            {
+                println!(" status {:?}", status);
+                buffer[start] = DataType::ServerStatus as u8;
+                start += 1;
+
+                let message_bytes = ServerState::stats_to_bytes(status); //20
+                let next = start + SERVER_STATE_SIZE;
+                buffer[start..next].copy_from_slice(&message_bytes);
+                stored_bytes = stored_bytes + SERVER_STATE_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

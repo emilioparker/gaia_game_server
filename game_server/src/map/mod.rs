@@ -19,7 +19,7 @@ pub struct GameMap
     pub id_generator : AtomicU16,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
-    pub logged_in_players: Arc<HashMap<u16, AtomicU64>>,
+    pub logged_in_players: Vec<AtomicU64>,
     pub players : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
     pub towers : Arc<Mutex<HashMap<TetrahedronId, TowerEntity>>>,
 }
@@ -44,20 +44,22 @@ impl GameMap
         }
 
         let mut active_players_set = HashMap::<u16, AtomicU64>::new();
-        let mut logged_in_players_set = HashMap::<u16, AtomicU64>::new();
+        let mut logged_in_players_set : Vec<AtomicU64> = Vec::with_capacity(u16::MAX as usize);
         let mut last_id = 0u16;
 
         let mut i:u16 = 0;
 
-        while i < u16::MAX {
+        while i < u16::MAX 
+        {
             i = i + 1;
             active_players_set.insert(i, AtomicU64::new(0));
-            logged_in_players_set.insert(i, AtomicU64::new(0));
+            logged_in_players_set.push(AtomicU64::new(0));
         }
 
         for player in &players
         {
-            if last_id < *player.0{
+            if last_id < *player.0
+            {
                 last_id = *player.0;
             }
         }
@@ -66,12 +68,13 @@ impl GameMap
         // let current_time = current_time_raw.ok().map(|d| d.as_millis() as u64).unwrap();
         // println!(" current_time {:?}", current_time);
 
-        GameMap{
+        GameMap
+        {
             world_id,
             world_name,
             id_generator : AtomicU16::new(last_id + 1),
             active_players: Arc::new(active_players_set),
-            logged_in_players : Arc::new(logged_in_players_set),
+            logged_in_players : logged_in_players_set,
             regions : arc_regions,
             players : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),

@@ -67,9 +67,7 @@ struct ChatStorage
 #[derive(Clone)]
 pub struct AppContext 
 {
-    last_presentation_update: Arc<AtomicU64>,
-    presentation_data: Arc<Mutex<HashMap<u16, [u8;22]>>>,
-    compressed_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
+    cached_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
     // tx_mc_webservice_realtime : Sender<MapCommand>,
@@ -194,6 +192,7 @@ impl TempMapBuffer {
 }
 
 pub fn start_server(
+    presentation_cache : Vec<u8>,
     working_map: Arc<GameMap>,
     storage_map: Arc<GameMap>,
     db_client : mongodb :: Client,
@@ -229,19 +228,19 @@ pub fn start_server(
     let chat_adder_reference= Arc::new(Mutex::new(HashMap::new()));
     let chat_reader_reference = chat_adder_reference.clone();
 
+
     let context = AppContext 
     {
-        presentation_data : Arc::new(Mutex::new(HashMap::new())),
         working_game_map : working_map,
         storage_game_map : storage_map,
         // tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
         db_client : db_client,
-        last_presentation_update: Arc::new(AtomicU64::new(0)),
-        compressed_presentation_data: Arc::new(Mutex::new(Vec::new())),
+        cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),
         temp_regions : regions_reader_reference,
         temp_towers : towers_reader_reference,
         old_messages : chat_reader_reference,
     };
+
 
     tokio::spawn(async move {
         let addr = SocketAddr::from(([0, 0, 0, 0], 3030));

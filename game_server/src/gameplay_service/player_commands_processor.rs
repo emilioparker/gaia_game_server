@@ -108,7 +108,6 @@ pub async fn process_player_commands (
         }
         else if player_command.action == character_command::ATTACK_ACTION 
         { 
-
             // we anounce the attack
             let attack = CharacterAttack
             {

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicUsize;
 
 use flate2::read::ZlibDecoder;
@@ -29,15 +30,18 @@ async fn main() {
 
     let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
 
-    let server_state = Arc::new(ServerState{
-        tx_mc_client_gameplay: AtomicUsize::new(0),
-        tx_pc_client_gameplay: AtomicUsize::new(0),
-        tx_tc_client_gameplay: AtomicUsize::new(0),
-        tx_cc_client_gameplay: AtomicUsize::new(0),
-        tx_bytes_gameplay_socket: AtomicUsize::new(0),
-        tx_me_gameplay_longterm:AtomicUsize::new(0),
-        tx_me_gameplay_webservice:AtomicUsize::new(0),
-        tx_pe_gameplay_longterm:AtomicUsize::new(0)
+    let server_state = Arc::new(ServerState
+    {
+        tx_mc_client_gameplay: AtomicU16::new(0),
+        tx_pc_client_gameplay: AtomicU16::new(0),
+        tx_tc_client_gameplay: AtomicU16::new(0),
+        tx_cc_client_gameplay: AtomicU16::new(0),
+        tx_bytes_gameplay_socket: AtomicU16::new(0),
+        tx_me_gameplay_longterm:AtomicU16::new(0),
+        tx_me_gameplay_webservice:AtomicU16::new(0),
+        tx_pe_gameplay_longterm:AtomicU16::new(0),
+        online_players:AtomicU16::new(0),
+        total_players:AtomicU16::new(0)
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
@@ -53,9 +57,11 @@ async fn main() {
     let world_state = long_term_storage_service::world_service::check_world_state(world_name, db_client.clone()).await;
 
 
+    let mut presentation_data_cache : Vec<u8> = Vec::new();
     //shared by the realtime service and the webservice
 
-    if let Some(world) = world_state {
+    if let Some(world) = world_state 
+    {
         println!("Load the world from db init at {}", world.start_time);
         let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world.id, db_client.clone()).await;
         //used and updated by the long storage system
@@ -66,12 +72,29 @@ async fn main() {
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
 
 
+        for (_id, player) in &working_players
+        {
+            let name_with_padding = format!("{: <5}", player.character_name);
+            let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
+            let mut name_array = [0u32; 5];
+            name_array.clone_from_slice(&name_data.as_slice()[0..5]);
+
+            let player_presentation = game_server::character::character_presentation::CharacterPresentation 
+            {
+                player_id: player.character_id,
+                character_name: name_array,
+            };
+            println!("Adding player data {}", player.character_name);
+
+            presentation_data_cache.extend(player_presentation.to_bytes());
+        }
         // let (towers, _) = load_files_into_regions_hashset(world_name).await;
         // long_term_storage_service::towers_service::preload_db(world_name, world.id, towers, db_client.clone()).await;
         let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
 
         working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), regions_data.clone(), working_players, world_towers.clone()));
         storage_game_map = Some(GameMap::new(world.id, world.world_name, regions_data, storage_players, world_towers));
+
     }
     else{
         println!("Creating world from scratch, because it was not found in the database");
@@ -162,6 +185,7 @@ async fn main() {
             );
             
             web_service::start_server(
+                presentation_data_cache,
                 working_game_map_reference, 
                 storage_game_map_reference, 
                 db_client.clone(),

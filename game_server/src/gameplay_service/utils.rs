@@ -35,9 +35,9 @@ pub fn report_map_process_capacity(
     server_state : Arc<ServerState>
 ){
     let capacity = tx_me_gameplay_longterm.capacity();
-    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_me_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     let capacity = tx_me_gameplay_webservice.capacity();
-    server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_me_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 }
 
 pub fn report_tower_process_capacity(
@@ -46,7 +46,7 @@ pub fn report_tower_process_capacity(
     server_state : Arc<ServerState>
 ){
     let capacity = tx_te_gameplay_longterm.capacity();
-    server_state.tx_me_gameplay_longterm.store(capacity, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_me_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     // let capacity = tx_te_gameplay_webservice.capacity();
     // server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
 }

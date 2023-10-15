@@ -161,11 +161,14 @@ pub fn start_service(
     tokio::spawn(async move 
     {
         let mut packet_number = 1u64;
+        let mut server_status_deliver_count = 0u32;
         loop 
         {
             // assuming 30 fps.
             // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
+
+            server_status_deliver_count += 1;
 
             // let result = std::time::SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
             // let current_time = result.ok().map(|d| d.as_millis() as u64);
@@ -336,6 +339,12 @@ pub fn start_service(
             filtered_summary.extend(player_rewards_state_update);
             filtered_summary.extend(player_attack_state_updates);
             filtered_summary.extend(tile_attack_state_updates);
+
+            if server_status_deliver_count > 50
+            {
+                server_status_deliver_count = 0;
+                filtered_summary.push(StateUpdate::ServerStatus(server_state.get_stats()))
+            }
             // filtered_summary.extend(chat_updates);
             // println!("filtered summarny total {}" , filtered_summary.len());
             if filtered_summary.len() > 0 
@@ -343,7 +352,7 @@ pub fn start_service(
                 let packages = data_packer::create_data_packets(filtered_summary, &mut packet_number);
                 // the data that will be sent to each client is not copied.
                 let capacity = tx_bytes_game_socket.capacity();
-                server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
                 tx_bytes_game_socket.send(packages).await.unwrap();
             }
         }

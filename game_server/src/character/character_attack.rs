@@ -3,7 +3,8 @@ use crate::map::tetrahedron_id::TetrahedronId;
 pub const CHARACTER_ATTACK_SIZE: usize = 18;
 
 #[derive(Debug, Clone)]
-pub struct CharacterAttack {
+pub struct CharacterAttack 
+{
     pub player_id: u16, // 2 bytes
     pub target_player_id: u16, // 2 bytes
     pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
@@ -11,7 +12,8 @@ pub struct CharacterAttack {
     pub skill_id: u32 // 4 bytes
 }
 
-impl CharacterAttack {
+impl CharacterAttack 
+{
     // used by the test_client ignores the protocol byte.
     pub fn to_bytes(&self) -> [u8;CHARACTER_ATTACK_SIZE] {
         let mut buffer = [0u8; CHARACTER_ATTACK_SIZE];

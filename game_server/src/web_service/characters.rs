@@ -294,7 +294,23 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
 
     drop(players);
 
-    let new_character = CharacterCreationResponse{
+    let name_with_padding = format!("{: <5}", data.character_name);
+    let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
+    let mut name_array = [0u32; 5];
+    name_array.clone_from_slice(&name_data.as_slice()[0..5]);
+
+    let player_presentation = CharacterPresentation 
+    {
+        player_id: new_id,
+        character_name: name_array,
+    };
+    
+    println!("Adding player data {}", data.character_name);
+    let mut presentation_data_cache =  context.cached_presentation_data.lock().await;
+    presentation_data_cache.extend(player_presentation.to_bytes());
+
+    let new_character = CharacterCreationResponse
+    {
         character_id: new_id,
     };
 
@@ -339,26 +355,13 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
 
     if let Some(player) = players.get(&data.character_id) {
         println!("player login {:?}", player);
-        let mut presentation_map = context.presentation_data.lock().await;
-        let name_with_padding = format!("{: <5}", player.character_name);
-        let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
-        let mut name_array = [0u32; 5];
-        name_array.clone_from_slice(&name_data.as_slice()[0..5]);
 
-        let player_presentation = CharacterPresentation {
-            player_id: player.character_id,
-            character_name: name_array,
-        };
-
-        presentation_map.insert(data.character_id, player_presentation.to_bytes());
         println!("position {:?} {}", player.position, player.health);
-
-
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
         let session_id = current_time.as_secs();
 
         let saved_char = JoinWithCharacterResponse{
-            character_id: player.character_id,
+            character_id: data.character_id,
             faction:player.faction,
             tetrahedron_id:"k120223211".to_owned(),
             position: player.second_position,
@@ -366,11 +369,11 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
             constitution: player.constitution,
             session_id,
         };
-        println!("creating session id {} for {}", session_id ,player.character_id);
-        let session_option = context.working_game_map.logged_in_players.get(&player.character_id);
-        if let Some(session) = session_option {
-            session.store(session_id, std::sync::atomic::Ordering::Relaxed);
-        }
+        drop(players);
+
+        println!("creating session id {} for {}", session_id, data.character_id);
+        let session = &context.working_game_map.logged_in_players[data.character_id as usize];
+        session.store(session_id, std::sync::atomic::Ordering::Relaxed);
 
         let response = serde_json::to_vec(&saved_char).unwrap();
         Ok(Response::new(Body::from(response)))
@@ -382,49 +385,44 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
     
 }
 
-pub async fn handle_characters_request(context: AppContext) -> Result<Response<Body>, Error> {
+pub async fn handle_characters_request(context: AppContext) -> Result<Response<Body>, Error> 
+{
+    // if current_time.as_secs() - last_time > 10 {
 
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
-    
-    let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
-    let last_time_atomic = context.last_presentation_update;
-    let last_time = last_time_atomic.load(std::sync::atomic::Ordering::Relaxed);
-    if current_time.as_secs() - last_time > 10 {
+    //     println!("generating presentation data {}", last_time);
+    //     let players_presentation_map = context.presentation_data.lock().await;
 
-        println!("generating presentation data {}", last_time);
-        let players_presentation_map = context.presentation_data.lock().await;
+    //     for presentation_data in players_presentation_map.iter()
+    //     {
+    //         let bytes = presentation_data.1;
+    //         encoder.write_all(bytes).unwrap();
+    //     }
 
-        for presentation_data in players_presentation_map.iter()
-        {
-            let bytes = presentation_data.1;
-            encoder.write_all(bytes).unwrap();
-        }
+    //     drop(players_presentation_map);
+    //     let mut compressed_bytes = encoder.reset(Vec::new()).unwrap();
+    //     let mut presentation_cache = context.cached_presentation_data.lock().await;
 
-        drop(players_presentation_map);
-        let mut compressed_bytes = encoder.reset(Vec::new()).unwrap();
-        let mut presentation_cache = context.compressed_presentation_data.lock().await;
+    //     presentation_cache.clear();
+    //     presentation_cache.append(&mut compressed_bytes);
 
-        presentation_cache.clear();
-        presentation_cache.append(&mut compressed_bytes);
+    //     last_time_atomic.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
 
-        last_time_atomic.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
-
-        let response = Response::builder()
-            .status(hyper::StatusCode::OK)
-            .header("Content-Type", "application/octet-stream")
-            .body(Body::from(presentation_cache.clone()))
-            .expect("Failed to create response");
-        Ok(response)
-    }
-    else
+    //     let response = Response::builder()
+    //         .status(hyper::StatusCode::OK)
+    //         .header("Content-Type", "application/octet-stream")
+    //         .body(Body::from(presentation_cache.clone()))
+    //         .expect("Failed to create response");
+    //     Ok(response)
+    // }
+    // else
     {
-        println!("using cache {}", last_time);
-        let presentation_cache = context.compressed_presentation_data.lock().await;
+        let presentation_cache = context.cached_presentation_data.lock().await;
+        let presentation_cache : Vec<u8> = presentation_cache.to_vec();
 
         let response = Response::builder()
             .status(hyper::StatusCode::OK)
             .header("Content-Type", "application/octet-stream")
-            .body(Body::from(presentation_cache.clone()))
+            .body(Body::from(presentation_cache))
             .expect("Failed to create response");
         Ok(response)
 

@@ -96,7 +96,7 @@ pub fn start_service(
                     let packages = chat_data_packer::create_data_packets(faction as u8, faction_summary, &mut packet_number);
                     // the data that will be sent to each client is not copied.
                     let capacity = tx_bytes_game_socket.capacity();
-                    server_state.tx_bytes_gameplay_socket.store(capacity, std::sync::atomic::Ordering::Relaxed);
+                    server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
                     tx_bytes_game_socket.send(packages).await.unwrap();
                 }
             }

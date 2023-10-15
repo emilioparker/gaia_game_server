@@ -34,6 +34,7 @@ pub enum StateUpdate
     PlayerAttackState(CharacterAttack),
     TileAttackState(TileAttack),
     ChatMessage(ChatEntry),
+    ServerStatus([u16;10]),
 }
 
 pub async fn spawn_client_process(
