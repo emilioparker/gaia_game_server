@@ -46,6 +46,10 @@ pub fn start_service(
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(100);
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = tokio::sync::mpsc::channel::<TowerEntity>(100);
 
+    server_state.tx_me_gameplay_longterm.store(tx_me_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_me_gameplay_webservice.store(tx_me_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_pe_gameplay_longterm.store(tx_pe_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+
     //players
     //player commands -------------------------------------
     let player_commands = Vec::<CharacterCommand>::new();

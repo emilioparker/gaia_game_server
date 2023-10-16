@@ -39,10 +39,15 @@ pub fn start_server(
     Sender<Vec<(u64,u8,Vec<u8>)>>) // packet number, faction, data
 {
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
-    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(200);
+    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(1000);
     let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
     let (tx_tc_client_statesys, rx_tc_client_statesys) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
     let (tx_cc_client_statesys, rx_cc_client_statesys) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
+
+    server_state.tx_mc_client_gameplay.store(tx_mc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_pc_client_gameplay.store(tx_pc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_tc_client_gameplay.store(tx_tc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_cc_client_gameplay.store(tx_cc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
     let client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
@@ -202,6 +207,10 @@ pub fn start_server(
                             if session_id == player_session_id  && session_id != 0
                             {
                                 clients_data.insert(from_address, (player_id, faction));
+
+
+
+                                server_state.online_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                                 // each client can send a message to remove itself using tx,
                                 // each client can send actions to be processed using client_action_tx,
                                 // each client can receive data to be sent to the client using client_state_rx because each client has its socket.
@@ -236,6 +245,7 @@ pub fn start_server(
                 Some((socket, active_session_id)) = rx_addr_client_realtime.recv() => 
                 {
                     println!("removing entry from hash set");
+                    server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                     let mut clients_data = server_lock.lock().await;
                     let character_id = clients_data.get(&socket);
                     if let Some(session_id) = character_id.map(|(id, _faction)| &map.logged_in_players[*id as usize])

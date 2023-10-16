@@ -19,7 +19,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::character::character_entity::InventoryItem;
-use crate::tower;
+use crate::{tower, ServerState};
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 
 pub mod characters;
@@ -70,6 +70,7 @@ pub struct AppContext
     cached_presentation_data: Arc<Mutex<Vec<u8>>>,// we will keep a copy and update it more or less frequently.
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
+    server_state : Arc<ServerState>,
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
@@ -136,7 +137,7 @@ async fn handle_check_version(context: AppContext, mut req: Request<Body>) ->Res
 
     let response = ClientVersionResponse
     {
-        server_version : 1
+        server_version : 2
     };
     let response = serde_json::to_vec(&response).unwrap();
     Ok(Response::new(Body::from(response)))
@@ -195,6 +196,7 @@ pub fn start_server(
     presentation_cache : Vec<u8>,
     working_map: Arc<GameMap>,
     storage_map: Arc<GameMap>,
+    server_state: Arc<ServerState>,
     db_client : mongodb :: Client,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
@@ -233,6 +235,7 @@ pub fn start_server(
     {
         working_game_map : working_map,
         storage_game_map : storage_map,
+        server_state,
         // tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
         db_client : db_client,
         cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),

@@ -195,7 +195,7 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             },
             StateUpdate::ServerStatus(status) =>
             {
-                println!(" status {:?}", status);
+                // println!(" status {:?}", status);
                 buffer[start] = DataType::ServerStatus as u8;
                 start += 1;
 

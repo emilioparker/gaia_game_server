@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
+use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU16;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicUsize;
 
 use flate2::read::ZlibDecoder;
@@ -40,8 +42,8 @@ async fn main() {
         tx_me_gameplay_longterm:AtomicU16::new(0),
         tx_me_gameplay_webservice:AtomicU16::new(0),
         tx_pe_gameplay_longterm:AtomicU16::new(0),
-        online_players:AtomicU16::new(0),
-        total_players:AtomicU16::new(0)
+        online_players:AtomicI32::new(0),
+        total_players:AtomicU32::new(0)
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
@@ -143,6 +145,8 @@ async fn main() {
             ) =  real_time_service::start_server(
                 working_game_map_reference.clone(), 
                 server_state.clone());
+                
+            server_state.tx_bytes_gameplay_socket.store(tx_bytes_gameplay_socket.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
@@ -157,6 +161,7 @@ async fn main() {
                 working_game_map_reference.clone(), 
                 server_state.clone(),
                 tx_bytes_gameplay_socket.clone());
+
                 
             let rx_ce_gameplay_webservice = chat_service::start_service(
                 rx_cc_client_gameplay,
@@ -184,10 +189,12 @@ async fn main() {
                 db_client.clone()
             );
             
-            web_service::start_server(
+            web_service::start_server
+            (
                 presentation_data_cache,
                 working_game_map_reference, 
                 storage_game_map_reference, 
+                server_state.clone(),
                 db_client.clone(),
                 rx_me_gameplay_webservice,
                 // tx_mc_webservice_gameplay,

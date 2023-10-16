@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicI32;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::AtomicU16;
 
@@ -25,8 +27,8 @@ pub struct ServerState
     pub tx_me_gameplay_longterm:AtomicU16,
     pub tx_me_gameplay_webservice:AtomicU16,
     pub tx_pe_gameplay_longterm:AtomicU16,
-    pub online_players: AtomicU16,
-    pub total_players:AtomicU16,
+    pub online_players: AtomicI32,
+    pub total_players:AtomicU32,
 }
 
 impl ServerState 
@@ -44,8 +46,8 @@ impl ServerState
             self.tx_me_gameplay_longterm.load(order),
             self.tx_me_gameplay_webservice.load(order),
             self.tx_pe_gameplay_longterm.load(order),
-            self.online_players.load(order),
-            self.total_players.load(order)
+            self.online_players.load(order) as f32 as u16,
+            self.total_players.load(order) as f32 as u16
         ];
 
         stats

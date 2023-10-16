@@ -240,7 +240,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
 
     println!("got a {} as id base ",new_id);
 
-    let stored_character = StoredCharacter{
+    let stored_character = StoredCharacter
+    {
         id: None,
         player_id,
         version:1,
@@ -261,12 +262,14 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
     let result = data_collection.insert_one(stored_character, None).await.unwrap();
 
-    let object_id: Option<ObjectId> = match result.inserted_id {
+    let object_id: Option<ObjectId> = match result.inserted_id 
+    {
         bson::Bson::ObjectId(id) => Some(id),
         _ => None,
     };
 
-    let player_entity = CharacterEntity {
+    let player_entity = CharacterEntity 
+    {
         object_id: object_id,
         player_id,
         character_name : data.character_name.clone(),
@@ -313,6 +316,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     {
         character_id: new_id,
     };
+
+    context.server_state.total_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let response = serde_json::to_vec(&new_character).unwrap();
     Ok(Response::new(Body::from(response)))
