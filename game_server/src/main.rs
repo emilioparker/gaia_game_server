@@ -51,7 +51,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_045";
+    let world_name = "world_051";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -308,9 +308,9 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
         let tile = MapEntity::from_bytes(&buffer);
-        if tile.prop == 35 // magic tower
+        if tile.prop == 35
         {
-            towers_in_region.push(tile.id);
+            towers_in_region.push(tile.id.clone());
         }
 
         start = end;
