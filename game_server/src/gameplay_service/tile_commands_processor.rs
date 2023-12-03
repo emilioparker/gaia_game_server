@@ -135,12 +135,24 @@ pub async fn process_tile_commands (
                             tiles_summary.push(updated_tile.clone());
                         }
                     }, // we need to deduct stuff from the player
-                    MapCommandInfo::LayFoundation(player_id, prop, _pathness_a, _pathness_b,_pathness_c) => {
+                    MapCommandInfo::LayFoundation(player_id, prop,enemy_mob, _pathness_a, _pathness_b,_pathness_c) => {
 
+                        let current_time_in_seconds = (current_time / 1000) as u32;
                         if updated_tile.prop == 0
                         {
-                            updated_tile.health = 500;
-                            updated_tile.constitution = 0;
+                            if *enemy_mob == 0
+                            {
+                                updated_tile.health = 500;
+                                updated_tile.constitution = 0;
+                            }
+                            else 
+                            {
+                                updated_tile.health = 100;
+                                updated_tile.constitution = 100;
+                            }
+
+                            updated_tile.target_id = updated_tile.id.clone();
+                            updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
                             updated_tile.prop = *prop;
 
                             let player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
@@ -148,6 +160,11 @@ pub async fn process_tile_commands (
                             let player_option = player_entities.get(&player_id);
                             if let Some(player_entity) = player_option {
                                 updated_tile.faction = player_entity.faction;
+                            }
+                            // we are creating a mob, we need to set the nature faction
+                            if *enemy_mob == 1
+                            {
+                                updated_tile.faction = 0;
                             }
 
                             drop(player_entities);
@@ -197,7 +214,7 @@ pub async fn process_tile_commands (
 
                         if updated_tile.owner_id == *player_id {
                             // the controller is fighting this mob, we give him more control
-                            updated_tile.ownership_time = (current_time / 1000) as u32 + 5; // more seconds of control
+                            updated_tile.ownership_time = (current_time / 1000) as u32; 
                         }
                         *tile = updated_tile.clone();
                         let tile_id = tile.id.clone();
@@ -221,16 +238,19 @@ pub async fn process_tile_commands (
                         drop(lock);
 
                     },
-                    MapCommandInfo::SpawnMob(mob_id) => {
+                    MapCommandInfo::SpawnMob(player_id, mob_id) => {
 
                         if updated_tile.prop == 0 // we can spawn a mob here.
                         {
+                            let current_time_in_seconds = (current_time / 1000) as u32;
                             updated_tile.health = 100;
                             updated_tile.constitution = 100;
                             updated_tile.prop = *mob_id;
                             updated_tile.origin_id = tile.id.clone();
                             updated_tile.target_id = tile.id.clone();
                             updated_tile.faction = 4;// corruption faction
+                            updated_tile.owner_id = *player_id;
+                            updated_tile.ownership_time = current_time_in_seconds;
 
                             updated_tile.version += 1;
                             tiles_summary.push(updated_tile.clone());
@@ -247,8 +267,11 @@ pub async fn process_tile_commands (
                             tiles_summary.push(updated_tile.clone());
                         }
                     },
-                    MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, _distance, required_time) => {
-
+                    MapCommandInfo::MoveMob(player_id, mob_id, new_tile_id, _distance, required_time) => 
+                    {
+                        let id = tile_command.id.to_string();
+                        let tile_time = updated_tile.ownership_time;
+                        println!("move mob {id} tile time: {tile_time}");
                         let current_time_in_seconds = (current_time / 1000) as u32;
                         // we also need to be sure this player has control over the tile
                         if updated_tile.prop == *mob_id // we are mostly sure you know this is a mob and wants to move 
@@ -264,7 +287,7 @@ pub async fn process_tile_commands (
                             updated_tile.origin_id = tile.target_id.clone();
                             updated_tile.target_id = new_tile_id.clone();
 
-                            updated_tile.ownership_time = current_time_in_seconds + 10; // more seconds of control
+                            updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
                             // println!("updating ownership time {}" , updated_tile.ownership_time);
 
                             tiles_summary.push(updated_tile.clone());
@@ -281,16 +304,33 @@ pub async fn process_tile_commands (
                             tiles_summary.push(updated_tile.clone());
                         }
                     },
-                    MapCommandInfo::ControlMob(player_id, mob_id) => {
+                    MapCommandInfo::ControlMapEntity(player_id, mob_id) => {
                         let current_time_in_seconds = (current_time / 1000) as u32;
                         if updated_tile.prop == *mob_id // we are mostly sure you know this is a mob and wants to move 
-                            && updated_tile.ownership_time < current_time_in_seconds // owner timeout
+                            // && updated_tile.ownership_time < current_time_in_seconds // owner timeout
                         {
-                            // println!("updating time {current_time} {}", updated_tile.ownership_time);
-                            updated_tile.version += 1;
-                            updated_tile.owner_id = *player_id;
-                            updated_tile.ownership_time = current_time_in_seconds; // seconds of control
-                            // println!("new time {}", updated_tile.ownership_time);
+                            let difference = current_time_in_seconds as i32 - updated_tile.ownership_time as i32;
+                            let id = tile_command.id.to_string();
+                            let tile_time = updated_tile.ownership_time;
+                            println!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
+
+                            if difference > 600 && *mob_id != 35 // five minutes means we should just remove it.
+                            {
+                                updated_tile.version += 1;
+                                updated_tile.owner_id = 0;
+                                updated_tile.ownership_time = 0; // seconds of control
+                                updated_tile.prop = 0;
+                                updated_tile.health = 0;
+                                updated_tile.constitution = 5;
+                            }
+                            else if updated_tile.ownership_time < current_time_in_seconds 
+                            {
+                                // println!("updating time {current_time} {}", updated_tile.ownership_time);
+                                updated_tile.version += 1;
+                                updated_tile.owner_id = *player_id;
+                                updated_tile.ownership_time = current_time_in_seconds; // seconds of control
+                                // println!("new time {}", updated_tile.ownership_time);
+                            }
 
                             tiles_summary.push(updated_tile.clone());
                             *tile = updated_tile.clone();
@@ -358,7 +398,7 @@ pub async fn process_delayed_tile_commands (
         match &tile_command.info {
             MapCommandInfo::Touch() => todo!(),
             MapCommandInfo::ChangeHealth(_, _) => todo!(),
-            MapCommandInfo::LayFoundation(_, _, _, _, _) => todo!(),
+            MapCommandInfo::LayFoundation(_,_,_, _, _, _) => todo!(),
             MapCommandInfo::BuildStructure(_, _) => todo!(),
             MapCommandInfo::AttackWalker(player_id, _required_time) => {
                 drop(tiles);
@@ -384,9 +424,9 @@ pub async fn process_delayed_tile_commands (
                     }
                 }
             },
-            MapCommandInfo::SpawnMob(_) => todo!(),
+            MapCommandInfo::SpawnMob(_, _) => todo!(),
             MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
-            MapCommandInfo::ControlMob(_, _) => todo!(),
+            MapCommandInfo::ControlMapEntity(_, _) => todo!(),
             MapCommandInfo::AttackMob(player_id, damage, _required_time) => {
                 if let Some(tile) = tiles.get_mut(&tile_command.id) {
                     let (updated_tile, reward) = process_tile_attack(

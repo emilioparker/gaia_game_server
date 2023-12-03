@@ -67,12 +67,12 @@ impl MapEntity {
 pub enum MapCommandInfo {
     Touch(),
     ChangeHealth(u16,u16),
-    LayFoundation(u16,u32, f32, f32, f32),
+    LayFoundation(u16, u32, u8, f32, f32, f32),
     BuildStructure(u16,u32),
     AttackWalker(u16, u32),
-    SpawnMob(u32),
+    SpawnMob(u16, u32),
     MoveMob(u16,u32, TetrahedronId, f32, f32),
-    ControlMob(u16, u32),
+    ControlMapEntity(u16, u32),
     AttackMob(u16,u16,u32),
 }
 

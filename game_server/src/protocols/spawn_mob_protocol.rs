@@ -33,7 +33,7 @@ pub async fn process(
 
         let map_action = MapCommand{
             id: tile_id,
-            info: MapCommandInfo::SpawnMob(mob_id)
+            info: MapCommandInfo::SpawnMob(player_id, mob_id)
         };
 
         // println!("got a {:?}", map_action);

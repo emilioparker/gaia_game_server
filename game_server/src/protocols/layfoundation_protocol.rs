@@ -22,6 +22,10 @@ pub async fn process_construction(
         let faction = data[start];
 
         start = end;
+        end = start + 1;
+        let full_health = data[start];
+
+        start = end;
         end = start + 2;
         let count = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
@@ -55,7 +59,7 @@ pub async fn process_construction(
 
             let map_action = MapCommand{
                 id: tile_id,
-                info: MapCommandInfo::LayFoundation(player_id, prop, pathness_a, pathness_b, pathness_c)
+                info: MapCommandInfo::LayFoundation(player_id, prop, full_health, pathness_a, pathness_b, pathness_c)
             };
 
             // println!("got a {:?}", map_action);
