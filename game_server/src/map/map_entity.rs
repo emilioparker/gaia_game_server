@@ -68,6 +68,7 @@ pub enum MapCommandInfo {
     Touch(),
     ChangeHealth(u16,u16),
     LayFoundation(u16, u32, u8, f32, f32, f32),
+    LayWallFoundation(u16, u8, u32, TetrahedronId, TetrahedronId, u8),
     BuildStructure(u16,u32),
     AttackWalker(u16, u32),
     SpawnMob(u16, u32),

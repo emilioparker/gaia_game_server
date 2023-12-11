@@ -8,7 +8,7 @@ pub async fn process_interaction(_socket:&UdpSocket, data : &[u8; 508],  channel
 {
     let mut start = 1;
     let mut end = start + 8;
-    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
     start = end;
     end = start + 2;
@@ -16,7 +16,7 @@ pub async fn process_interaction(_socket:&UdpSocket, data : &[u8; 508],  channel
 
     start = end;
     end = start + 1;
-    let faction = data[start];
+    let _faction = data[start];
 
     start = end; // ignoring first byte
     end = start + 6;

@@ -4,13 +4,13 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
 pub fn process_request(
-    player_id: u16,
+    _player_id: u16,
     data : &[u8; 508],
     missing_packages : Arc<HashMap<u16, [AtomicU64;10]>>)
 {
     let mut start = 1;
     let mut end = start + 8;
-    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
     start = end;
     end = start + 2;
@@ -18,7 +18,7 @@ pub fn process_request(
 
     start = end;
     end = start + 1;
-    let faction = data[start];
+    let _faction = data[start];
 
     // println!("set missing packages for character {player_id}");
     start = end;

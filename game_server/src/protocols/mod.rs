@@ -3,6 +3,7 @@ pub mod movement_protocol;
 pub mod interaction_protocol;
 pub mod inventory_request_protocol;
 pub mod layfoundation_protocol;
+pub mod lay_wall_foundation_protocol;
 pub mod build_protocol;
 pub mod tile_attacks_walker_protocol;
 pub mod spawn_mob_protocol;
@@ -47,6 +48,7 @@ pub enum Protocol
     AttackTower = 14,
     RepairTower = 15,
     ChatMessage = 16,
+    BuildWall = 17,
 }
     
 pub async fn route_packet(
@@ -136,6 +138,11 @@ pub async fn route_packet(
             let capacity = channel_chat_tx.capacity();
             server_state.tx_cc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             chat_message_protocol::process(socket, data, channel_chat_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::BuildWall as u8 => {
+            let capacity = channel_chat_tx.capacity();
+            server_state.tx_cc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            lay_wall_foundation_protocol::process_construction(socket, data, channel_map_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

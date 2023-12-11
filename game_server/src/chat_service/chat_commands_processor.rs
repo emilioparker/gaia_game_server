@@ -1,12 +1,12 @@
-use std::{sync::Arc, collections::HashMap};
+use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, Mutex};
 
 use crate::{chat::{ChatCommand, chat_entry::ChatEntry}, map::GameMap, ServerState};
 
 
 pub async fn process_chat_commands (
-    map : Arc<GameMap>,
-    server_state: Arc<ServerState>,
+    _map : Arc<GameMap>,
+    _server_state: Arc<ServerState>,
     chat_commands_processor_lock : Arc<Mutex<Vec<ChatCommand>>>,
     tx_ce_gameplay_webservice : &Sender<ChatEntry>,
     chat_summary : &mut [Vec<ChatEntry>; 10],

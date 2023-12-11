@@ -30,7 +30,7 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
         {
             Ok(doc) => 
             {
-                let mut tower_entity = TowerEntity 
+                let tower_entity = TowerEntity 
                 {
                     object_id: doc.id,
                     version: doc.version,

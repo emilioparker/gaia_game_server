@@ -9,7 +9,7 @@ use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
-    player_id: u16,
+    _player_id: u16,
     socket:&UdpSocket,
     data : &[u8; 508],
     map : Arc<GameMap>,
@@ -17,7 +17,7 @@ pub async fn process_request(
 {
     let start = 1;
     let end = start + 8;
-    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+    let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
     let start = end;
     let end = start + 2;
@@ -25,7 +25,7 @@ pub async fn process_request(
 
     let start = end;
     let end = start + 1;
-    let faction = data[start];
+    let _faction = data[start];
 
     let start = end;
     let _page = data[start];

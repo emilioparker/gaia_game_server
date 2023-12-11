@@ -1,7 +1,5 @@
-use std::io::Write;
 
 use bson::oid::ObjectId;
-use flate2::{Compression, write::ZlibEncoder};
 use futures_util::StreamExt;
 use hyper::{Request, Body, Response, http::Error, body, StatusCode};
 use serde::{Deserialize, Serialize};

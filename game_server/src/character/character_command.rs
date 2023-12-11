@@ -63,7 +63,7 @@ impl CharacterCommand {
         // the rest depends on the code.
         let mut start = 1;
         let mut end = start + 8;
-        let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
         start = end;
         end = start + 2;
@@ -71,7 +71,7 @@ impl CharacterCommand {
 
         start = end;
         end = start + 1;
-        let faction = data[start];
+        let _faction = data[start];
 
         // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
         start = end;

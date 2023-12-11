@@ -205,7 +205,6 @@ impl TowerEntity
 
 #[cfg(test)]
 mod tests {
-    use std::num::Wrapping;
 
     use crate::{tower::tower_entity::TOWER_ENTITY_SIZE, map::tetrahedron_id::TetrahedronId};
 

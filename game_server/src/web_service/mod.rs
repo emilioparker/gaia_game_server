@@ -1,6 +1,5 @@
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use futures_util::lock::Mutex;
@@ -19,7 +18,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::character::character_entity::InventoryItem;
-use crate::{tower, ServerState};
+use crate::ServerState;
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 
 pub mod characters;
@@ -128,7 +127,7 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
     }
 }
 
-async fn handle_check_version(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -340,7 +339,7 @@ pub fn start_server(
         loop 
         {
             // a message here means that all towers have been saved to disk.
-            let message = rx_saved_te_longterm_webservice.recv().await.unwrap();
+            let _message = rx_saved_te_longterm_webservice.recv().await.unwrap();
 
             let mut towers = towers_cleaner_reference.lock().await;
             towers.0 = 0;

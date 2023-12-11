@@ -4,8 +4,7 @@ use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
-use crate::real_time_service::client_handler::StateUpdate;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 
 pub mod chat_data_packer;

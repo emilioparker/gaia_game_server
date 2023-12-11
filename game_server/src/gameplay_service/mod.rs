@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::ServerState;
 use crate::character::character_command::CharacterCommand;
-use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::character::character_entity::CharacterEntity;

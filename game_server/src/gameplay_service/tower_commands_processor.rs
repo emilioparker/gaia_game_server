@@ -1,15 +1,16 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_attack::CharacterAttack, character_reward::CharacterReward}, map::{GameMap, map_entity::{MapCommand, MapCommandInfo, MapEntity}, tile_attack::TileAttack}, ServerState, gameplay_service::utils::update_character_entity, tower::{TowerCommand, TowerCommandInfo, tower_entity::TowerEntity}};
+use crate::{map::GameMap, ServerState, tower::{TowerCommand, TowerCommandInfo, tower_entity::TowerEntity}};
+use crate::character::{character_entity::CharacterEntity, character_attack::CharacterAttack, character_reward::CharacterReward};
 
 
 pub async fn process_tower_commands (
     map : Arc<GameMap>,
-    server_state: Arc<ServerState>,
+    _server_state: Arc<ServerState>,
     tower_commands_processor_lock : Arc<Mutex<Vec<TowerCommand>>>,
-    tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    tx_te_gameplay_webservice : &Sender<TowerEntity>,
-    towers_summary : &mut Vec<TowerEntity>,
+    _tx_te_gameplay_longterm : &Sender<TowerEntity>,
+    _tx_te_gameplay_webservice : &Sender<TowerEntity>,
+    _towers_summary : &mut Vec<TowerEntity>,
     player_attacks_summary : &mut  Vec<CharacterAttack>,
     delayed_tower_commands_lock : Arc<Mutex<Vec<(u64, TowerCommand)>>>
 )
@@ -96,8 +97,8 @@ pub async fn process_delayed_tower_commands (
     tx_te_gameplay_webservice : &Sender<TowerEntity>,
     // tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     towers_summary : &mut Vec<TowerEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
-    players_rewards_summary : &mut Vec<CharacterReward>,
+    _players_summary : &mut Vec<CharacterEntity>,
+    _players_rewards_summary : &mut Vec<CharacterReward>,
     delayed_tower_commands_to_execute : Vec<TowerCommand>
 )
 {

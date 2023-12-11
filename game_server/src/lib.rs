@@ -1,6 +1,5 @@
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU32;
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::AtomicU16;
 
 pub mod protocols;

@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}};
+use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
 
 
 pub async fn process_construction(
@@ -11,7 +11,7 @@ pub async fn process_construction(
 
         let mut start = 1;
         let mut end = start + 8;
-        let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+        let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
 
         start = end;
         end = start + 2;
@@ -19,7 +19,7 @@ pub async fn process_construction(
 
         start = end;
         end = start + 1;
-        let faction = data[start];
+        let _faction = data[start];
 
         start = end;
         end = start + 1;

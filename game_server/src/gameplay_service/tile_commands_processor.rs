@@ -368,6 +368,36 @@ pub async fn process_tile_commands (
                         };
                         player_attacks_summary.push(attack);
                     }
+                    MapCommandInfo::LayWallFoundation(_player_id, faction, prop, endpoint_a, endpoint_b, wall_size) => 
+                    {
+                        if updated_tile.prop == 0
+                        {
+                            updated_tile.constitution = 0;
+                            updated_tile.health = 30 * (*wall_size as u32);
+
+                            updated_tile.origin_id = endpoint_a.clone();
+                            updated_tile.target_id = endpoint_b.clone();
+                            updated_tile.ownership_time = 0; // more seconds of control
+                            updated_tile.prop = *prop; // it has to be a wall...
+
+                            updated_tile.faction = *faction;
+
+
+                            updated_tile.version += 1;
+                            tiles_summary.push(updated_tile.clone());
+                            *tile = updated_tile.clone();
+                            drop(tiles);
+
+                            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
+
+                            // sending the updated tile somewhere.
+                            tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                            tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+                        }
+                        else {
+                            tiles_summary.push(updated_tile.clone());
+                        }
+                    },
                 }
             }
             None => println!("tile not found {}" , tile_command.id),
@@ -457,7 +487,8 @@ pub async fn process_delayed_tile_commands (
                         }
                     }
                 } // end of if let
-            } // end of map command map
+            }
+            MapCommandInfo::LayWallFoundation(_, _, _, _, _, _) => todo!(), // end of map command map
         }
     }
 }

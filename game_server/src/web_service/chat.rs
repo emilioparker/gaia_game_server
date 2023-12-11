@@ -1,4 +1,4 @@
-use hyper::{Response, Body, Request};
+use hyper::{Response, Body};
 
 
 use super::AppContext;
