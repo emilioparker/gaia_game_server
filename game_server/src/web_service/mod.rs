@@ -136,7 +136,7 @@ async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Re
 
     let response = ClientVersionResponse
     {
-        server_version : 4
+        server_version : 5
     };
     let response = serde_json::to_vec(&response).unwrap();
     Ok(Response::new(Body::from(response)))
