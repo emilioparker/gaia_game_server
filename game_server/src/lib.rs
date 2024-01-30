@@ -12,6 +12,7 @@ pub mod long_term_storage_service;
 pub mod tower;
 pub mod chat;
 pub mod chat_service;
+pub mod definitions;
 
 pub const SERVER_STATE_SIZE: usize = 20;
 

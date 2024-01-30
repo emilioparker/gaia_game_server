@@ -53,14 +53,18 @@ pub async fn get_characters_from_db_by_world(
                     position: doc.position,
                     second_position: doc.position,
                     action: 0,
-                    constitution: doc.constitution,
-                    health: doc.health,
                     character_name: doc.character_name,
                     inventory,
                     inventory_hash: 1,
-                    attack: doc.attack,
-                    defense: doc.defense,
-                    agility: doc.agility,
+                    level: doc.level,
+                    alchemy_skill_points: doc.alchemy_skill_points,
+                    blacksmith_skill_points: doc.blacksmith_skill_points,
+                    available_experience_points: doc.available_experience_points,
+                    health: doc.health,
+                    constitution: doc.constitution,
+                    strenght: doc.strenght,
+                    dexterity: doc.dexterity,
+                    intelligence: doc.intelligence,
                 };
                 count += 1;
                 data.insert(doc.character_id, player);
@@ -152,11 +156,15 @@ pub fn start_server(
                         "$set": {
                             "position":serialized_position,
                             "inventory" : serialized_data,
+                            "level": bson::to_bson(&player.level).unwrap(),
+                            "alchemy_skill_points" : bson::to_bson(&player.alchemy_skill_points).unwrap(),
+                            "blacksmith_skill_points": bson::to_bson(&player.blacksmith_skill_points).unwrap(),
+                            "available_experience_points": bson::to_bson(&player.available_experience_points).unwrap(),
+                            "health": bson::to_bson(&player.health).unwrap(),
                             "constitution": bson::to_bson(&player.constitution).unwrap(),
-                            "health" :bson::to_bson(&player.health).unwrap(),
-                            "attack" :bson::to_bson(&player.attack).unwrap(),
-                            "defense" :bson::to_bson(&player.defense).unwrap(),
-                            "agility" :bson::to_bson(&player.agility).unwrap(),
+                            "strenght": bson::to_bson(&player.strenght).unwrap(),
+                            "dexterity": bson::to_bson(&player.dexterity).unwrap(),
+                            "intelligence": bson::to_bson(&player.intelligence).unwrap(),
                         }
                     },
                     None

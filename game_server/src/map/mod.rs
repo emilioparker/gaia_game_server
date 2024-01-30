@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{character::character_entity::CharacterEntity, tower::tower_entity::TowerEntity};
+use crate::{character::character_entity::CharacterEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -12,11 +12,12 @@ pub mod tetrahedron_id;
 pub mod tile_attack;
 
 
-pub struct GameMap 
+pub struct GameMap
 { 
     pub world_id : Option<ObjectId>,
     pub world_name : String,
     pub id_generator : AtomicU16,
+    pub definitions : Definitions,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
@@ -28,7 +29,8 @@ impl GameMap
 {
     pub fn new(
         world_id: Option<ObjectId>,
-        world_name:String,
+        world_name: String,
+        definitions: Definitions,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
         players : HashMap<u16, CharacterEntity>,
         towers : HashMap<TetrahedronId, TowerEntity>,
@@ -73,6 +75,7 @@ impl GameMap
             world_id,
             world_name,
             id_generator : AtomicU16::new(last_id + 1),
+            definitions,
             active_players: Arc::new(active_players_set),
             logged_in_players : logged_in_players_set,
             regions : arc_regions,

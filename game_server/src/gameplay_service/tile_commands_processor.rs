@@ -97,7 +97,8 @@ pub async fn process_tile_commands (
                             {
                                 let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                                 let player_option = player_entities.get_mut(&player_id);
-                                if let Some(player_entity) = player_option {
+                                if let Some(player_entity) = player_option 
+                                {
                                     println!("Add inventory item for player");
                                     let new_item = InventoryItem {
                                         item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
@@ -321,7 +322,7 @@ pub async fn process_tile_commands (
                                 updated_tile.ownership_time = 0; // seconds of control
                                 updated_tile.prop = 0;
                                 updated_tile.health = 0;
-                                updated_tile.constitution = 5;
+                                updated_tile.constitution = 0;
                             }
                             else if updated_tile.ownership_time < current_time_in_seconds 
                             {

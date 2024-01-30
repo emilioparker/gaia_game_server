@@ -2,7 +2,9 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-pub const CHARACTER_ENTITY_SIZE: usize = 47;
+use crate::map::map_entity::MapEntity;
+
+pub const CHARACTER_ENTITY_SIZE: usize = 50;
 pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -20,11 +22,21 @@ pub struct CharacterEntity
     pub action:u32,
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub inventory_hash : u32,
-    pub constitution: u16,
+
+    pub level:u8,
+    // points
+    pub alchemy_skill_points:u8, // used for skill tree
+    pub blacksmith_skill_points:u8, // used for skill tree
+    pub available_experience_points:u8, // used for stats
+
+    // stats
     pub health: u16,
-    pub attack: u16,
-    pub defense: u16,
-    pub agility: u16,
+
+    // attributes
+    pub constitution: u16,
+    pub strenght: u16,
+    pub dexterity: u16,
+    pub intelligence: u16,
 }
 
 #[derive(Debug)]
@@ -80,6 +92,7 @@ impl CharacterEntity {
         end = offset + 1;
         buffer[offset] = self.faction;
         offset = end;
+        // 5 bytes
 
         end = offset + 4;
         float_into_buffer(&mut buffer, self.position[0], offset, end);
@@ -101,6 +114,8 @@ impl CharacterEntity {
         float_into_buffer(&mut buffer, self.second_position[2], offset, end);
         offset = end;
 
+        // 24 bytes
+
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
         end = offset + 4;
         buffer[offset..end].copy_from_slice(&action_bytes);
@@ -109,32 +124,64 @@ impl CharacterEntity {
         end = offset + 4;
         buffer[offset..end].copy_from_slice(&inventory_hash_bytes);
         offset = end;
+
+        // 8 bytes
+
+        end = offset + 1;
+        buffer[offset] = self.level;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.alchemy_skill_points;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.available_experience_points;
+        offset = end;
+
+        // 3 bytes
+
+        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&health_bytes);
+        offset = end;
+
         let constitution_bytes = u16::to_le_bytes(self.constitution); // 4 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&constitution_bytes);
         offset = end;
 
         end = offset + 2;
-        let health_bytes = u16::to_le_bytes(self.health); // 2 bytes
-        buffer[offset..end].copy_from_slice(&health_bytes);
+        let strenght_bytes = u16::to_le_bytes(self.strenght); // 2 bytes
+        buffer[offset..end].copy_from_slice(&strenght_bytes);
         offset = end;
 
         end = offset + 2;
-        let attack_bytes = u16::to_le_bytes(self.attack); // 2 bytes
-        buffer[offset..end].copy_from_slice(&attack_bytes);
+        let dexterity_bytes = u16::to_le_bytes(self.dexterity); // 2 bytes
+        buffer[offset..end].copy_from_slice(&dexterity_bytes);
         offset = end;
 
         end = offset + 2;
-        let defense_bytes = u16::to_le_bytes(self.defense); // 2 bytes
-        buffer[offset..end].copy_from_slice(&defense_bytes);
+        let intelligence_bytes = u16::to_le_bytes(self.intelligence); // 2 bytes
+        buffer[offset..end].copy_from_slice(&intelligence_bytes);
         offset = end;
 
-        end = offset + 2;
-        let agility_bytes = u16::to_le_bytes(self.agility); // 2 bytes
-        buffer[offset..end].copy_from_slice(&agility_bytes);
-        //offset = end;
+        // 10 bytes
+
+
+        //5 +24 +8 +3 + 10
 
         buffer
+    }
+
+    pub fn add_xp_mob_defeated(&mut self, defeated_entity : MapEntity)
+    {
+        
+    }
+
+    pub fn add_xp_player_defeated(&mut self, defeated_entity : MapEntity)
+    {
+
     }
 
     pub fn add_inventory_item(&mut self, new_item : InventoryItem)
@@ -271,9 +318,13 @@ mod tests {
             inventory_hash: 1,
             constitution: 0,
             health: 0,
-            attack: 0,
-            defense: 0,
-            agility: 0,
+            level: 1,
+            alchemy_skill_points: 0,
+            blacksmith_skill_points: 0,
+            available_experience_points: 0,
+            strenght: 0,
+            dexterity: 0,
+            intelligence: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 });

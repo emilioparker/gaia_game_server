@@ -7,6 +7,8 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
+use game_server::definitions::character_progression::CharacterProgression;
+use game_server::definitions::definitions_container::Definitions;
 use game_server::ServerState;
 use game_server::chat_service;
 use game_server::gameplay_service;
@@ -30,6 +32,23 @@ use mongodb::options::ResolverConfig;
 async fn main() {
 
     let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
+
+    let mut character_definitions = Vec::<CharacterProgression>::new();
+
+    let file_name = format!("../../definitions/character_progression.csv");
+    println!("reading definition file {}", file_name);
+    let data = tokio::fs::read(file_name).await.unwrap();
+    let mut rdr = csv::Reader::from_reader(data.as_slice());
+    for result in rdr.deserialize() 
+    {
+        let record: CharacterProgression = result.unwrap();
+        println!("{:?}", record);
+        character_definitions.push(record);
+    }
+
+    let definitions = Definitions {
+        character_progression : character_definitions
+    };
 
     let server_state = Arc::new(ServerState
     {
@@ -93,8 +112,8 @@ async fn main() {
         // long_term_storage_service::towers_service::preload_db(world_name, world.id, towers, db_client.clone()).await;
         let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
 
-        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), regions_data.clone(), working_players, world_towers.clone()));
-        storage_game_map = Some(GameMap::new(world.id, world.world_name, regions_data, storage_players, world_towers));
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.clone(), regions_data.clone(), working_players, world_towers.clone()));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions, regions_data, storage_players, world_towers));
 
     }
     else{
@@ -120,8 +139,8 @@ async fn main() {
 
             let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world_id, db_client.clone()).await;
 
-            working_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data.clone(), working_players, world_towers.clone()));
-            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(), regions_data, storage_players, world_towers));
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.clone(), regions_data.clone(), working_players, world_towers.clone()));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions, regions_data, storage_players, world_towers));
         }
         else {
             println!("Error creating world in db");
@@ -233,7 +252,7 @@ fn load_regions_data_into_game_map(
 
     for region in regions_stored_data.iter(){
         region_count += 1;
-        println!("decoding region progress {region_count}/{region_total} tiles {count}");
+        // println!("decoding region progress {region_count}/{region_total} tiles {count}");
 
         let region_object_id = region.1.id.clone();
         let binary_data: Vec<u8> = match region.1.compressed_data.clone() {

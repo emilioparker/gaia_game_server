@@ -62,7 +62,7 @@ pub async fn get_towers_from_db_by_world(
                     damage_received_in_event: record,
                 };
 
-                println!("-------Add tower {}", tower.tetrahedron_id);
+                // println!("-------Add tower {}", tower.tetrahedron_id);
                 count += 1;
                 data.insert(tower.tetrahedron_id.clone(), tower);
             },
