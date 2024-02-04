@@ -2,9 +2,9 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::map::map_entity::MapEntity;
+use crate::{definitions::definitions_container::Definitions, map::map_entity::MapEntity};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 50;
+pub const CHARACTER_ENTITY_SIZE: usize = 53;
 pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
 #[derive(Debug)]
@@ -24,19 +24,17 @@ pub struct CharacterEntity
     pub inventory_hash : u32,
 
     pub level:u8,
-    // points
-    pub alchemy_skill_points:u8, // used for skill tree
-    pub blacksmith_skill_points:u8, // used for skill tree
-    pub available_experience_points:u8, // used for stats
-
-    // stats
-    pub health: u16,
+    pub experience:u32,
+    pub available_skill_points:u8, // used for stats
 
     // attributes
     pub constitution: u16,
     pub strenght: u16,
     pub dexterity: u16,
     pub intelligence: u16,
+
+    // stats
+    pub health: u16,
 }
 
 #[derive(Debug)]
@@ -131,19 +129,14 @@ impl CharacterEntity {
         buffer[offset] = self.level;
         offset = end;
 
-        end = offset + 1;
-        buffer[offset] = self.alchemy_skill_points;
+        let xp_bytes = u32::to_le_bytes(self.experience); // 4 bytes
+        end = offset + 4;
+        buffer[offset..end].copy_from_slice(&xp_bytes);
         offset = end;
 
+        let available_points_bytes = u8::to_le_bytes(self.available_skill_points); // 4 bytes
         end = offset + 1;
-        buffer[offset] = self.available_experience_points;
-        offset = end;
-
-        // 3 bytes
-
-        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
-        end = offset + 2;
-        buffer[offset..end].copy_from_slice(&health_bytes);
+        buffer[offset..end].copy_from_slice(&available_points_bytes);
         offset = end;
 
         let constitution_bytes = u16::to_le_bytes(self.constitution); // 4 bytes
@@ -166,17 +159,29 @@ impl CharacterEntity {
         buffer[offset..end].copy_from_slice(&intelligence_bytes);
         offset = end;
 
-        // 10 bytes
+        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&health_bytes);
+        offset = end;
+        // 16 bytes
 
 
-        //5 +24 +8 +3 + 10
+        //5 +24+8 +16 = 53
 
         buffer
     }
 
-    pub fn add_xp_mob_defeated(&mut self, defeated_entity : MapEntity)
+    pub fn add_xp_mob_defeated(&mut self, defeated_entity : MapEntity, definitions: &Definitions)
     {
-        
+        self.experience += 1;
+        if let Some(next_level_data) = definitions.character_progression.get(self.level as usize + 1)
+        {
+            if next_level_data.required_xp <= self.experience
+            {
+                self.level += 1;
+                self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
+            }
+        }
     }
 
     pub fn add_xp_player_defeated(&mut self, defeated_entity : MapEntity)
@@ -257,6 +262,10 @@ fn float_into_buffer(buffer : &mut [u8], data: f32, start : usize, end: usize)
 mod tests {
     use std::num::Wrapping;
 
+    use futures_util::sink::Buffer;
+
+    use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
+
     use super::CharacterEntity;
 
 
@@ -319,9 +328,8 @@ mod tests {
             constitution: 0,
             health: 0,
             level: 1,
-            alchemy_skill_points: 0,
-            blacksmith_skill_points: 0,
-            available_experience_points: 0,
+            experience: 0,
+            available_skill_points: 0,
             strenght: 0,
             dexterity: 0,
             intelligence: 0,
@@ -347,5 +355,36 @@ mod tests {
         let buffer = item.to_bytes();
 
         assert!(buffer.len() == super::CHARACTER_INVENTORY_SIZE);
+    }
+
+    #[test]
+    fn test_encode_character()
+    {
+
+        let char = CharacterEntity{
+            object_id: None,
+            player_id: None,
+            version: 1,
+            character_name: "Park".to_string(),
+            character_id: 2,
+            faction: 0,
+            position: [0.0,0.0,0.0],
+            second_position: [0.0,0.0,0.0],
+            action: 1,
+            inventory: Vec::new(),
+            inventory_hash: 10,
+            level: 0,
+            experience: 0,
+            available_skill_points: 0,
+            constitution: 0,
+            strenght: 23,
+            dexterity: 10,
+            intelligence: 3,
+            health: 10,
+        };
+        let buffer = char.to_bytes();
+        println!("{:?}", buffer);
+
+        assert!(buffer.len() == CHARACTER_ENTITY_SIZE);
     }
 }

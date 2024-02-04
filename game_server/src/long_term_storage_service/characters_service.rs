@@ -44,7 +44,8 @@ pub async fn get_characters_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
-                let player =  CharacterEntity{
+                let player =  CharacterEntity
+                {
                     character_id: doc.character_id,
                     player_id: doc.player_id,
                     version:doc.version,
@@ -57,14 +58,13 @@ pub async fn get_characters_from_db_by_world(
                     inventory,
                     inventory_hash: 1,
                     level: doc.level,
-                    alchemy_skill_points: doc.alchemy_skill_points,
-                    blacksmith_skill_points: doc.blacksmith_skill_points,
-                    available_experience_points: doc.available_experience_points,
-                    health: doc.health,
+                    experience: doc.experience,
+                    available_skill_points: doc.available_skill_points,
                     constitution: doc.constitution,
                     strenght: doc.strenght,
                     dexterity: doc.dexterity,
                     intelligence: doc.intelligence,
+                    health: doc.health,
                 };
                 count += 1;
                 data.insert(doc.character_id, player);
@@ -157,9 +157,8 @@ pub fn start_server(
                             "position":serialized_position,
                             "inventory" : serialized_data,
                             "level": bson::to_bson(&player.level).unwrap(),
-                            "alchemy_skill_points" : bson::to_bson(&player.alchemy_skill_points).unwrap(),
-                            "blacksmith_skill_points": bson::to_bson(&player.blacksmith_skill_points).unwrap(),
-                            "available_experience_points": bson::to_bson(&player.available_experience_points).unwrap(),
+                            "experience" : bson::to_bson(&player.experience).unwrap(),
+                            "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
                             "health": bson::to_bson(&player.health).unwrap(),
                             "constitution": bson::to_bson(&player.constitution).unwrap(),
                             "strenght": bson::to_bson(&player.strenght).unwrap(),

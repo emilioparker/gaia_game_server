@@ -108,6 +108,7 @@ pub async fn process_tile_commands (
                                     };
 
                                     player_entity.add_inventory_item(new_item.clone());
+                                    player_entity.add_xp_mob_defeated(updated_tile, &map.definitions);
                                     player_entity.version += 1;
 
                                     let updated_player_entity = player_entity.clone();

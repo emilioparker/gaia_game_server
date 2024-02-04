@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
@@ -8,7 +9,11 @@ use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
 use game_server::definitions::character_progression::CharacterProgression;
+use game_server::definitions::definition_versions;
+use game_server::definitions::definition_versions::DefinitionVersion;
 use game_server::definitions::definitions_container::Definitions;
+use game_server::definitions::definitions_container::DefinitionsData;
+use game_server::definitions::props_data::PropData;
 use game_server::ServerState;
 use game_server::chat_service;
 use game_server::gameplay_service;
@@ -33,22 +38,7 @@ async fn main() {
 
     let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
 
-    let mut character_definitions = Vec::<CharacterProgression>::new();
-
-    let file_name = format!("../../definitions/character_progression.csv");
-    println!("reading definition file {}", file_name);
-    let data = tokio::fs::read(file_name).await.unwrap();
-    let mut rdr = csv::Reader::from_reader(data.as_slice());
-    for result in rdr.deserialize() 
-    {
-        let record: CharacterProgression = result.unwrap();
-        println!("{:?}", record);
-        character_definitions.push(record);
-    }
-
-    let definitions = Definitions {
-        character_progression : character_definitions
-    };
+    let definitions = load_definitions().await;
 
     let server_state = Arc::new(ServerState
     {
@@ -112,8 +102,8 @@ async fn main() {
         // long_term_storage_service::towers_service::preload_db(world_name, world.id, towers, db_client.clone()).await;
         let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
 
-        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.clone(), regions_data.clone(), working_players, world_towers.clone()));
-        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions, regions_data, storage_players, world_towers));
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone()));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data, storage_players, world_towers));
 
     }
     else{
@@ -139,8 +129,8 @@ async fn main() {
 
             let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world_id, db_client.clone()).await;
 
-            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.clone(), regions_data.clone(), working_players, world_towers.clone()));
-            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions, regions_data, storage_players, world_towers));
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone()));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data, storage_players, world_towers));
         }
         else {
             println!("Error creating world in db");
@@ -214,6 +204,7 @@ async fn main() {
                 storage_game_map_reference, 
                 server_state.clone(),
                 db_client.clone(),
+                definitions.1,
                 rx_me_gameplay_webservice,
                 // tx_mc_webservice_gameplay,
                 rx_te_gameplay_webservice,
@@ -238,6 +229,56 @@ async fn main() {
 }
 
 
+async fn load_definition_by_name<T>(file_name : String) -> (Vec<T>, Vec<u8>)
+where T: serde::de::DeserializeOwned
+{
+    let file_name = format!("definitions/{file_name}");
+    let mut data = Vec::<T>::new();
+    println!("reading definition file {}", file_name);
+    let definition_versions_data = tokio::fs::read(file_name).await.unwrap();
+    let mut rdr = csv::Reader::from_reader(definition_versions_data.as_slice());
+    for result in rdr.deserialize() 
+    {
+        let record: T = result.unwrap();
+        // println!("{:?}", record);
+        data.push(record);
+    }
+    (data, definition_versions_data)
+}
+
+async fn load_definitions() -> (Definitions, DefinitionsData)
+{
+    let mut definition_versions = HashMap::new();
+
+    let file_name = format!("definition_versions.csv");
+    let definition_versions_result = load_definition_by_name::<DefinitionVersion>(file_name).await;
+
+    for entry in definition_versions_result.0
+    {
+        definition_versions.insert(entry.key.clone(), entry);
+    }
+
+    let file_name = format!("character_progression.csv");
+    let character_result = load_definition_by_name::<CharacterProgression>(file_name).await;
+
+    let file_name = format!("props.csv");
+    let props_result = load_definition_by_name::<PropData>(file_name).await;
+
+    let definitions = Definitions 
+    {
+        character_progression : character_result.0,
+        props : props_result.0,
+    };
+
+    let definitions_data = DefinitionsData
+    {
+        definition_versions,
+        character_progression_data : character_result.1,
+        definition_versions_data : definition_versions_result.1,
+        props_data : props_result.1
+    };
+    (definitions, definitions_data)
+}
 
 
 fn load_regions_data_into_game_map(

@@ -17,20 +17,19 @@ pub struct StoredCharacter {
     pub character_name: String,
     pub position:[f32;3],
     pub inventory: Vec<StoredInventoryItem>,
-    pub level:u8,
-    // points
-    pub alchemy_skill_points:u8, // used for skill tree
-    pub blacksmith_skill_points:u8, // used for skill tree
-    pub available_experience_points:u8, // used for stats
 
-    // stats
-    pub health: u16,
+    pub level:u8,
+    pub experience:u32,
+    pub available_skill_points:u8, // used for stats
 
     // attributes
     pub constitution: u16,
     pub strenght: u16,
     pub dexterity: u16,
     pub intelligence: u16,
+
+    // stats
+    pub health: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use futures_util::future::Map;
 use futures_util::lock::Mutex;
 use hyper::http::Error;
 use hyper::{Request, body, server::conn::AddrStream};
@@ -14,6 +15,7 @@ use hyper::{Body, Response, Server, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
 use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
+use crate::definitions::definitions_container::{Definitions, DefinitionsData};
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -56,6 +58,13 @@ struct SellItemResponse
     amount:u16,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+struct DefinitionRequest 
+{
+    name: String,
+    version: u16,
+}
+
 struct ChatStorage 
 {
     index:usize,
@@ -70,6 +79,7 @@ pub struct AppContext
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
     server_state : Arc<ServerState>,
+    definitionsData : DefinitionsData,
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
@@ -143,6 +153,50 @@ async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Re
 }
 
 
+async fn handle_definition_request(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+{
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let result : Result<DefinitionRequest, _> = serde_json::from_slice(&data);
+    if let Ok(data) = result
+    {
+        println!("handling request {:?}", data);
+
+        if let Some(definition_data)= context.definitionsData.definition_versions.get(&data.name)
+        {
+            if definition_data.version == data.version && data.name == "character_progression"
+            {
+                return Ok(Response::new(Body::from(context.definitionsData.character_progression_data)));
+            }
+            else if definition_data.version == data.version && data.name == "definition_versions"
+            {
+                return Ok(Response::new(Body::from(context.definitionsData.definition_versions_data)));
+            }
+            else if definition_data.version == data.version && data.name == "props"
+            {
+                return Ok(Response::new(Body::from(context.definitionsData.props_data)));
+            }
+            else
+            {
+                let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
+                *response.status_mut() = StatusCode::UPGRADE_REQUIRED;
+                return Ok(response);
+            }
+        }
+        else {
+            let mut response = Response::new(Body::from(String::from("definition_details_not_found")));
+            *response.status_mut() = StatusCode::NOT_FOUND;
+            return Ok(response);
+        }
+    }
+    else
+    {
+        let mut response = Response::new(Body::from(String::from("definition_not_found")));
+        *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
+        return Ok(response);
+    }
+
+}
 
 async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>, Error> {
 
@@ -154,6 +208,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         match route {
             "region" => map::handle_region_request(context, rest).await,
             "temp_regions" => map::handle_temp_region_request(context, rest).await,
+            "definitions" => handle_definition_request(context, req).await,
             "character_data" => characters::handle_characters_request(context).await,
             "player_creation" => characters::handle_create_player(context, req).await,
             "player_data" => characters::handle_player_request(context, req).await,
@@ -197,6 +252,7 @@ pub fn start_server(
     storage_map: Arc<GameMap>,
     server_state: Arc<ServerState>,
     db_client : mongodb :: Client,
+    definitionsData : DefinitionsData,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
     mut rx_ce_realtime_webservice : Receiver<ChatEntry>,
@@ -229,13 +285,12 @@ pub fn start_server(
     let chat_adder_reference= Arc::new(Mutex::new(HashMap::new()));
     let chat_reader_reference = chat_adder_reference.clone();
 
-
     let context = AppContext 
     {
         working_game_map : working_map,
         storage_game_map : storage_map,
         server_state,
-        // tx_mc_webservice_realtime : tx_mc_webservice_gameplay,
+        definitionsData,
         db_client : db_client,
         cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),
         temp_regions : regions_reader_reference,

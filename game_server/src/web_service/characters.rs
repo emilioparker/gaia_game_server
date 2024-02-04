@@ -250,15 +250,14 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         position:[0f32,0f32,0f32],
         faction: data.faction.clone(),
         inventory : Vec::new(),
-        level: 1,
-        health: 1,
-        alchemy_skill_points: 0,
-        blacksmith_skill_points: 0,
-        available_experience_points: 0,
+        level: 0,
+        experience: 0,
+        available_skill_points: 0,
         constitution: 1,
         strenght: 1,
         dexterity: 1,
         intelligence: 1,
+        health: 1,
     };
 
     let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
@@ -272,7 +271,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
 
     let player_entity = CharacterEntity 
     {
-        object_id: object_id,
+        object_id,
         player_id,
         character_name : data.character_name.clone(),
         character_id: new_id,
@@ -283,15 +282,14 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         second_position: [0.0, 0.0, 0.0],
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_hash : 1,
-        level: 1,
-        health: 1,
-        alchemy_skill_points: 0,
-        blacksmith_skill_points: 0,
-        available_experience_points: 0,
+        level: 0,
+        experience: 0,
+        available_skill_points: 0,
         constitution: 1,
         strenght: 1,
         dexterity: 1,
         intelligence: 1,
+        health: 1,
     };
 
     let mut players = context.working_game_map.players.lock().await;
