@@ -13,6 +13,7 @@ use game_server::definitions::definition_versions;
 use game_server::definitions::definition_versions::DefinitionVersion;
 use game_server::definitions::definitions_container::Definitions;
 use game_server::definitions::definitions_container::DefinitionsData;
+use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::props_data::PropData;
 use game_server::ServerState;
 use game_server::chat_service;
@@ -118,7 +119,10 @@ async fn main() {
             //used and updated by the long storage system
             let storage_players = working_players.clone();
 
-            let (towers, regions_data) = load_files_into_regions_hashset(world_name).await;
+            let regions_data = load_files_into_regions_hashset(world_name).await;
+
+            let towers = Vec::new();
+
             long_term_storage_service::world_service::preload_db(world_name, world_id, regions_data, db_client.clone()).await;
             long_term_storage_service::towers_service::preload_db(world_name, world_id, towers, db_client.clone()).await;
 
@@ -261,6 +265,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("character_progression.csv");
     let character_result = load_definition_by_name::<CharacterProgression>(file_name).await;
 
+    let file_name = format!("mob_progression.csv");
+    let mob_progression_result = load_definition_by_name::<MobProgression>(file_name).await;
+
     let file_name = format!("props.csv");
     let props_result = load_definition_by_name::<PropData>(file_name).await;
 
@@ -268,12 +275,14 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     {
         character_progression : character_result.0,
         props : props_result.0,
+        mob_progression : mob_progression_result.0,
     };
 
     let definitions_data = DefinitionsData
     {
         definition_versions,
         character_progression_data : character_result.1,
+        mob_progression_data : mob_progression_result.1,
         definition_versions_data : definition_versions_result.1,
         props_data : props_result.1
     };
@@ -348,7 +357,7 @@ fn load_regions_data_into_game_map(
     // GameMap::new(regions_data)
 }
 
-async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> (Vec<TetrahedronId>, Vec<u8>)
+async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> Vec<u8>
 {
     let file_name = format!("../../map_initial_data/{}_{}_props.bytes",world_id, region_id);
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
@@ -361,15 +370,13 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     let mut start = 0;
     let mut end = MapEntity::get_size();
 
-    let mut towers_in_region = Vec::new();
-
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
         let tile = MapEntity::from_bytes(&buffer);
         if tile.prop == 35
         {
-            towers_in_region.push(tile.id.clone());
+            // this is a tower, should match with towers file
         }
 
         start = end;
@@ -381,21 +388,19 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     }
 
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    (towers_in_region, compressed_bytes)
+    compressed_bytes
 }
 
-async fn load_files_into_regions_hashset(world_id : &str) -> (Vec<TetrahedronId>, HashMap<TetrahedronId, Vec<u8>>) 
+async fn load_files_into_regions_hashset(world_id : &str) -> HashMap<TetrahedronId, Vec<u8>> 
 {
-    let mut towers = Vec::new();
     let regions = game_server::map::get_region_ids(2);
     let mut regions_data = HashMap::<TetrahedronId, Vec<u8>>::new();
     for region in regions
     {
-        let (mut towers_in_region, data) = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
+        let data = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
         regions_data.insert(region, data);
-        towers.append(&mut towers_in_region);
     }
-    (towers, regions_data)
+    regions_data
 }
 
 

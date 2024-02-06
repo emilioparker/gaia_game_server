@@ -6,6 +6,7 @@ pub const COLLECT_ACTION: u32 = 4;
 pub const GREET_ACTION: u32 = 5;
 pub const RESPAWN_ACTION: u32 = 6;
 pub const BUILD_ACTION: u32 = 7;
+pub const TOUCH: u32 = 8;
 
 #[derive(Debug)]
 pub struct CharacterCommand {

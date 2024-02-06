@@ -80,14 +80,14 @@ pub async fn get_towers_from_db_by_world(
 pub async fn preload_db(
     world_name : &str,
     world_id: Option<ObjectId>,
-    towers : Vec<TetrahedronId>,
+    towers : Vec<(u8,TetrahedronId)>,
     db_client : Client
 ) {
 
     let data_collection: mongodb::Collection<StoredTower> = db_client.database("game").collection::<StoredTower>("towers");
     let mut stored_towers = Vec::<StoredTower>:: new();
 
-    for tower_id in towers
+    for (area,tower_id) in towers
     {
         let data = StoredTower 
         {

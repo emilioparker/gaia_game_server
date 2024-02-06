@@ -158,6 +158,14 @@ pub async fn process_player_commands (
                 players_summary.push(player_entity.clone());
             }
         }
+        else if player_command.action == character_command::TOUCH 
+        { 
+            let player_option = player_entities.get(&cloned_data.player_id);
+            if let Some(player_entity) = player_option 
+            {
+                players_summary.push(player_entity.clone());
+            }
+        }
         else 
         {
             println!("got an unknown player command {}", player_command.action)

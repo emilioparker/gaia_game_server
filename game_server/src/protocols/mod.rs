@@ -1,6 +1,6 @@
 pub mod ping_protocol;
 pub mod movement_protocol;
-pub mod interaction_protocol;
+pub mod resource_extraction_protocol;
 pub mod inventory_request_protocol;
 pub mod layfoundation_protocol;
 pub mod lay_wall_foundation_protocol;
@@ -35,7 +35,7 @@ pub enum Protocol
     Ping = 1,
     Action = 2,
     GlobalState = 3,
-    Interaction = 4,
+    ResourceExtraction = 4,
     InventoryRequest = 5,
     LayFoundation = 6,
     Build = 7,
@@ -79,10 +79,10 @@ pub async fn route_packet(
             server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             movement_protocol::process_movement(socket, data, channel_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::Interaction as u8 => {
+        Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => {
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-            interaction_protocol::process_interaction(socket, data, channel_map_tx).await;
+            resource_extraction_protocol::process(socket, data, channel_map_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Build as u8 => {
             let capacity = channel_map_tx.capacity();

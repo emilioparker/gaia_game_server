@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const TOWER_ENTITY_SIZE: usize = 65; // 10  + 50 bytes for the damage
+pub const TOWER_ENTITY_SIZE: usize = 65;
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
 
 #[derive(Debug)]
@@ -44,6 +44,7 @@ impl DamageByFaction
 
         buffer[local_offset] = self.faction; //1 byte
         local_offset += 1;
+
 
         let damage_amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
         let end = local_offset + 2; 

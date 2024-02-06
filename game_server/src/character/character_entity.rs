@@ -29,7 +29,7 @@ pub struct CharacterEntity
 
     // attributes
     pub constitution: u16,
-    pub strenght: u16,
+    pub strength: u16,
     pub dexterity: u16,
     pub intelligence: u16,
 
@@ -145,7 +145,7 @@ impl CharacterEntity {
         offset = end;
 
         end = offset + 2;
-        let strenght_bytes = u16::to_le_bytes(self.strenght); // 2 bytes
+        let strenght_bytes = u16::to_le_bytes(self.strength); // 2 bytes
         buffer[offset..end].copy_from_slice(&strenght_bytes);
         offset = end;
 
@@ -171,7 +171,7 @@ impl CharacterEntity {
         buffer
     }
 
-    pub fn add_xp_mob_defeated(&mut self, defeated_entity : MapEntity, definitions: &Definitions)
+    pub fn add_xp_mob_defeated(&mut self, definitions: &Definitions)
     {
         self.experience += 1;
         if let Some(next_level_data) = definitions.character_progression.get(self.level as usize + 1)
@@ -182,6 +182,7 @@ impl CharacterEntity {
                 self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
             }
         }
+        println!("----- add xp mob defeated {}", self.experience);
     }
 
     pub fn add_xp_player_defeated(&mut self, defeated_entity : MapEntity)
@@ -330,7 +331,7 @@ mod tests {
             level: 1,
             experience: 0,
             available_skill_points: 0,
-            strenght: 0,
+            strength: 0,
             dexterity: 0,
             intelligence: 0,
         };
@@ -377,7 +378,7 @@ mod tests {
             experience: 0,
             available_skill_points: 0,
             constitution: 0,
-            strenght: 23,
+            strength: 23,
             dexterity: 10,
             intelligence: 3,
             health: 10,

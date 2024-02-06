@@ -108,7 +108,6 @@ pub async fn process_tile_commands (
                                     };
 
                                     player_entity.add_inventory_item(new_item.clone());
-                                    player_entity.add_xp_mob_defeated(updated_tile, &map.definitions);
                                     player_entity.version += 1;
 
                                     let updated_player_entity = player_entity.clone();
@@ -225,7 +224,7 @@ pub async fn process_tile_commands (
                         let attack = TileAttack{
                             tile_id: updated_tile.id.clone(),
                             target_player_id: *player_id,
-                            damage: 2,
+                            damage: 1,
                             skill_id: 0,
                         };
                         tile_attacks_summary.push(attack);
@@ -245,8 +244,8 @@ pub async fn process_tile_commands (
                         if updated_tile.prop == 0 // we can spawn a mob here.
                         {
                             let current_time_in_seconds = (current_time / 1000) as u32;
-                            updated_tile.health = 100;
-                            updated_tile.constitution = 100;
+                            updated_tile.health = 1;
+                            updated_tile.constitution = 1;
                             updated_tile.prop = *mob_id;
                             updated_tile.origin_id = tile.id.clone();
                             updated_tile.target_id = tile.id.clone();
@@ -364,7 +363,7 @@ pub async fn process_tile_commands (
                         let attack = CharacterAttack{
                             player_id: *player_id,
                             target_player_id: 0,
-                            damage: 2,
+                            damage: *damage as u32,
                             skill_id: 0,
                             target_tile_id: tile_id.clone(),
                         };
@@ -427,7 +426,8 @@ pub async fn process_delayed_tile_commands (
         let region = map.get_region_from_child(&tile_command.id);
         let mut tiles = region.lock().await;
 
-        match &tile_command.info {
+        match &tile_command.info 
+        {
             MapCommandInfo::Touch() => todo!(),
             MapCommandInfo::ChangeHealth(_, _) => todo!(),
             MapCommandInfo::LayFoundation(_,_,_, _, _, _) => todo!(),
@@ -441,7 +441,7 @@ pub async fn process_delayed_tile_commands (
                         // && updated_tile.faction != 0 
                         // && updated_tile.faction != player_entity.faction 
                     {
-                        let result = player_entity.health.saturating_sub(2);
+                        let result = player_entity.health.saturating_sub(1);
                         let updated_player_entity = CharacterEntity {
                             action: player_entity.action,
                             version: player_entity.version + 1,
@@ -459,7 +459,8 @@ pub async fn process_delayed_tile_commands (
             MapCommandInfo::SpawnMob(_, _) => todo!(),
             MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
             MapCommandInfo::ControlMapEntity(_, _) => todo!(),
-            MapCommandInfo::AttackMob(player_id, damage, _required_time) => {
+            MapCommandInfo::AttackMob(player_id, damage, _required_time) => 
+            {
                 if let Some(tile) = tiles.get_mut(&tile_command.id) {
                     let (updated_tile, reward) = process_tile_attack(
                         damage, 
@@ -481,7 +482,7 @@ pub async fn process_delayed_tile_commands (
                         let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                         let player_option = player_entities.get_mut(&player_id);
                         if let Some(player_entity) = player_option {
-                            update_character_entity(player_entity,reward, players_rewards_summary, players_summary);
+                            update_character_entity(player_entity,reward, &map.definitions, players_rewards_summary, players_summary);
                             let updated_player_entity = player_entity.clone();
                             drop(player_entities);
                             // we try to drop any locks before doing an await

@@ -61,7 +61,7 @@ pub async fn get_characters_from_db_by_world(
                     experience: doc.experience,
                     available_skill_points: doc.available_skill_points,
                     constitution: doc.constitution,
-                    strenght: doc.strenght,
+                    strength: doc.strenght,
                     dexterity: doc.dexterity,
                     intelligence: doc.intelligence,
                     health: doc.health,
@@ -161,7 +161,7 @@ pub fn start_server(
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
                             "health": bson::to_bson(&player.health).unwrap(),
                             "constitution": bson::to_bson(&player.constitution).unwrap(),
-                            "strenght": bson::to_bson(&player.strenght).unwrap(),
+                            "strenght": bson::to_bson(&player.strength).unwrap(),
                             "dexterity": bson::to_bson(&player.dexterity).unwrap(),
                             "intelligence": bson::to_bson(&player.intelligence).unwrap(),
                         }

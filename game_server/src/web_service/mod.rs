@@ -176,6 +176,10 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 return Ok(Response::new(Body::from(context.definitionsData.props_data)));
             }
+            else if definition_data.version == data.version && data.name == "mobs_progression"
+            {
+                return Ok(Response::new(Body::from(context.definitionsData.mob_progression_data)));
+            }
             else
             {
                 let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
@@ -218,6 +222,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
+            "exchange_skill_points" => characters::exchange_skill_points(context, req).await,
             "check_version" => handle_check_version(context, req).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));
@@ -252,7 +257,7 @@ pub fn start_server(
     storage_map: Arc<GameMap>,
     server_state: Arc<ServerState>,
     db_client : mongodb :: Client,
-    definitionsData : DefinitionsData,
+    definitions_data : DefinitionsData,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
     mut rx_ce_realtime_webservice : Receiver<ChatEntry>,
@@ -290,7 +295,7 @@ pub fn start_server(
         working_game_map : working_map,
         storage_game_map : storage_map,
         server_state,
-        definitionsData,
+        definitionsData: definitions_data,
         db_client : db_client,
         cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),
         temp_regions : regions_reader_reference,

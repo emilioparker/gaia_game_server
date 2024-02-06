@@ -2,15 +2,17 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::map_entity::{MapEntity, MapCommand}, ServerState, tower::{tower_entity::TowerEntity, TowerCommand}};
+use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapEntity, MapCommand}, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
 
 
 pub fn update_character_entity(
     player_entity : &mut CharacterEntity, 
     reward : InventoryItem,
+    definitions : &Definitions,
     players_rewards_summary : &mut Vec<CharacterReward>,
     players_summary : &mut Vec<CharacterEntity>)
 {
+        player_entity.add_xp_mob_defeated(definitions);
         player_entity.add_inventory_item(reward.clone());
         player_entity.version += 1;
         // we should also give the player the reward

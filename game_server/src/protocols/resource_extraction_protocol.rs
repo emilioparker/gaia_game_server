@@ -4,7 +4,7 @@ use tokio::sync::mpsc::Sender;
 use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
 
 
-pub async fn process_interaction(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &Sender<MapCommand>)
+pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &Sender<MapCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;

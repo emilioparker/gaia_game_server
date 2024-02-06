@@ -1,4 +1,6 @@
 
+use std::cmp::min;
+
 use bson::oid::ObjectId;
 use futures_util::StreamExt;
 use hyper::{Request, Body, Response, http::Error, body, StatusCode};
@@ -58,7 +60,8 @@ pub struct JoinWithCharacterRequest {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct JoinWithCharacterResponse {
+pub struct JoinWithCharacterResponse 
+{
     pub session_id:u64,
     pub character_id:u16,
     pub faction:u8,
@@ -68,6 +71,15 @@ pub struct JoinWithCharacterResponse {
     pub constitution:u16
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ExchangeSkillPointsRequest 
+{
+    pub character_id : u16,
+    pub strength:u16,
+    pub constitution:u16,
+    pub dexterity:u16,
+    pub intelligence:u16,
+}
 
 pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
@@ -252,7 +264,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         inventory : Vec::new(),
         level: 0,
         experience: 0,
-        available_skill_points: 0,
+        available_skill_points: 5,
         constitution: 1,
         strenght: 1,
         dexterity: 1,
@@ -284,9 +296,9 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         inventory_hash : 1,
         level: 0,
         experience: 0,
-        available_skill_points: 0,
+        available_skill_points: 5,
         constitution: 1,
-        strenght: 1,
+        strength: 1,
         dexterity: 1,
         intelligence: 1,
         health: 1,
@@ -435,5 +447,46 @@ pub async fn handle_characters_request(context: AppContext) -> Result<Response<B
             .expect("Failed to create response");
         Ok(response)
 
+    }
+}
+
+pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, Error> 
+{
+    let body = req.body_mut();
+    let data = body::to_bytes(body).await.unwrap();
+    let data: ExchangeSkillPointsRequest = serde_json::from_slice(&data).unwrap();
+    println!("handling request {:?}", data);
+    
+    let mut players = context.working_game_map.players.lock().await;
+
+    if let Some(player) = players.get_mut(&data.character_id) 
+    {
+        println!("player points exchange {:?}", player);
+        let total_points = data.strength + data.constitution + data.dexterity + data.intelligence;
+        if total_points > player.available_skill_points as u16
+        {
+            let mut response = Response::new(Body::from(String::from("missing route")));
+            *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
+            return Ok(response);
+        }
+        else 
+        {
+            player.available_skill_points -= total_points as u8;
+            player.constitution += data.constitution;
+            player.strength += data.strength;
+            player.dexterity += data.dexterity;
+            player.intelligence += data.intelligence;
+            player.health += data.constitution;
+            player.version += 1;
+        }
+        drop(players);
+
+        Ok(Response::new(Body::from("Done")))
+    }
+    else 
+    {
+        let mut response = Response::new(Body::from(String::from("char not found")));
+        *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
+        return Ok(response);
     }
 }
