@@ -67,8 +67,14 @@ pub struct JoinWithCharacterResponse
     pub faction:u8,
     pub tetrahedron_id:String,
     pub position:[f32;3],
+    pub level:u8,
+    pub experience:u32,
+    pub available_points:u8,
     pub health:u16,
-    pub constitution:u16
+    pub constitution:u16,
+    pub strength:u16,
+    pub dexterity:u16,
+    pub intelligence:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -381,14 +387,21 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
         let session_id = current_time.as_secs();
 
-        let saved_char = JoinWithCharacterResponse{
+        let saved_char = JoinWithCharacterResponse
+        {
             character_id: data.character_id,
             faction:player.faction,
             tetrahedron_id:"k120223211".to_owned(),
             position: player.second_position,
+            level : player.level,
+            experience : player.experience,
             health: player.health,
             constitution: player.constitution,
             session_id,
+            available_points: player.available_skill_points,
+            strength: player.strength,
+            dexterity: player.dexterity,
+            intelligence: player.intelligence,
         };
         drop(players);
 
