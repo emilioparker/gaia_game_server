@@ -71,7 +71,7 @@ pub enum MapCommandInfo {
     LayWallFoundation(u16, u8, u32, TetrahedronId, TetrahedronId, u8),
     BuildStructure(u16,u32),
     AttackWalker(u16, u32),
-    SpawnMob(u16, u32),
+    SpawnMob(u16, u32, u16),
     MoveMob(u16,u32, TetrahedronId, f32, f32),
     ControlMapEntity(u16, u32),
     AttackMob(u16,u16,u32),

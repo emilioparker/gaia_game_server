@@ -239,13 +239,21 @@ pub async fn process_tile_commands (
                         drop(lock);
 
                     },
-                    MapCommandInfo::SpawnMob(player_id, mob_id) => {
+                    MapCommandInfo::SpawnMob(player_id, mob_id, level) => {
 
                         if updated_tile.prop == 0 // we can spawn a mob here.
                         {
                             let current_time_in_seconds = (current_time / 1000) as u32;
-                            updated_tile.health = 1;
-                            updated_tile.constitution = 1;
+                            updated_tile.level = *level as u8;
+
+                            if let Some(entry) = map.definitions.mob_progression.get(*level as usize) 
+                            {
+                                let attribute = (entry.skill_points / 4) as u32;
+                                updated_tile.health =  attribute;
+                                updated_tile.constitution = attribute;
+                                updated_tile.temperature = attribute as f32; // attack
+                            }
+
                             updated_tile.prop = *mob_id;
                             updated_tile.origin_id = tile.id.clone();
                             updated_tile.target_id = tile.id.clone();
@@ -254,6 +262,8 @@ pub async fn process_tile_commands (
                             updated_tile.ownership_time = current_time_in_seconds;
 
                             updated_tile.version += 1;
+                            
+                            println!("new mob {:?}", updated_tile);
                             tiles_summary.push(updated_tile.clone());
                             *tile = updated_tile.clone();
                             drop(tiles);
@@ -456,7 +466,7 @@ pub async fn process_delayed_tile_commands (
                     }
                 }
             },
-            MapCommandInfo::SpawnMob(_, _) => todo!(),
+            MapCommandInfo::SpawnMob(_, _, _) => todo!(),
             MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
             MapCommandInfo::ControlMapEntity(_, _) => todo!(),
             MapCommandInfo::AttackMob(player_id, damage, _required_time) => 

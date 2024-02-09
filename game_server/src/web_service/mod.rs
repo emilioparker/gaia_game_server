@@ -176,14 +176,14 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 return Ok(Response::new(Body::from(context.definitionsData.props_data)));
             }
-            else if definition_data.version == data.version && data.name == "mobs_progression"
+            else if definition_data.version == data.version && data.name == "mob_progression"
             {
                 return Ok(Response::new(Body::from(context.definitionsData.mob_progression_data)));
             }
             else
             {
                 let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
-                *response.status_mut() = StatusCode::UPGRADE_REQUIRED;
+                *response.status_mut() = StatusCode::NOT_FOUND;
                 return Ok(response);
             }
         }

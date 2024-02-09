@@ -29,14 +29,18 @@ pub async fn process(
 
         end = start + 4;
         let mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        // start = end;
+        start = end;
+
+        end = start + 2;
+        let level = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        start = end;
 
         let map_action = MapCommand{
             id: tile_id,
-            info: MapCommandInfo::SpawnMob(player_id, mob_id)
+            info: MapCommandInfo::SpawnMob(player_id, mob_id, level)
         };
 
-        // println!("got a {:?}", map_action);
+        println!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }
