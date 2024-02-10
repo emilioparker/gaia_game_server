@@ -1,5 +1,5 @@
 use std::{sync::Arc, collections::HashMap};
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
 use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_attack::CharacterAttack, character_reward::CharacterReward}, map::{GameMap, map_entity::{MapCommand, MapCommandInfo, MapEntity}, tile_attack::TileAttack}, ServerState, gameplay_service::utils::update_character_entity};
 
 use super::utils::{report_map_process_capacity, process_tile_attack};
@@ -208,7 +208,7 @@ pub async fn process_tile_commands (
                             // structure is already built!
                         }
                     },
-                    MapCommandInfo::AttackWalker(player_id, required_time) => {
+                    MapCommandInfo::AttackWalker(player_id, _damage, required_time) => {
 
                         // updating tile stuff inmediately and releasing lock before another await.
                         updated_tile.version += 1;
@@ -219,12 +219,23 @@ pub async fn process_tile_commands (
                         }
                         *tile = updated_tile.clone();
                         let tile_id = tile.id.clone();
+                        let tile_level = tile.level;
                         drop(tiles);
 
-                        let attack = TileAttack{
+                        let damage = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
+                        {
+                            (entry.skill_points / 4) as u32
+                        }
+                        else
+                        {
+                            1
+                        };
+
+                        let attack = TileAttack
+                        {
                             tile_id: updated_tile.id.clone(),
                             target_player_id: *player_id,
-                            damage: 1,
+                            damage,
                             skill_id: 0,
                         };
                         tile_attacks_summary.push(attack);
@@ -232,7 +243,7 @@ pub async fn process_tile_commands (
                         // now we push the delayed message.
 
                         let mut lock = delayed_tile_commands_lock.lock().await;
-                        let info = MapCommandInfo::AttackWalker(*player_id, *required_time);
+                        let info = MapCommandInfo::AttackWalker(*player_id, damage as u16, *required_time);
 
                         let map_action = MapCommand { id: tile_id, info };
                         lock.push((current_time + *required_time as u64, map_action));
@@ -442,7 +453,7 @@ pub async fn process_delayed_tile_commands (
             MapCommandInfo::ChangeHealth(_, _) => todo!(),
             MapCommandInfo::LayFoundation(_,_,_, _, _, _) => todo!(),
             MapCommandInfo::BuildStructure(_, _) => todo!(),
-            MapCommandInfo::AttackWalker(player_id, _required_time) => {
+            MapCommandInfo::AttackWalker(player_id,damage, _required_time) => {
                 drop(tiles);
                 let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
                 let player_option = player_entities.get_mut(&player_id);
@@ -451,7 +462,7 @@ pub async fn process_delayed_tile_commands (
                         // && updated_tile.faction != 0 
                         // && updated_tile.faction != player_entity.faction 
                     {
-                        let result = player_entity.health.saturating_sub(1);
+                        let result = player_entity.health.saturating_sub(*damage);
                         let updated_player_entity = CharacterEntity {
                             action: player_entity.action,
                             version: player_entity.version + 1,

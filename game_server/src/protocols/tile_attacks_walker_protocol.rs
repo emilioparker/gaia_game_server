@@ -31,9 +31,10 @@ pub async fn process(
         let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         //start = end;
 
-        let map_action = MapCommand{
+        let map_action = MapCommand
+        {
             id: tile_id,
-            info: MapCommandInfo::AttackWalker(player_id, required_time)
+            info: MapCommandInfo::AttackWalker(player_id, 0, required_time)
         };
 
         // println!("got a {:?}", map_action);
