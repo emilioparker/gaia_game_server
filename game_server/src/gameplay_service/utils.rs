@@ -67,7 +67,7 @@ pub fn process_tile_attack(
     // this means this tile is being built
     if tile.health > tile.constitution 
     {
-        updated_tile.constitution = i32::max(0, updated_tile.constitution as i32 - *damage as i32) as u32;
+        updated_tile.constitution = i16::max(0, updated_tile.constitution as i16 - *damage as i16) as u16;
         updated_tile.version += 1;
         if updated_tile.constitution == 0
         {
@@ -78,7 +78,7 @@ pub fn process_tile_attack(
     else if previous_health > 0
     {
         let collected_prop = updated_tile.prop;
-        updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
+        updated_tile.health = i16::max(0, updated_tile.health as i16 - *damage as i16) as u16;
         updated_tile.version += 1;
         println!("new health {}", updated_tile.health);
         if updated_tile.health == 0
@@ -90,7 +90,8 @@ pub fn process_tile_attack(
         {
             println!("Add inventory item for player");
 
-            reward = Some(InventoryItem {
+            reward = Some(InventoryItem 
+                {
                 item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
                 level: 1,
                 quality: 1,

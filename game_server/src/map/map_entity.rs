@@ -26,12 +26,14 @@ pub struct MapEntity { // 76 bytes
     pub moisture:f32, //4 bytes
     pub heights : [f32;3], // 12 bytes
     pub pathness : [f32;3], // 12 bytes
-    pub health:u32, // 4 bytes
-    pub constitution:u32, // 4 bytes
+    pub health:u16, // 2 bytes
+    pub constitution:u16, // 2 bytes
+    pub strength:u16, // 2 bytes
+    pub dexterity:u16, // 2 bytes
 }
 
 impl MapEntity {
-    pub fn new(id : &str, health : u32) -> MapEntity {
+    pub fn new(id : &str, health : u16) -> MapEntity {
         
         let entity = MapEntity{
             object_id: None,
@@ -53,7 +55,9 @@ impl MapEntity {
             heights: [0.2,1.0,2.2],
             pathness: [0.0,0.0,0.0],
             health,
-            constitution: 100,
+            constitution: health,
+            strength: 1,
+            dexterity: 1,
         };
           
         entity
@@ -132,8 +136,10 @@ impl MapEntity {
         float_into_buffer(&mut buffer, self.pathness[1], &mut start, &mut end);
         float_into_buffer(&mut buffer, self.pathness[2], &mut start, &mut end);
 
-        u32_into_buffer(&mut buffer, self.health, &mut start, &mut end);
-        u32_into_buffer(&mut buffer, self.constitution, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.health, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.constitution, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.strength, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.dexterity, &mut start, &mut end);
 
         buffer
     }
@@ -189,10 +195,13 @@ impl MapEntity {
             decode_float(data, &mut start)
         ];
 
-        let health = decode_u32(data, &mut start);
-        let constitution = decode_u32(data, &mut start);
+        let health = decode_u16(data, &mut start);
+        let constitution = decode_u16(data, &mut start);
+        let strength = decode_u16(data, &mut start);
+        let dexterity = decode_u16(data, &mut start);
 
-        MapEntity {
+        MapEntity 
+        {
             object_id: None, 
             version,
             id,
@@ -211,7 +220,9 @@ impl MapEntity {
             constitution,
             origin_id,
             target_id,
-            time
+            time,
+            strength,
+            dexterity,
         }
     }
 }
@@ -273,7 +284,8 @@ mod tests {
     fn encode_decode_map_entity()
     {
 
-        let entity = MapEntity{
+        let entity = MapEntity
+        {
             object_id: None,
             version: 1000,
             id: TetrahedronId::from_string("a00001"),
@@ -291,6 +303,8 @@ mod tests {
             constitution: 100,
             owner_id: 0,
             ownership_time: 234,
+            strength: 2,
+            dexterity: 2,
         };
 
         let encoded = entity.to_bytes();

@@ -54,7 +54,7 @@ pub async fn process_tile_commands (
                         // this means this tile is being built
                         if tile.health > tile.constitution 
                         {
-                            updated_tile.constitution = i32::max(0, updated_tile.constitution as i32 - *damage as i32) as u32;
+                            updated_tile.constitution = u16::max(0, updated_tile.constitution as u16 - *damage as u16) as u16;
                             updated_tile.version += 1;
                             if updated_tile.constitution == 0
                             {
@@ -75,7 +75,7 @@ pub async fn process_tile_commands (
                         else if previous_health > 0
                         {
                             let collected_prop = updated_tile.prop;
-                            updated_tile.health = i32::max(0, updated_tile.health as i32 - *damage as i32) as u32;
+                            updated_tile.health = u16::max(0, updated_tile.health as u16 - *damage as u16) as u16;
                             updated_tile.version += 1;
                             if updated_tile.health == 0
                             {
@@ -189,7 +189,7 @@ pub async fn process_tile_commands (
                         
                         if updated_tile.health > updated_tile.constitution {
 
-                            updated_tile.constitution = i32::min(updated_tile.health as i32, updated_tile.constitution as i32 + *increment as i32) as u32;
+                            updated_tile.constitution = u16::min(updated_tile.health as u16, updated_tile.constitution as u16 + *increment as u16) as u16;
                             updated_tile.version += 1;
                             tiles_summary.push(updated_tile.clone());
                             *tile = updated_tile.clone();
@@ -259,10 +259,11 @@ pub async fn process_tile_commands (
 
                             if let Some(entry) = map.definitions.mob_progression.get(*level as usize) 
                             {
-                                let attribute = (entry.skill_points / 4) as u32;
+                                let attribute = (entry.skill_points / 4) as u16;
                                 updated_tile.health =  attribute;
                                 updated_tile.constitution = attribute;
-                                updated_tile.temperature = attribute as f32; // attack
+                                updated_tile.strength = attribute; // attack
+                                updated_tile.dexterity = attribute; // attack
                             }
 
                             updated_tile.prop = *mob_id;
@@ -395,7 +396,7 @@ pub async fn process_tile_commands (
                         if updated_tile.prop == 0
                         {
                             updated_tile.constitution = 0;
-                            updated_tile.health = 30 * (*wall_size as u32);
+                            updated_tile.health = 30 * (*wall_size as u16);
 
                             updated_tile.origin_id = endpoint_a.clone();
                             updated_tile.target_id = endpoint_b.clone();
