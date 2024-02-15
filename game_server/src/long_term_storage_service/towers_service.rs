@@ -87,7 +87,7 @@ pub async fn preload_db(
     let data_collection: mongodb::Collection<StoredTower> = db_client.database("game").collection::<StoredTower>("towers");
     let mut stored_towers = Vec::<StoredTower>:: new();
 
-    for (tower_id) in towers
+    for tower_id in towers
     {
         let data = StoredTower 
         {

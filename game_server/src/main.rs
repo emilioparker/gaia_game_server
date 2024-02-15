@@ -58,7 +58,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_054";
+    let world_name = "world_055";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -515,7 +515,7 @@ mod tests {
 
         println!("update_result {insert_result:?}");
 
-        let mut recovered_region = data_collection
+        let recovered_region = data_collection
         .find_one(
             doc! {
                     "world_name": world_name.to_string(),

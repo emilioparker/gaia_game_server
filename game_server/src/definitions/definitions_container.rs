@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::{character_progression::CharacterProgression, definition_versions::DefinitionVersion, mob_progression::MobProgression, props_data::PropData};
 

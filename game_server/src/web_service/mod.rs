@@ -2,7 +2,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use futures_util::future::Map;
 use futures_util::lock::Mutex;
 use hyper::http::Error;
 use hyper::{Request, body, server::conn::AddrStream};
@@ -15,7 +14,7 @@ use hyper::{Body, Response, Server, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
 use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
-use crate::definitions::definitions_container::{Definitions, DefinitionsData};
+use crate::definitions::definitions_container::DefinitionsData;
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -79,7 +78,7 @@ pub struct AppContext
     working_game_map : Arc<GameMap>,
     storage_game_map : Arc<GameMap>,
     server_state : Arc<ServerState>,
-    definitionsData : DefinitionsData,
+    definitions_data : DefinitionsData,
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
@@ -162,23 +161,23 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
     {
         println!("handling request {:?}", data);
 
-        if let Some(definition_data)= context.definitionsData.definition_versions.get(&data.name)
+        if let Some(definition_data)= context.definitions_data.definition_versions.get(&data.name)
         {
             if definition_data.version == data.version && data.name == "character_progression"
             {
-                return Ok(Response::new(Body::from(context.definitionsData.character_progression_data)));
+                return Ok(Response::new(Body::from(context.definitions_data.character_progression_data)));
             }
             else if definition_data.version == data.version && data.name == "definition_versions"
             {
-                return Ok(Response::new(Body::from(context.definitionsData.definition_versions_data)));
+                return Ok(Response::new(Body::from(context.definitions_data.definition_versions_data)));
             }
             else if definition_data.version == data.version && data.name == "props"
             {
-                return Ok(Response::new(Body::from(context.definitionsData.props_data)));
+                return Ok(Response::new(Body::from(context.definitions_data.props_data)));
             }
             else if definition_data.version == data.version && data.name == "mob_progression"
             {
-                return Ok(Response::new(Body::from(context.definitionsData.mob_progression_data)));
+                return Ok(Response::new(Body::from(context.definitions_data.mob_progression_data)));
             }
             else
             {
@@ -295,7 +294,7 @@ pub fn start_server(
         working_game_map : working_map,
         storage_game_map : storage_map,
         server_state,
-        definitionsData: definitions_data,
+        definitions_data,
         db_client : db_client,
         cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),
         temp_regions : regions_reader_reference,

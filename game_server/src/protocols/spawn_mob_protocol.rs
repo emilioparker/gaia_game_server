@@ -33,7 +33,7 @@ pub async fn process(
 
         end = start + 2;
         let level = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
+        // start = end;
 
         let map_action = MapCommand{
             id: tile_id,

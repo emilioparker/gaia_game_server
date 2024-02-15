@@ -162,7 +162,7 @@ impl CharacterEntity {
         let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&health_bytes);
-        offset = end;
+        // offset = end;
         // 16 bytes
 
 
