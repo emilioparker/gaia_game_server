@@ -58,7 +58,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_053";
+    let world_name = "world_054";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -117,9 +117,7 @@ async fn main() {
             //used and updated by the long storage system
             let storage_players = working_players.clone();
 
-            let regions_data = load_files_into_regions_hashset(world_name).await;
-
-            let towers = Vec::new();
+            let (towers,regions_data) = load_files_into_regions_hashset(world_name).await;
 
             long_term_storage_service::world_service::preload_db(world_name, world_id, regions_data, db_client.clone()).await;
             long_term_storage_service::towers_service::preload_db(world_name, world_id, towers, db_client.clone()).await;
@@ -355,7 +353,7 @@ fn load_regions_data_into_game_map(
     // GameMap::new(regions_data)
 }
 
-async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> Vec<u8>
+async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String) -> (Vec<TetrahedronId>, Vec<u8>)
 {
     let file_name = format!("../../map_initial_data/{}_{}_props.bytes",world_id, region_id);
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
@@ -368,13 +366,15 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     let mut start = 0;
     let mut end = MapEntity::get_size();
 
+    let mut towers_in_region = Vec::new();
+
     loop {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
         let tile = MapEntity::from_bytes(&buffer);
         if tile.prop == 35
         {
-            // this is a tower, should match with towers file
+            towers_in_region.push(tile.id.clone());
         }
 
         start = end;
@@ -386,19 +386,21 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
     }
 
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    compressed_bytes
+    (towers_in_region, compressed_bytes)
 }
 
-async fn load_files_into_regions_hashset(world_id : &str) -> HashMap<TetrahedronId, Vec<u8>> 
+async fn load_files_into_regions_hashset(world_id : &str) -> (Vec<TetrahedronId>, HashMap<TetrahedronId, Vec<u8>>) 
 {
+    let mut towers = Vec::new();
     let regions = game_server::map::get_region_ids(2);
     let mut regions_data = HashMap::<TetrahedronId, Vec<u8>>::new();
     for region in regions
     {
-        let data = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
+        let (mut towers_in_region, data) = get_compressed_tiles_data_from_file(world_id, region.to_string()).await;
         regions_data.insert(region, data);
+        towers.append(&mut towers_in_region);
     }
-    regions_data
+    (towers, regions_data)
 }
 
 
