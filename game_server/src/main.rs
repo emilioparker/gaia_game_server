@@ -11,6 +11,7 @@ use game_server::definitions::character_progression::CharacterProgression;
 use game_server::definitions::definition_versions::DefinitionVersion;
 use game_server::definitions::definitions_container::Definitions;
 use game_server::definitions::definitions_container::DefinitionsData;
+use game_server::definitions::main_paths::MapPath;
 use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::props_data::PropData;
 use game_server::ServerState;
@@ -58,7 +59,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_055";
+    let world_name = "world_057";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -267,11 +268,15 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("props.csv");
     let props_result = load_definition_by_name::<PropData>(file_name).await;
 
+    let file_name = format!("main_paths.csv");
+    let paths_result = load_definition_by_name::<MapPath>(file_name).await;
+
     let definitions = Definitions 
     {
         character_progression : character_result.0,
         props : props_result.0,
         mob_progression : mob_progression_result.0,
+        main_paths: paths_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -280,7 +285,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         character_progression_data : character_result.1,
         mob_progression_data : mob_progression_result.1,
         definition_versions_data : definition_versions_result.1,
-        props_data : props_result.1
+        props_data : props_result.1,
+        main_paths_data : paths_result.1,
     };
     (definitions, definitions_data)
 }
