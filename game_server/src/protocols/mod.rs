@@ -14,6 +14,7 @@ pub mod missing_packages_protocol;
 pub mod attack_tower_protocol;
 pub mod repair_tower_protocol;
 pub mod chat_message_protocol;
+pub mod sell_item_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -66,10 +67,10 @@ pub async fn route_packet(
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
-            ping_protocol::process_ping(socket, data, channel_tx).await;
+            ping_protocol::process_ping(socket, data).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
-            inventory_request_protocol::process_request(player_id, socket, data, map, channel_tx).await;
+            inventory_request_protocol::process_request(player_id, socket, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
             layfoundation_protocol::process_construction(socket, data, channel_map_tx).await;

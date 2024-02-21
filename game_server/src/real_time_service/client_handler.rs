@@ -9,7 +9,7 @@ use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
 use crate::character::character_attack::CharacterAttack;
-use crate::character::character_command::CharacterCommand;
+use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::character::character_entity::CharacterEntity;
 use crate::character::character_presentation::CharacterPresentation;
 use crate::character::character_reward::CharacterReward;

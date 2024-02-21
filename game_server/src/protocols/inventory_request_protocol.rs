@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use crate::map::GameMap;
-use crate::character::character_command::CharacterCommand;
+use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
@@ -12,8 +12,7 @@ pub async fn process_request(
     _player_id: u16,
     socket:&UdpSocket,
     data : &[u8; 508],
-    map : Arc<GameMap>,
-    _channel_tx : &Sender<CharacterCommand>)
+    map : Arc<GameMap>)
 {
     let start = 1;
     let end = start + 8;
