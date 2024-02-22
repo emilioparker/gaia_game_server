@@ -34,7 +34,7 @@ use crate::tower::TowerCommand;
 pub enum Protocol
 {
     Ping = 1,
-    Action = 2,
+    CharacterGenericAction = 2,
     GlobalState = 3,
     ResourceExtraction = 4,
     InventoryRequest = 5,
@@ -50,6 +50,7 @@ pub enum Protocol
     RepairTower = 15,
     ChatMessage = 16,
     BuildWall = 17,
+    SellItem = 18,
 }
     
 pub async fn route_packet(
@@ -69,13 +70,18 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
             ping_protocol::process_ping(socket, data).await;
         },
+        Some(protocol) if *protocol == Protocol::SellItem as u8 => {
+            let capacity = channel_tx.capacity();
+            server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            sell_item_protocol::process(socket, data, channel_tx).await;
+        },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
             layfoundation_protocol::process_construction(socket, data, channel_map_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::Action as u8 => {
+        Some(protocol) if *protocol == Protocol::CharacterGenericAction as u8 => {
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             movement_protocol::process_movement(socket, data, channel_tx).await;

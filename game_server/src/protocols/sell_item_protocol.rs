@@ -1,12 +1,14 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::character::character_command::CharacterMovement;
+use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
 
+
+// we cant do the same is inventory request, because selling modifies the faction inventory and we need to propagate those changes.
 
 pub async fn process(
     _socket:&UdpSocket,
      data : &[u8; 508],
-    channel_player_tx : &Sender<CharacterMovement>)
+    channel_player_tx : &Sender<CharacterCommand>)
 {
         let mut start = 1;
         let mut end = start + 8;
@@ -18,22 +20,30 @@ pub async fn process(
 
         start = end;
         end = start + 1;
-        let _faction = data[start];
+        let faction = data[start];
 
         start = end;
         end = start + 4;
         let item_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
 
         start = end;
+        end = start + 1;
+        let level = data[start]; 
+
+        start = end;
+        end = start + 1;
+        let quality = data[start]; 
+
+        start = end;
         end = start + 2;
         let amount = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
-        // let map_action = MapCommand{
-        //     id: tile_id,
-        //     info: MapCommandInfo::BuildStructure(player_id, increment)
-        // };
+        let command = CharacterCommand{
+            player_id,
+            info: CharacterCommandInfo::SellItem(faction, item_id, level, quality, amount)
+        };
 
-        // // println!("got a {:?}", map_action);
+        println!("got a command {:?}", command);
 
-        // channel_map_tx.send(map_action).await.unwrap();
+        channel_player_tx.send(command).await.unwrap();
 }

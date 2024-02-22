@@ -86,6 +86,7 @@ pub struct AppContext
     old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
 }
 
+// deprecated, moved to the character protocol to avoid abusing form the web server.
 async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
     let body = req.body_mut();

@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::CharacterEntity, character_presentation::CharacterPresentation}, map::{tetrahedron_id::TetrahedronId, GameMap}};
+use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::{CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, map::{tetrahedron_id::TetrahedronId, GameMap}};
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
@@ -33,7 +33,8 @@ pub async fn process_player_commands (
 
         match &player_command.info {
             character_command::CharacterCommandInfo::Touch() => todo!(),
-            character_command::CharacterCommandInfo::Movement(movement_data) => {
+            character_command::CharacterCommandInfo::Movement(movement_data) => 
+            {
                 println!("command action received {}", movement_data.action );
                 if movement_data.action == character_command::IDLE_ACTION 
                 {
@@ -178,7 +179,36 @@ pub async fn process_player_commands (
                     println!("got an unknown player command {}", movement_data.action)
                 }
 
-                    },
+            },
+            character_command::CharacterCommandInfo::SellItem(_faction, item_id, level, quality, amount) => 
+            {
+                println!("que pasa ???");
+                let player_option = player_entities.get_mut(&cloned_data.player_id);
+                if let Some(player_entity) = player_option 
+                {
+                    let result = player_entity.remove_inventory_item(InventoryItem
+                    {
+                        item_id : *item_id,
+                        level : *level,
+                        quality: *quality,
+                        amount : *amount,
+                    });// add soft currency
+
+                    if result 
+                    {
+                        player_entity.add_inventory_item(InventoryItem
+                        {
+                            item_id: 0,
+                            level: 1,
+                            quality: 1,
+                            amount: 1,
+                        });// add soft currency
+                    }
+
+                    tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                    players_summary.push(player_entity.clone());
+                }
+            },
         }
     }
     player_commands_data.clear();
