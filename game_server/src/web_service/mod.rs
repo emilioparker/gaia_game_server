@@ -184,6 +184,10 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 return Ok(Response::new(Body::from(context.definitions_data.main_paths_data)));
             }
+            else if definition_data.version == data.version && data.name == "items"
+            {
+                return Ok(Response::new(Body::from(context.definitions_data.items_data)));
+            }
             else
             {
                 let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
@@ -224,7 +228,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "join_with_character" => characters::handle_login_character(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
-            "sell_item" => handle_sell_item(context, req).await,
+            // "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
             "exchange_skill_points" => characters::exchange_skill_points(context, req).await,
             "check_version" => handle_check_version(context, req).await,

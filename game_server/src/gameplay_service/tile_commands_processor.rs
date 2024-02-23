@@ -100,8 +100,9 @@ pub async fn process_tile_commands (
                                 if let Some(player_entity) = player_option 
                                 {
                                     println!("Add inventory item for player");
-                                    let new_item = InventoryItem {
-                                        item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                                    let new_item = InventoryItem 
+                                    {
+                                        item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
                                         level: 1,
                                         quality: 1,
                                         amount: 1,

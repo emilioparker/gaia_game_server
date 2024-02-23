@@ -92,7 +92,7 @@ pub fn process_tile_attack(
 
             reward = Some(InventoryItem 
                 {
-                item_id: collected_prop + 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
                 level: 1,
                 quality: 1,
                 amount: 1,

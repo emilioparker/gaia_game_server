@@ -1,0 +1,5 @@
+item_id,min_cost,max_cost,store_location,item_name,item_description,image
+0,1,1,bank,Coin,Main currency in the game,Items/WorldResources/Nobg/soft_currency
+1,100,1000,bank,Gold,Special currency,Items/WorldResources/Nobg/hard_currency
+2,1,10,resource,Skull,The skull of a monster,Items/WorldResources/Nobg/21_Skull
+3,5,50,basic_heal_potion,Basic Heal Potion,Gives you 3 health points,Items/WorldResources/Nobg/15_Heal_potion_nobg
