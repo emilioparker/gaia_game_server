@@ -202,6 +202,7 @@ impl CharacterEntity {
 
         if !found {
             self.inventory.push(new_item);
+            self.version += 1;
         }
 
         self.inventory_hash = self.calculate_inventory_hash();
@@ -229,6 +230,7 @@ impl CharacterEntity {
 
         if successfuly_removed {
             self.inventory_hash = self.calculate_inventory_hash();
+            self.version += 1;
         }
         successfuly_removed
     }
