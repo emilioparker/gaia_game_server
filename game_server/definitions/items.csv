@@ -1,5 +1,6 @@
-item_id,min_cost,max_cost,store_location,item_name,item_description,image
-0,1,1,bank,Coin,Main currency in the game,Items/WorldResources/Nobg/soft_currency
-1,100,1000,bank,Gold,Special currency,Items/WorldResources/Nobg/hard_currency
-2,1,10,resource,Skull,The skull of a monster,Items/WorldResources/Nobg/21_Skull
-3,5,50,basic_heal_potion,Basic Heal Potion,Gives you 3 health points,Items/WorldResources/Nobg/15_Heal_potion_nobg
+item_id,min_cost,max_cost,usage,benefit,store_location,item_name,item_description,image
+0,1,1,0,0,bank_coin,Silver,Main currency in the game,Icons/Items/Nobg/silver
+1,100,1000,0,0,bank_coin,Gold,Special currency,Icons/Items/Nobg/gold
+2,1,10,0,0,resource_monster,Skull,The skull of a monster,Icons/Items/Nobg/21_Skull
+3,5,50,1,3,potion_heal,Basic Heal Potion,Gives you 3 health points,Icons/Items/Nobg/15_Heal_potion_nobg
+4,15,100,2,3,potion_xp,Basic XP Potion,Gives you 3 skill points,Icons/Items/Nobg/18_Crystal

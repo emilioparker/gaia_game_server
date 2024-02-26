@@ -15,6 +15,8 @@ pub mod attack_tower_protocol;
 pub mod repair_tower_protocol;
 pub mod chat_message_protocol;
 pub mod sell_item_protocol;
+pub mod buy_item_protocol;
+pub mod use_item_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -51,6 +53,8 @@ pub enum Protocol
     ChatMessage = 16,
     BuildWall = 17,
     SellItem = 18,
+    BuyItem = 19,
+    UseItem = 20,
 }
     
 pub async fn route_packet(
@@ -74,6 +78,16 @@ pub async fn route_packet(
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             sell_item_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::BuyItem as u8 => {
+            let capacity = channel_tx.capacity();
+            server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            buy_item_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::UseItem as u8 => {
+            let capacity = channel_tx.capacity();
+            server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            use_item_protocol::process(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map).await;

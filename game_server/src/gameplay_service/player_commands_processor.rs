@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::{CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, map::{tetrahedron_id::TetrahedronId, GameMap}};
+use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::{CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, map::{tetrahedron_id::TetrahedronId, GameMap}};
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
@@ -182,31 +182,127 @@ pub async fn process_player_commands (
             },
             character_command::CharacterCommandInfo::SellItem(_faction, item_id, level, quality, amount) => 
             {
-                println!("que pasa ???");
+                let item_definition = map.definitions.items.get(*item_id as usize);
                 let player_option = player_entities.get_mut(&cloned_data.player_id);
-                if let Some(player_entity) = player_option 
+
+                match (player_option, item_definition) 
                 {
-                    let result = player_entity.remove_inventory_item(InventoryItem
-                    {
-                        item_id : *item_id,
-                        level : *level,
-                        quality: *quality,
-                        amount : *amount,
-                    });// add soft currency
-
-                    if result 
-                    {
-                        player_entity.add_inventory_item(InventoryItem
+                    (Some(player_entity), Some(definition)) => {
+                        let result = player_entity.remove_inventory_item(InventoryItem
                         {
-                            item_id: 0,
-                            level: 1,
-                            quality: 1,
-                            amount: 1,
+                            item_id : *item_id,
+                            level : *level,
+                            quality: *quality,
+                            amount : *amount,
                         });// add soft currency
-                    }
 
-                    tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                    players_summary.push(player_entity.clone());
+                        if result 
+                        {
+                            player_entity.add_inventory_item(InventoryItem
+                            {
+                                item_id: 0,
+                                level: 1,
+                                quality: 1,
+                                amount: amount * definition.min_cost,
+                            });// add soft currency
+                        }
+
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+
+                    },
+                    _ => 
+                    {
+                        println!("error selling item");
+                    }
+                }
+            },
+            character_command::CharacterCommandInfo::BuyItem(_faction, item_id, level, quality, amount) => 
+            {
+                let item_definition = map.definitions.items.get(*item_id as usize);
+                let player_option = player_entities.get_mut(&cloned_data.player_id);
+
+                match (player_option, item_definition) 
+                {
+                    (Some(player_entity), Some(definition)) => 
+                    {
+                        let result = player_entity.remove_inventory_item(InventoryItem
+                        {
+                            item_id : 0,
+                            level : 1,
+                            quality: 1,
+                            amount : definition.min_cost * amount,
+                        });// remove soft currency
+
+                        if result 
+                        {
+                            player_entity.add_inventory_item(InventoryItem
+                            {
+                                item_id : *item_id,
+                                level : *level,
+                                quality: *quality,
+                                amount: *amount,
+                            });// add item currency
+                        }
+
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+
+                    },
+                    _ => 
+                    {
+                        println!("error buying item");
+                    }
+                }
+            },
+            character_command::CharacterCommandInfo::UseItem(_faction, item_id, level, quality, amount) => 
+            {
+                let item_definition = map.definitions.items.get(*item_id as usize);
+                let player_option = player_entities.get_mut(&cloned_data.player_id);
+
+                match (player_option, item_definition) 
+                {
+                    (Some(player_entity), Some(definition)) => 
+                    {
+                        if definition.usage != 0
+                        {
+                            let result = player_entity.remove_inventory_item(InventoryItem
+                            {
+                                item_id : *item_id,
+                                level : *level,
+                                quality: *quality,
+                                amount: *amount,
+                            });// remove soft currency
+
+                            println!("using item with result {} and  {:?}",result, definition.usage);
+
+                            match (result, definition.usage)
+                            {
+                                (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
+                                {
+                                    player_entity.health += 5;
+                                    player_entity.version += 1;
+                                },
+                                (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal
+                                {
+                                    player_entity.available_skill_points += 2;
+                                    player_entity.version += 1;
+                                },
+                                _ => 
+                                {
+                                    println!("item {} cannot be used ", item_id);
+                                }
+                            }
+                        }
+
+                        // println!("Add health {:?}", player_entity);
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    },
+                    _ => 
+                    {
+                        println!("error buying item");
+                    }
                 }
             },
         }

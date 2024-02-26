@@ -14,6 +14,8 @@ pub enum CharacterCommandInfo
     Touch(),
     Movement(CharacterMovement),
     SellItem(u8,u32, u8, u8, u16),
+    BuyItem(u8,u32, u8, u8, u16),
+    UseItem(u8,u32, u8, u8, u16),
 }
 
 #[derive(Debug, Clone)]

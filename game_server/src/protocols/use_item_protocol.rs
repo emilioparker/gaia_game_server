@@ -40,7 +40,7 @@ pub async fn process(
 
         let command = CharacterCommand{
             player_id,
-            info: CharacterCommandInfo::BuyItem(faction, item_id, level, quality, amount)
+            info: CharacterCommandInfo::UseItem(faction, item_id, level, quality, amount)
         };
 
         println!("got a command {:?}", command);
