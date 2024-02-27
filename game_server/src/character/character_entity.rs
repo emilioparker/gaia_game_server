@@ -7,6 +7,8 @@ use crate::{definitions::definitions_container::Definitions, map::map_entity::Ma
 pub const CHARACTER_ENTITY_SIZE: usize = 53;
 pub const CHARACTER_INVENTORY_SIZE: usize = 8;
 
+pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
+
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct CharacterEntity 
@@ -238,11 +240,13 @@ impl CharacterEntity {
     pub fn calculate_inventory_hash(&self) -> u32
     {
         let mut hash : u32 = 1;
-        for item in &self.inventory {
-            hash = hash.wrapping_mul(item.level as u32); 
-            hash = hash.wrapping_mul(item.quality as u32); 
-            hash = hash.wrapping_mul(item.amount as u32); 
+        let mut total_amount = 1;
+        for item in &self.inventory 
+        {
+            hash = hash.wrapping_mul(ITEMS_PRIME_KEYS[item.item_id as usize] as u32); 
+            total_amount = hash.wrapping_add(item.amount as u32); 
         }
+        hash = hash.wrapping_mul(total_amount); 
         hash
     }
 
