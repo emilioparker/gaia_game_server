@@ -10,19 +10,6 @@ use tokio::sync::Mutex;
 pub mod chat_data_packer;
 pub mod chat_commands_processor;
 
-// pub enum DataType
-// {
-//     NoData = 25,
-//     PlayerState = 26,
-//     TileState = 27,
-//     PlayerPresentation = 28,
-//     PlayerAttack = 29,
-//     PlayerReward = 30,
-//     TileAttack = 31,
-//     TowerState = 32,
-//     ChatMessage = 33,
-// }
-
 pub fn start_service(
     mut rx_cc_client_game : tokio::sync::mpsc::Receiver<ChatCommand>,
     map : Arc<GameMap>,
@@ -40,7 +27,7 @@ pub fn start_service(
     let chat_commands_processor_lock = chat_commands_mutex.clone();
     let chat_commands_agregator_from_client_lock = chat_commands_mutex.clone();
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(1000));
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
 
     tokio::spawn(async move 
     {
@@ -56,6 +43,7 @@ pub fn start_service(
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
     {
+        // by faction, but we only have 3...
         let mut chat_summary : [Vec<ChatEntry>; 10] = 
         [
             Vec::new(),
@@ -74,7 +62,6 @@ pub fn start_service(
         loop 
         {
             interval.tick().await;
-
 
             chat_commands_processor::process_chat_commands(
                 map.clone(),

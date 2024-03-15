@@ -1,3 +1,5 @@
+use crate::battle::battle_instance::{self, BATTLE_INSTANCE_SIZE};
+use crate::battle::battle_join_message::BATTLE_JOIN_MESSAGE_SIZE;
 use crate::{SERVER_STATE_SIZE, ServerState};
 use crate::character::character_attack::CHARACTER_ATTACK_SIZE;
 use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
@@ -63,6 +65,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
             StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
             StateUpdate::ServerStatus(_) => SERVER_STATE_SIZE as u32 + 1,
+            StateUpdate::BattleUpdate(_) => BATTLE_INSTANCE_SIZE as u32 + 1,
+            StateUpdate::BattleJoin(_) => BATTLE_JOIN_MESSAGE_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -206,8 +210,32 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-        }
+            StateUpdate::BattleUpdate(battle_instance) => 
+            {
+                // println!(" status {:?}", status);
+                buffer[start] = DataType::BattleStatus as u8;
+                start += 1;
 
+                let message_bytes = battle_instance.to_bytes();
+                let next = start + BATTLE_INSTANCE_SIZE;
+                buffer[start..next].copy_from_slice(&message_bytes);
+                stored_bytes = stored_bytes + BATTLE_INSTANCE_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::BattleJoin(join_message) => 
+            {
+                buffer[start] = DataType::BattleJoinMessage as u8;
+                start += 1;
+
+                let message_bytes = join_message.to_bytes();
+                let next = start + BATTLE_JOIN_MESSAGE_SIZE;
+                buffer[start..next].copy_from_slice(&message_bytes);
+                stored_bytes = stored_bytes + BATTLE_JOIN_MESSAGE_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+        }
     }
 
     if stored_states > 0

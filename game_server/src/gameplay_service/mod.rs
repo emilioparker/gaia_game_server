@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use crate::battle::battle_command::BattleCommand;
+use crate::battle::battle_instance::BattleInstance;
+use crate::battle::battle_join_message::BattleJoinMessage;
 use crate::ServerState;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::map::GameMap;
@@ -20,11 +23,13 @@ pub mod player_commands_processor;
 pub mod tile_commands_processor;
 pub mod tower_commands_processor;
 pub mod chat_commands_processor;
+pub mod battle_commands_processor;
 
 
 pub fn start_service(
     mut rx_pc_client_game : tokio::sync::mpsc::Receiver<CharacterCommand>,
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
+    mut rx_bc_client_game : tokio::sync::mpsc::Receiver<BattleCommand>,
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
@@ -37,6 +42,8 @@ pub fn start_service(
     Receiver<TowerEntity>, 
     Sender<MapCommand>) 
 {
+
+    // we don't need this for the battle service because we don't store it in the db, at least for the moment.
 
     let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
@@ -60,23 +67,19 @@ pub fn start_service(
     let tile_commands = Vec::<MapCommand>::new();
     let tile_commands_mutex = Arc::new(Mutex::new(tile_commands));
     let tile_commands_processor_lock = tile_commands_mutex.clone();
-
     let tile_commands_agregator_from_client_lock = tile_commands_mutex.clone();
-    // let tile_commands_agregator_from_webservice_lock = tile_commands_mutex.clone();
 
     //tower commands -------------------------------------
     let tower_commands = Vec::<TowerCommand>::new();
     let tower_commands_mutex = Arc::new(Mutex::new(tower_commands));
     let tower_commands_processor_lock = tower_commands_mutex.clone();
-
     let tower_commands_agregator_from_client_lock = tower_commands_mutex.clone();
 
-    //message commands -------------------------------------
-    // let chat_commands = Vec::<ChatCommand>::new();
-    // let chat_commands_mutex = Arc::new(Mutex::new(chat_commands));
-    // let chat_commands_processor_lock = chat_commands_mutex.clone();
-
-    // let chat_commands_agregator_from_client_lock = chat_commands_mutex.clone();
+    //tower commands -------------------------------------
+    let battle_commands = Vec::<BattleCommand>::new();
+    let battle_commands_mutex = Arc::new(Mutex::new(battle_commands));
+    let battle_commands_processor_lock = battle_commands_mutex.clone();
+    let battle_commands_agregator_from_client_lock = battle_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
     let delayed_tile_commands = Vec::<(u64, MapCommand)>::new();
@@ -138,27 +141,16 @@ pub fn start_service(
         }
     });
 
-    // tokio::spawn(async move 
-    // {
-    //     loop 
-    //     {
-    //         let message = rx_cc_client_game.recv().await.unwrap();
-    //         println!("got a message data {}", message.id);
-    //         let mut data = chat_commands_agregator_from_client_lock.lock().await;
-    //         data.push(message);
-    //     }
-    // });
-
-    // task that gathers world changes comming from web service into a list.
-    // tokio::spawn(async move {
-    //     // let mut sequence_number:u64 = 101;
-    //     loop {
-    //         let message = rx_mc_webservice_gameplay.recv().await.unwrap();
-    //         // println!("got a tile change data {}", message.id);
-    //         let mut data = tile_commands_agregator_from_webservice_lock.lock().await;
-    //         data.push(message);
-    //     }
-    // });
+    tokio::spawn(async move 
+    {
+        loop
+        {
+            let message = rx_bc_client_game.recv().await.unwrap();
+            println!("got a battle command data {}", message.tile_id);
+            let mut data = battle_commands_agregator_from_client_lock.lock().await;
+            data.push(message);
+        }
+    });
 
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
@@ -167,20 +159,9 @@ pub fn start_service(
         let mut server_status_deliver_count = 0u32;
         loop 
         {
-            // assuming 30 fps.
-            // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
             interval.tick().await;
 
             server_status_deliver_count += 1;
-
-            // let result = std::time::SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-            // let current_time = result.ok().map(|d| d.as_millis() as u64);
-
-            // let time = &map.time;
-            // if let Some(new_time) = current_time {
-            //     time.store(new_time, std::sync::atomic::Ordering::Relaxed);
-            // }
-            // println!(" current_time {:?}", current_time);
 
             let mut players_summary = Vec::new();
             let mut player_attacks_summary = Vec::new();
@@ -189,9 +170,9 @@ pub fn start_service(
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
             let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
             let mut towers_summary : Vec<TowerEntity>= Vec::new();
-            // let mut chat_summary : Vec<ChatEntry>= Vec::new();
+            let mut battles_summary : Vec<BattleInstance>= Vec::new();
+            let mut battle_join_summary : Vec<BattleJoinMessage>= Vec::new();
 
-            // let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
@@ -210,8 +191,6 @@ pub fn start_service(
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
-            // let mut player_commands_data = player_commands_processor_lock.lock().await;
-            // if player_commands_data.len() > 0  
             player_commands_processor::process_player_commands(
                 map.clone(), 
                 current_time_in_millis,
@@ -288,15 +267,22 @@ pub fn start_service(
                 &mut player_attacks_summary,
                 delayed_tower_commands_lock.clone()).await;
 
-            // chat_commands_processor::process_chat_commands(
-            //     map.clone(),
-            //     server_state.clone(),
-            //     chat_commands_processor_lock.clone(),
-            //     &tx_ce_gameplay_webservice,
-            //     &mut chat_summary,
-            //     ).await;
-
-            // println!("tiles summary {} ", tiles_summary.len());
+            battle_commands_processor::process_battle_commands(
+                map.clone(),
+                server_state.clone(),
+                &tx_me_gameplay_longterm,
+                &tx_pe_gameplay_longterm,
+                &tx_me_gameplay_webservice,
+                current_time_in_millis,
+                battle_commands_processor_lock.clone(),
+                &mut battles_summary,
+                &mut battle_join_summary,
+                &mut players_summary,
+                &mut players_rewards_summary,
+                &mut tiles_summary,
+                &mut player_attacks_summary,
+                &mut tile_attacks_summary,
+                ).await;
 
             let tiles_state_update = tiles_summary
                 .into_iter()
@@ -315,21 +301,24 @@ pub fn start_service(
                 .map(|p| StateUpdate::Rewards(p));
 
             let player_state_updates = players_summary
-                .iter()
-                .map(|p| StateUpdate::PlayerState(p.clone()));
+                .into_iter()
+                .map(|p| StateUpdate::PlayerState(p));
 
             let player_attack_state_updates = player_attacks_summary
-                .iter()
-                .map(|p| StateUpdate::PlayerAttackState(p.clone()));
+                .into_iter()
+                .map(|p| StateUpdate::PlayerAttackState(p));
 
             let tile_attack_state_updates = tile_attacks_summary
-                .iter()
-                .map(|p| StateUpdate::TileAttackState(p.clone()));
+                .into_iter()
+                .map(|p| StateUpdate::TileAttackState(p));
 
-            // let chat_updates = chat_summary
-            //     .iter()
-            //     .map(|p| StateUpdate::ChatMessage(p.clone()));
-            // Sending summary to all clients.
+            let battle_state_updates = battles_summary
+                .into_iter()
+                .map(|p| StateUpdate::BattleUpdate(p));
+
+            let battle_joined_state_updates = battle_join_summary
+                .into_iter()
+                .map(|p| StateUpdate::BattleJoin(p));
 
             let mut filtered_summary = Vec::new();
 
@@ -342,6 +331,8 @@ pub fn start_service(
             filtered_summary.extend(player_rewards_state_update);
             filtered_summary.extend(player_attack_state_updates);
             filtered_summary.extend(tile_attack_state_updates);
+            filtered_summary.extend(battle_state_updates);
+            filtered_summary.extend(battle_joined_state_updates);
 
             if server_status_deliver_count > 50
             {

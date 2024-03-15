@@ -276,7 +276,7 @@ pub async fn process_tile_commands (
 
                             updated_tile.version += 1;
                             
-                            println!("new mob {:?}", updated_tile);
+                            // println!("new mob {:?}", updated_tile);
                             tiles_summary.push(updated_tile.clone());
                             *tile = updated_tile.clone();
                             drop(tiles);
@@ -336,7 +336,7 @@ pub async fn process_tile_commands (
                             let difference = current_time_in_seconds as i32 - updated_tile.ownership_time as i32;
                             let id = tile_command.id.to_string();
                             let tile_time = updated_tile.ownership_time;
-                            println!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
+                            // println!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
 
                             if difference > 600 && *mob_id != 35 // five minutes means we should just remove it.
                             {

@@ -44,6 +44,7 @@ async fn main() {
     let server_state = Arc::new(ServerState
     {
         tx_mc_client_gameplay: AtomicU16::new(0),
+        tx_bc_client_gameplay: AtomicU16::new(0),
         tx_pc_client_gameplay: AtomicU16::new(0),
         tx_tc_client_gameplay: AtomicU16::new(0),
         tx_cc_client_gameplay: AtomicU16::new(0),
@@ -147,7 +148,9 @@ async fn main() {
             let working_game_map_reference= Arc::new(working_game_map);
             let storage_game_map_reference= Arc::new(storage_game_map);
 
-            let (rx_mc_client_gameplay,
+            let (
+                rx_mc_client_gameplay,
+                rx_bc_client_gameplay, 
                 rx_pc_client_gameplay, 
                 rx_tc_client_gameplay ,
                 rx_cc_client_gameplay ,
@@ -167,6 +170,7 @@ async fn main() {
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
+                rx_bc_client_gameplay,
                 rx_tc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),

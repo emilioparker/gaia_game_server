@@ -24,6 +24,7 @@ pub struct ServerState
     pub tx_pc_client_gameplay: AtomicU16,
     pub tx_tc_client_gameplay: AtomicU16,
     pub tx_cc_client_gameplay: AtomicU16,
+    pub tx_bc_client_gameplay: AtomicU16,
     pub tx_bytes_gameplay_socket: AtomicU16,
     pub tx_me_gameplay_longterm:AtomicU16,
     pub tx_me_gameplay_webservice:AtomicU16,

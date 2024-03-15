@@ -40,7 +40,7 @@ pub async fn process(
             info: MapCommandInfo::SpawnMob(player_id, mob_id, level)
         };
 
-        println!("got a {:?}", map_action);
+        // println!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }

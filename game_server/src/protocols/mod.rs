@@ -17,6 +17,7 @@ pub mod chat_message_protocol;
 pub mod sell_item_protocol;
 pub mod buy_item_protocol;
 pub mod use_item_protocol;
+pub mod battle_protocols;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,6 +26,7 @@ use std::sync::atomic::AtomicU64;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
+use crate::battle::battle_command::BattleCommand;
 use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::map::GameMap;
@@ -55,6 +57,8 @@ pub enum Protocol
     SellItem = 18,
     BuyItem = 19,
     UseItem = 20,
+    JoinBattle = 21,
+    PlayerTurn = 22,
 }
     
 pub async fn route_packet(
@@ -66,6 +70,7 @@ pub async fn route_packet(
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     channel_tx : &Sender<CharacterCommand>,
     channel_map_tx : &Sender<MapCommand>,
+    channel_battle_tx : &Sender<BattleCommand>,
     channel_tower_tx : &Sender<TowerCommand>,
     channel_chat_tx : &Sender<ChatCommand>
 ){
@@ -161,9 +166,20 @@ pub async fn route_packet(
             chat_message_protocol::process(socket, data, channel_chat_tx).await;
         },
         Some(protocol) if *protocol == Protocol::BuildWall as u8 => {
-            let capacity = channel_chat_tx.capacity();
-            server_state.tx_cc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            let capacity = channel_map_tx.capacity();
+            server_state.tx_mc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             lay_wall_foundation_protocol::process_construction(socket, data, channel_map_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::JoinBattle as u8 => {
+            println!("--------------------- join battle");
+            let capacity = channel_battle_tx.capacity();
+            server_state.tx_bc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            battle_protocols::process_join(socket, data, channel_battle_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::PlayerTurn as u8 => {
+            let capacity = channel_battle_tx.capacity();
+            server_state.tx_bc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            battle_protocols::process_turn(socket, data, channel_battle_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);
