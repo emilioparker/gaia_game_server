@@ -239,14 +239,13 @@ impl CharacterEntity {
 
     pub fn calculate_inventory_hash(&self) -> u32
     {
-        let mut hash : u32 = 1;
-        let mut total_amount = 1;
+        let mut hash : u32 = 0;
         for item in &self.inventory 
         {
-            hash = hash.wrapping_mul(ITEMS_PRIME_KEYS[item.item_id as usize] as u32); 
-            total_amount = hash.wrapping_add(item.amount as u32); 
+            let key = ITEMS_PRIME_KEYS[item.item_id as usize] as u32;
+            let pair = key.wrapping_mul(item.amount as u32);
+            hash = hash.wrapping_add(pair); 
         }
-        hash = hash.wrapping_mul(total_amount); 
         hash
     }
 

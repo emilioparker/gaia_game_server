@@ -338,7 +338,7 @@ pub async fn process_tile_commands (
                             let tile_time = updated_tile.ownership_time;
                             // println!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
 
-                            if difference > 600 && *mob_id != 35 // five minutes means we should just remove it.
+                            if difference > 60000 && *mob_id != 35 // five minutes means we should just remove it.
                             {
                                 updated_tile.version += 1;
                                 updated_tile.owner_id = 0;

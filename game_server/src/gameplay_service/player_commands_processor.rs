@@ -280,7 +280,7 @@ pub async fn process_player_commands (
                             {
                                 (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
                                 {
-                                    player_entity.health += 5;
+                                    player_entity.health = u16::min(player_entity.constitution, player_entity.health + 5);
                                     player_entity.version += 1;
                                 },
                                 (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal
