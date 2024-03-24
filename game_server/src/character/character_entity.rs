@@ -30,13 +30,20 @@ pub struct CharacterEntity
     pub available_skill_points:u8, // used for stats
 
     // attributes
-    pub constitution: u16,
     pub strength: u16,
-    pub dexterity: u16,
+    pub defense: u16,
     pub intelligence: u16,
+    pub mana: u16,
 
     // stats
     pub health: u16,
+}
+
+pub enum ItemType
+{
+    Material = 0,
+    Card = 1,
+    Equipment = 2
 }
 
 #[derive(Debug)]
@@ -141,10 +148,6 @@ impl CharacterEntity {
         buffer[offset..end].copy_from_slice(&available_points_bytes);
         offset = end;
 
-        let constitution_bytes = u16::to_le_bytes(self.constitution); // 4 bytes
-        end = offset + 2;
-        buffer[offset..end].copy_from_slice(&constitution_bytes);
-        offset = end;
 
         end = offset + 2;
         let strenght_bytes = u16::to_le_bytes(self.strength); // 2 bytes
@@ -152,13 +155,18 @@ impl CharacterEntity {
         offset = end;
 
         end = offset + 2;
-        let dexterity_bytes = u16::to_le_bytes(self.dexterity); // 2 bytes
-        buffer[offset..end].copy_from_slice(&dexterity_bytes);
+        let defense_bytes = u16::to_le_bytes(self.defense); // 2 bytes
+        buffer[offset..end].copy_from_slice(&defense_bytes);
         offset = end;
 
         end = offset + 2;
         let intelligence_bytes = u16::to_le_bytes(self.intelligence); // 2 bytes
         buffer[offset..end].copy_from_slice(&intelligence_bytes);
+        offset = end;
+
+        let mana_bytes = u16::to_le_bytes(self.mana); // 4 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
 
         let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
@@ -187,7 +195,7 @@ impl CharacterEntity {
         println!("----- add xp mob defeated {}", self.experience);
     }
 
-    pub fn add_xp_player_defeated(&mut self, defeated_entity : MapEntity)
+    pub fn add_xp_player_defeated(&mut self, _defeated_entity : MapEntity)
     {
 
     }
@@ -268,7 +276,6 @@ fn float_into_buffer(buffer : &mut [u8], data: f32, start : usize, end: usize)
 mod tests {
     use std::num::Wrapping;
 
-    use futures_util::sink::Buffer;
 
     use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
 
@@ -331,14 +338,14 @@ mod tests {
             second_position: [1.0, 2.0, 3.0],
             inventory: Vec::new(),
             inventory_hash: 1,
-            constitution: 0,
             health: 0,
             level: 1,
             experience: 0,
             available_skill_points: 0,
             strength: 0,
-            dexterity: 0,
+            defense: 0,
             intelligence: 0,
+            mana: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 });
@@ -382,10 +389,10 @@ mod tests {
             level: 0,
             experience: 0,
             available_skill_points: 0,
-            constitution: 0,
             strength: 23,
-            dexterity: 10,
+            defense: 10,
             intelligence: 3,
+            mana: 3,
             health: 10,
         };
         let buffer = char.to_bytes();

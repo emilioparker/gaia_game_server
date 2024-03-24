@@ -7,6 +7,8 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
+use game_server::definitions::card;
+use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
 use game_server::definitions::definition_versions::DefinitionVersion;
 use game_server::definitions::definitions_container::Definitions;
@@ -278,13 +280,17 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("items.csv");
     let items_result = load_definition_by_name::<Item>(file_name).await;
 
+    let file_name = format!("cards.csv");
+    let cards_result = load_definition_by_name::<Card>(file_name).await;
+
     let definitions = Definitions 
     {
         character_progression : character_result.0,
         props : props_result.0,
         mob_progression : mob_progression_result.0,
         main_paths: paths_result.0,
-        items: items_result.0
+        items: items_result.0,
+        cards :cards_result.0, 
     };
 
     let definitions_data = DefinitionsData
@@ -295,7 +301,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         definition_versions_data : definition_versions_result.1,
         props_data : props_result.1,
         main_paths_data : paths_result.1,
-        items_data :items_result.1
+        items_data :items_result.1,
+        cards_data: cards_result.1 
     };
     (definitions, definitions_data)
 }

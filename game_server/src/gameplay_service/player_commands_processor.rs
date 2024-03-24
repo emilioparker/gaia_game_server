@@ -80,11 +80,12 @@ pub async fn process_player_commands (
                     let player_option = player_entities.get_mut(&cloned_data.player_id);
                     if let Some(player_entity) = player_option 
                     {
-                        println!("b-respawn {}", player_entity.constitution);
+                        let character_definition = map.definitions.character_progression.get(player_entity.level as usize).unwrap();
+                        println!("b-respawn {}", character_definition.constitution);
                         let updated_player_entity = CharacterEntity 
                         {
                             action: movement_data.action,
-                            health: player_entity.constitution,
+                            health: character_definition.constitution,
                             version: player_entity.version + 1,
                             ..player_entity.clone()
                         };
@@ -264,6 +265,7 @@ pub async fn process_player_commands (
                 {
                     (Some(player_entity), Some(definition)) => 
                     {
+                        let character_definition = map.definitions.character_progression.get(player_entity.level as usize).unwrap();
                         if definition.usage != 0
                         {
                             let result = player_entity.remove_inventory_item(InventoryItem
@@ -280,7 +282,7 @@ pub async fn process_player_commands (
                             {
                                 (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
                                 {
-                                    player_entity.health = u16::min(player_entity.constitution, player_entity.health + 5);
+                                    player_entity.health = u16::min(character_definition.constitution, player_entity.health + 5);
                                     player_entity.version += 1;
                                 },
                                 (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal

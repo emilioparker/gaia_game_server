@@ -23,10 +23,10 @@ pub struct StoredCharacter {
     pub available_skill_points:u8, // used for stats
 
     // attributes
-    pub constitution: u16,
-    pub strenght: u16,
-    pub dexterity: u16,
+    pub strength: u16,
+    pub defense: u16,
     pub intelligence: u16,
+    pub mana: u16,
 
     // stats
     pub health: u16,

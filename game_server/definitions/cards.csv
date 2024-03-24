@@ -1,0 +1,10 @@
+id,name,asset,rank,strength_factor,defense_factor
+10000,UI_Skill_Icon_Punches,punch,0,0.5,0
+10001,UI_Skill_Icon_Buff,kick,0,0.5,0
+10002,UI_Skill_Icon_Arror,evasive_manouver,0,0,0.5
+10003,UI_Skill_Icon_Recon,resilient_body,0,0,0.5
+10004,UI_Skill_Icon_Blackhole,slash,0,0.8,0
+10005,UI_Skill_Icon_Beam,cross_cut,0,0.85,0
+10006,UI_Skill_Icon_Chop,dual_lash,0,0.7,0
+10007,UI_Skill_Icon_Reflect,shield_block,0,0,0.8
+10008,UI_Skill_Icon_Dash,barrier,0,0,0.7
