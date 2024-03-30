@@ -7,4 +7,6 @@ pub struct Card
     pub rank:u8,
     pub strength_factor:f32,
     pub defense_factor:f32,
+    pub store_location: String,
+    pub cost: u16
 }

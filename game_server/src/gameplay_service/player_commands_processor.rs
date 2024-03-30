@@ -204,7 +204,7 @@ pub async fn process_player_commands (
                                 item_id: 0,
                                 level: 1,
                                 quality: 1,
-                                amount: amount * definition.min_cost,
+                                amount: amount * definition.cost,
                             });// add soft currency
                         }
 
@@ -232,7 +232,7 @@ pub async fn process_player_commands (
                             item_id : 0,
                             level : 1,
                             quality: 1,
-                            amount : definition.min_cost * amount,
+                            amount : definition.cost * amount,
                         });// remove soft currency
 
                         if result 

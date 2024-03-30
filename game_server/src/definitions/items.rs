@@ -2,8 +2,7 @@
 pub struct Item 
 {
     pub item_id: u32,
-    pub min_cost: u16,
-    pub max_cost: u16,
+    pub cost: u16,
     pub usage:u8, // 0 means heal, 1 means xp
     pub benefit:u16,
     pub store_location:String,
