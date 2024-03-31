@@ -1,5 +1,5 @@
 use std::{sync::Arc, collections::HashMap};
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
 use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::{CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, map::{tetrahedron_id::TetrahedronId, GameMap}};
 
 pub async fn process_player_commands (
@@ -220,19 +220,33 @@ pub async fn process_player_commands (
             },
             character_command::CharacterCommandInfo::BuyItem(_faction, item_id, level, quality, amount) => 
             {
-                let item_definition = map.definitions.items.get(*item_id as usize);
+                println!("Buy item with id {item_id}");
+                let cost  = if *item_id >= 0 && *item_id < 10000
+                {
+                    map.definitions.items.get(*item_id as usize).map(|d| d.cost)
+                }
+                else if *item_id >= 10000
+                {
+                    map.definitions.get_card(*item_id as usize).map(|d| d.cost)
+                }
+                else
+                {
+                    None
+                };
+
+
                 let player_option = player_entities.get_mut(&cloned_data.player_id);
 
-                match (player_option, item_definition) 
+                match (player_option, cost) 
                 {
-                    (Some(player_entity), Some(definition)) => 
+                    (Some(player_entity), Some(cost)) => 
                     {
                         let result = player_entity.remove_inventory_item(InventoryItem
                         {
                             item_id : 0,
                             level : 1,
                             quality: 1,
-                            amount : definition.cost * amount,
+                            amount : cost * amount,
                         });// remove soft currency
 
                         if result 

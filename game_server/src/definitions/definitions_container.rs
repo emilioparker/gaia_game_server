@@ -26,3 +26,11 @@ pub struct DefinitionsData
     pub items_data : Vec<u8>,
     pub cards_data : Vec<u8>,
 }
+
+impl Definitions {
+    // used by the test_client ignores the protocol byte.
+    pub fn get_card(&self, index : usize) -> Option<&Card>
+    {
+        self.cards.get(index - 10000)
+    }
+}
