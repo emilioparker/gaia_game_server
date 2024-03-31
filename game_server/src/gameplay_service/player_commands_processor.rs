@@ -221,7 +221,7 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::BuyItem(_faction, item_id, level, quality, amount) => 
             {
                 println!("Buy item with id {item_id}");
-                let cost  = if *item_id >= 0 && *item_id < 10000
+                let cost  = if *item_id < 10000
                 {
                     map.definitions.items.get(*item_id as usize).map(|d| d.cost)
                 }
@@ -234,7 +234,7 @@ pub async fn process_player_commands (
                     None
                 };
 
-
+                println!("cost {cost:?}");
                 let player_option = player_entities.get_mut(&cloned_data.player_id);
 
                 match (player_option, cost) 
@@ -249,7 +249,7 @@ pub async fn process_player_commands (
                             amount : cost * amount,
                         });// remove soft currency
 
-                        if result 
+                        if result || cost == 0
                         {
                             player_entity.add_inventory_item(InventoryItem
                             {
