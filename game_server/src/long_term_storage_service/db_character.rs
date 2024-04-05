@@ -35,14 +35,13 @@ pub struct StoredCharacter {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoredInventoryItem{
     pub item_id : u32,
-    pub level : u8,
-    pub quality : u8,
+    pub equipped : u8,
     pub amount : u16
 }
 
 
 impl From<InventoryItem> for StoredInventoryItem {
     fn from(item: InventoryItem) -> Self {
-        StoredInventoryItem { item_id: item.item_id, level: item.level, quality: item.quality, amount: item.amount }
+        StoredInventoryItem { item_id: item.item_id, equipped: item.equipped, amount: item.amount }
     }
 }

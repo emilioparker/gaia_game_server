@@ -7,6 +7,7 @@ pub struct Card
     pub rank:u8,
     pub strength_factor:f32,
     pub defense_factor:f32,
+    pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
     pub cost: u16
 }

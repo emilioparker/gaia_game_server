@@ -16,11 +16,10 @@ pub fn update_character_entity(
         player_entity.add_inventory_item(reward.clone());
         player_entity.version += 1;
         // we should also give the player the reward
-        let reward = CharacterReward {
+        let reward = CharacterReward 
+        {
             player_id: player_entity.character_id,
             item_id: reward.item_id,
-            level: reward.level,
-            quality: reward.quality,
             amount: reward.amount,
             inventory_hash : player_entity.inventory_hash
         };
@@ -93,8 +92,7 @@ pub fn process_tile_attack(
             reward = Some(InventoryItem 
                 {
                 item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                level: 1,
-                quality: 1,
+                equipped:0,
                 amount: 1,
             });
         }

@@ -18,6 +18,7 @@ pub mod sell_item_protocol;
 pub mod buy_item_protocol;
 pub mod use_item_protocol;
 pub mod battle_protocols;
+pub mod equip_item_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -57,8 +58,9 @@ pub enum Protocol
     SellItem = 18,
     BuyItem = 19,
     UseItem = 20,
-    JoinBattle = 21,
-    PlayerTurn = 22,
+    EquipItem = 21,
+    JoinBattle = 22,
+    PlayerTurn = 23,
 }
     
 pub async fn route_packet(
@@ -93,6 +95,11 @@ pub async fn route_packet(
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             use_item_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::EquipItem as u8 => {
+            let capacity = channel_battle_tx.capacity();
+            server_state.tx_bc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            equip_item_protocol::process(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, socket, data, map).await;

@@ -1,11 +1,9 @@
-pub const CHARACTER_REWARD_SIZE: usize = 14;
+pub const CHARACTER_REWARD_SIZE: usize = 12;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CharacterReward {
     pub player_id: u16, // 2 bytes
     pub item_id: u32, // 4 bytes
-    pub level: u8, // 1 bytes
-    pub quality: u8, // 1 byte
     pub amount: u16, // 2 bytes
     pub inventory_hash: u32 // 4 bytes
 }
@@ -23,11 +21,6 @@ impl CharacterReward {
         start = end;
         end = start + 4;
         u32_into_buffer(&mut buffer,self.item_id, &mut start, end);
-        end = start + 1;
-        buffer[start] = self.level;
-        start = end;
-        end = start + 1;
-        buffer[start] = self.quality;
         start = end;
         end = start + 2;
         let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
@@ -48,13 +41,6 @@ impl CharacterReward {
 
         end = start + 4;
         let item_id = decode_u32(data, &mut start, end);
-
-        end = start + 1;
-        let level = data[start];
-        start = end;
-
-        end = start + 1;
-        let quality = data[start];
         start = end;
 
         end = start + 2;
@@ -65,7 +51,7 @@ impl CharacterReward {
         let inventory_hash = u32::from_le_bytes(data[start..end].try_into().unwrap());
         //start = end;
 
-        CharacterReward { player_id, item_id, level, quality, amount, inventory_hash}
+        CharacterReward { player_id, item_id, amount, inventory_hash}
     }
 }
 
@@ -91,11 +77,10 @@ mod tests {
     fn encode_decode_map_entity()
     {
 
-        let reward = CharacterReward{
+        let reward = CharacterReward
+        {
             player_id: 12300,
             item_id: 34,
-            level: 232,
-            quality: 123,
             amount: 101,
             inventory_hash: 1,
         };

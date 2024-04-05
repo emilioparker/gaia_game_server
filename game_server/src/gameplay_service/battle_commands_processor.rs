@@ -122,8 +122,7 @@ pub async fn process_battle_commands (
                                     let new_item = InventoryItem 
                                     {
                                         item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                                        level: 1,
-                                        quality: 1,
+                                        equipped :0,
                                         amount: 1,
                                     };
 
@@ -137,8 +136,6 @@ pub async fn process_battle_commands (
                                     {
                                         player_id: character_entity.character_id,
                                         item_id: new_item.item_id,
-                                        level: new_item.level,
-                                        quality: new_item.quality,
                                         amount: new_item.amount,
                                         inventory_hash : character_entity.inventory_hash
                                     };

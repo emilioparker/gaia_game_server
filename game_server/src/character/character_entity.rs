@@ -5,7 +5,7 @@ use bson::oid::ObjectId;
 use crate::{definitions::definitions_container::Definitions, map::map_entity::MapEntity};
 
 pub const CHARACTER_ENTITY_SIZE: usize = 53;
-pub const CHARACTER_INVENTORY_SIZE: usize = 8;
+pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
 
@@ -51,36 +51,33 @@ pub enum ItemType
 pub struct InventoryItem
 {
     pub item_id : u32, //4
-    pub level : u8, //1
-    pub quality : u8,//1
+    pub equipped : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 means equipped.
     pub amount : u16 // 2
 }
 
 impl InventoryItem 
 {
     pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]{
-        let offset = 0;
+        let mut start = 0;
         let mut buffer = [0u8;CHARACTER_INVENTORY_SIZE];
         let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
-        let end = offset + 4; 
-        buffer[offset..end].copy_from_slice(&item_id_bytes);
+        let end = start + 4; 
+        buffer[start..end].copy_from_slice(&item_id_bytes);
+        start = end;
 
-        let mut offset = end;
-        buffer[offset] = self.level;
-        offset += 1;
-        buffer[offset] = self.quality;
-        offset += 1;
+        buffer[start] = self.equipped;
+        start += 1;
 
-
-        let end = offset + 2; 
+        let end = start + 2; 
         let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
-        buffer[offset..end].copy_from_slice(&amount_bytes);
+        buffer[start..end].copy_from_slice(&amount_bytes);
         buffer
     }
 }
 
 
-impl CharacterEntity {
+impl CharacterEntity 
+{
     pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] {
         let mut buffer = [0u8; CHARACTER_ENTITY_SIZE];
         let mut offset = 0;
@@ -203,14 +200,17 @@ impl CharacterEntity {
     pub fn add_inventory_item(&mut self, new_item : InventoryItem)
     {
         let mut found = false;
-        for item in &mut self.inventory {
-            if item.item_id == new_item.item_id && item.level == new_item.level && item.quality == new_item.quality {
+        for item in &mut self.inventory 
+        {
+            if item.item_id == new_item.item_id && item.equipped == new_item.equipped 
+            {
                 item.amount += new_item.amount;
                 found = true;
             }
         }
 
-        if !found {
+        if !found 
+        {
             self.inventory.push(new_item);
             self.version += 1;
         }
@@ -223,7 +223,8 @@ impl CharacterEntity {
         let mut successfuly_removed = false;
         for (index, item) in &mut self.inventory.iter_mut().enumerate() 
         {
-            if item.item_id == old_item.item_id && item.level == old_item.level && item.quality == old_item.quality {
+            if item.item_id == old_item.item_id && item.equipped == old_item.equipped
+            {
                 if item.amount >= old_item.amount
                 {
                     item.amount -= old_item.amount;
@@ -245,6 +246,48 @@ impl CharacterEntity {
         successfuly_removed
     }
 
+    pub fn count_items_in_slot(&mut self, slot:u8) -> usize
+    {
+        self.inventory.iter().filter(|i| i.equipped == slot).count()
+    }
+
+    pub fn equip_inventory_item(&mut self, item_id : u32, current_slot : u8, slot: u8) -> bool
+    {
+        let count = self.count_items_in_slot(slot);
+        if slot == 1 && count >= 10
+        {
+            return false;
+        }
+
+        let mut successfuly_removed = false;
+        for (index, item) in &mut self.inventory.iter_mut().enumerate() 
+        {
+            if item.item_id == item_id && item.equipped == current_slot
+            {
+                if item.amount > 0
+                {
+                    item.amount -= 1;
+                    successfuly_removed = true;
+                }
+
+                if item.amount == 0 
+                {
+                    self.inventory.swap_remove(index);
+                }
+                break;
+            }
+        }
+
+
+        if successfuly_removed 
+        {
+            self.add_inventory_item(InventoryItem { item_id, equipped: slot, amount: 1 });
+            self.inventory_hash = self.calculate_inventory_hash();
+            self.version += 1;
+        }
+        successfuly_removed
+    }
+
     pub fn calculate_inventory_hash(&self) -> u32
     {
         let mut hash : u32 = 0;
@@ -252,11 +295,8 @@ impl CharacterEntity {
         for item in &self.inventory 
         {
             let salt = ITEMS_PRIME_KEYS[index] as u32;
-            println!("salt {salt}");
             let key = (item.item_id + 1).wrapping_mul(salt);
-            println!("key {key}");
             let pair = key.wrapping_mul(item.amount as u32);
-            println!("pair {pair}");
             hash = hash.wrapping_add(pair); 
             index += 1;
         }
@@ -355,14 +395,14 @@ mod tests {
             mana: 0,
         };
 
-        entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 });
-        entity.add_inventory_item(super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 2 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 2 });
 
         assert!(entity.inventory.len() == 1);
 
         let item = entity.inventory.iter().next().unwrap();
         assert!(item.amount == 3);
-        entity.add_inventory_item(super::InventoryItem { item_id: 2, level: 1, quality: 1, amount: 2 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 2, equipped: 1, amount: 2 });
         assert!(entity.inventory.len() == 2);
         println!("{:?}", entity.inventory);
     }
@@ -371,7 +411,7 @@ mod tests {
     fn test_encode_inventory_item()
     {
 
-        let item = super::InventoryItem { item_id: 1, level: 1, quality: 1, amount: 1 };
+        let item = super::InventoryItem { item_id: 1, equipped: 1, amount: 1 };
         let buffer = item.to_bytes();
 
         assert!(buffer.len() == super::CHARACTER_INVENTORY_SIZE);

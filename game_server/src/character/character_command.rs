@@ -13,9 +13,10 @@ pub enum CharacterCommandInfo
 {
     Touch(),
     Movement(CharacterMovement),
-    SellItem(u8,u32, u8, u8, u16),
-    BuyItem(u8,u32, u8, u8, u16),
-    UseItem(u8,u32, u8, u8, u16),
+    SellItem(u8,u32, u16),
+    BuyItem(u8,u32, u16),
+    UseItem(u8,u32, u16),
+    EquipItem(EquipItemCommandData),
 }
 
 #[derive(Debug, Clone)]
@@ -35,4 +36,13 @@ pub struct CharacterMovement
     pub action:u32,
     pub required_time:u32,
     pub skill_id:u32, // if a attack action happens, we need to map that to a skill and calculate the damage.
+}
+
+#[derive(Debug, Clone)]
+pub struct EquipItemCommandData 
+{
+    pub faction: u8,
+    pub item_id:u32,
+    pub current_slot:u8,
+    pub new_slot:u8,
 }

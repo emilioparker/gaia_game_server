@@ -39,8 +39,7 @@ pub async fn get_characters_from_db_by_world(
 
                 let inventory = doc.inventory.into_iter().map(|item| InventoryItem {
                     item_id: item.item_id,
-                    level: item.level,
-                    quality: item.quality,
+                    equipped: item.equipped,
                     amount: item.amount,
                 }).collect();
 

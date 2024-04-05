@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
+use crate::character::character_command::{CharacterCommand, CharacterCommandInfo, EquipItemCommandData};
 
 
 // we cant do the same is inventory request, because selling modifies the faction inventory and we need to propagate those changes.
@@ -27,15 +27,25 @@ pub async fn process(
         let item_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
 
         start = end;
-        end = start + 2;
-        let amount = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        end = start + 1;
+        let current_slot = data[start];
 
-        let command = CharacterCommand{
+        start = end;
+        end = start + 1;
+        let new_slot = data[start];
+
+        let command = CharacterCommand
+        {
             player_id,
-            info: CharacterCommandInfo::BuyItem(faction, item_id, amount)
+            info: CharacterCommandInfo::EquipItem(EquipItemCommandData 
+            {
+                faction,
+                item_id,
+                new_slot,
+                current_slot
+            })
         };
 
         println!("got a command {:?}", command);
-
         channel_player_tx.send(command).await.unwrap();
 }

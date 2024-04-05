@@ -181,7 +181,7 @@ pub async fn process_player_commands (
                 }
 
             },
-            character_command::CharacterCommandInfo::SellItem(_faction, item_id, level, quality, amount) => 
+            character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
             {
                 let item_definition = map.definitions.items.get(*item_id as usize);
                 let player_option = player_entities.get_mut(&cloned_data.player_id);
@@ -192,8 +192,7 @@ pub async fn process_player_commands (
                         let result = player_entity.remove_inventory_item(InventoryItem
                         {
                             item_id : *item_id,
-                            level : *level,
-                            quality: *quality,
+                            equipped:0,
                             amount : *amount,
                         });// add soft currency
 
@@ -202,8 +201,7 @@ pub async fn process_player_commands (
                             player_entity.add_inventory_item(InventoryItem
                             {
                                 item_id: 0,
-                                level: 1,
-                                quality: 1,
+                                equipped: 0,
                                 amount: amount * definition.cost,
                             });// add soft currency
                         }
@@ -218,7 +216,7 @@ pub async fn process_player_commands (
                     }
                 }
             },
-            character_command::CharacterCommandInfo::BuyItem(_faction, item_id, level, quality, amount) => 
+            character_command::CharacterCommandInfo::BuyItem(_faction, item_id, amount) => 
             {
                 println!("Buy item with id {item_id}");
                 let cost  = if *item_id < 10000
@@ -244,8 +242,7 @@ pub async fn process_player_commands (
                         let result = player_entity.remove_inventory_item(InventoryItem
                         {
                             item_id : 0,
-                            level : 1,
-                            quality: 1,
+                            equipped : 0,
                             amount : cost * amount,
                         });// remove soft currency
 
@@ -254,8 +251,7 @@ pub async fn process_player_commands (
                             player_entity.add_inventory_item(InventoryItem
                             {
                                 item_id : *item_id,
-                                level : *level,
-                                quality: *quality,
+                                equipped : 0,
                                 amount: *amount,
                             });// add item currency
                         }
@@ -270,7 +266,7 @@ pub async fn process_player_commands (
                     }
                 }
             },
-            character_command::CharacterCommandInfo::UseItem(_faction, item_id, level, quality, amount) => 
+            character_command::CharacterCommandInfo::UseItem(_faction, item_id, amount) => 
             {
                 let item_definition = map.definitions.items.get(*item_id as usize);
                 let player_option = player_entities.get_mut(&cloned_data.player_id);
@@ -285,8 +281,7 @@ pub async fn process_player_commands (
                             let result = player_entity.remove_inventory_item(InventoryItem
                             {
                                 item_id : *item_id,
-                                level : *level,
-                                quality: *quality,
+                                equipped: 0,
                                 amount: *amount,
                             });// remove soft currency
 
@@ -318,6 +313,27 @@ pub async fn process_player_commands (
                     _ => 
                     {
                         println!("error buying item");
+                    }
+                }
+            },
+            character_command::CharacterCommandInfo::EquipItem(equip_data) => 
+            {
+                // let item_definition = map.definitions.items.get(equip_data.item_id as usize);
+                let player_option = player_entities.get_mut(&cloned_data.player_id);
+
+                match player_option 
+                {
+                    Some(player_entity) => 
+                    {
+                        let result = player_entity.equip_inventory_item(equip_data.item_id, equip_data.current_slot, equip_data.new_slot);
+                        println!("equip item with result {}",result);
+
+                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                        players_summary.push(player_entity.clone());
+                    },
+                    _ => 
+                    {
+                        println!("error equipping item");
                     }
                 }
             },

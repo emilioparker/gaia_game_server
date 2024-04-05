@@ -103,8 +103,7 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
         let result = player.remove_inventory_item(InventoryItem
         {
             item_id: data.old_item_id,
-            level: 1,
-            quality: 1,
+            equipped: 0,
             amount: data.amount,
         });// add soft currency
 
@@ -117,8 +116,7 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
 
         player.add_inventory_item(InventoryItem{
             item_id: 0,
-            level: 1,
-            quality: 1,
+            equipped: 0,
             amount: 1,
         });// add soft currency
 
