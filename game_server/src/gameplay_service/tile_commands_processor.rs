@@ -47,7 +47,7 @@ pub async fn process_tile_commands (
                         tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
                         tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
                     },
-                    MapCommandInfo::ChangeHealth(player_id, damage) => {
+                    MapCommandInfo::ResourceExtraction(player_id, damage) => {
                         println!("Change tile health!!! {}", tile.prop);
                         let previous_health = tile.health;
 
@@ -223,7 +223,7 @@ pub async fn process_tile_commands (
 
                         let damage = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
                         {
-                            (entry.skill_points / 4) as u32
+                            (entry.skill_points / 4) as u16
                         }
                         else
                         {
@@ -450,7 +450,7 @@ pub async fn process_delayed_tile_commands (
         match &tile_command.info 
         {
             MapCommandInfo::Touch() => todo!(),
-            MapCommandInfo::ChangeHealth(_, _) => todo!(),
+            MapCommandInfo::ResourceExtraction(_, _) => todo!(),
             MapCommandInfo::LayFoundation(_,_,_, _, _, _) => todo!(),
             MapCommandInfo::BuildStructure(_, _) => todo!(),
             MapCommandInfo::AttackWalker(player_id,damage, _required_time) => {

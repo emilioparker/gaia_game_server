@@ -1,3 +1,5 @@
+use super::Definition;
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Item 
 {
@@ -19,5 +21,11 @@ pub enum ItemUsage
 }
 
 
+impl Definition for Item
+{
+    fn fill_details(&mut self)
+    {
+    }
+}
 
 // id,name,type,area,item,attack

@@ -28,7 +28,7 @@ pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &S
     end = start + 2;
     let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); // 2 bytes
 
-    let info = MapCommandInfo::ChangeHealth(player_id, damage);
+    let info = MapCommandInfo::ResourceExtraction(player_id, damage);
     let map_action = MapCommand { id: tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);

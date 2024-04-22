@@ -55,10 +55,14 @@ pub async fn process_turn(_socket:&UdpSocket, data : &[u8; 508],  channel_battle
     let tile_id = TetrahedronId::from_bytes(&buffer);
 
     start = end;
-    // end = start + 1;
+    end = start + 1;
     let participant_id = data[start];
 
-    let info = BattleCommandInfo::Attack(participant_id);
+    start = end;
+    end = start + 4;
+    let card_id = u32::from_le_bytes(data[start..end].try_into().unwrap());
+
+    let info = BattleCommandInfo::Attack(participant_id, card_id);
     let map_action = BattleCommand {tile_id, player_id, info };
     
     channel_battle_tx.send(map_action).await.unwrap();

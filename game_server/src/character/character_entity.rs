@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::{definitions::definitions_container::Definitions, map::map_entity::MapEntity};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 53;
+pub const CHARACTER_ENTITY_SIZE: usize = 57;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
@@ -30,10 +30,16 @@ pub struct CharacterEntity
     pub available_skill_points:u8, // used for stats
 
     // attributes
-    pub strength: u16,
-    pub defense: u16,
-    pub intelligence: u16,
-    pub mana: u16,
+    pub strength_points: u8,
+    pub defense_points: u8,
+    pub intelligence_points: u8,
+    pub mana_points: u8,
+
+    // attributes
+    pub base_strength: u16,
+    pub base_defense: u16,
+    pub base_intelligence: u16,
+    pub base_mana: u16,
 
     // stats
     pub health: u16,
@@ -140,28 +146,43 @@ impl CharacterEntity
         buffer[offset..end].copy_from_slice(&xp_bytes);
         offset = end;
 
-        let available_points_bytes = u8::to_le_bytes(self.available_skill_points); // 4 bytes
         end = offset + 1;
-        buffer[offset..end].copy_from_slice(&available_points_bytes);
+        buffer[offset] = self.available_skill_points;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.strength_points;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.defense_points;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.intelligence_points;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.mana_points;
         offset = end;
 
 
         end = offset + 2;
-        let strenght_bytes = u16::to_le_bytes(self.strength); // 2 bytes
+        let strenght_bytes = u16::to_le_bytes(self.base_strength); // 2 bytes
         buffer[offset..end].copy_from_slice(&strenght_bytes);
         offset = end;
 
         end = offset + 2;
-        let defense_bytes = u16::to_le_bytes(self.defense); // 2 bytes
+        let defense_bytes = u16::to_le_bytes(self.base_defense); // 2 bytes
         buffer[offset..end].copy_from_slice(&defense_bytes);
         offset = end;
 
         end = offset + 2;
-        let intelligence_bytes = u16::to_le_bytes(self.intelligence); // 2 bytes
+        let intelligence_bytes = u16::to_le_bytes(self.base_intelligence); // 2 bytes
         buffer[offset..end].copy_from_slice(&intelligence_bytes);
         offset = end;
 
-        let mana_bytes = u16::to_le_bytes(self.mana); // 4 bytes
+        let mana_bytes = u16::to_le_bytes(self.base_mana); // 4 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
@@ -304,6 +325,21 @@ impl CharacterEntity
         hash
     }
 
+    pub fn get_strength(&self) -> u16
+    {
+        CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32)
+    }
+
+    pub fn get_defense(&self) -> u16
+    {
+        CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32)
+    }
+
+    pub fn calculate_stat(base : u16, points : u8, class_multiplier:f32, efficiency:f32) -> u16
+    {
+        (base as f32 + (points as f32) * class_multiplier * efficiency).round() as u16
+    }
+
 }
 
 impl Hash for CharacterEntity 
@@ -389,10 +425,14 @@ mod tests {
             level: 1,
             experience: 0,
             available_skill_points: 0,
-            strength: 0,
-            defense: 0,
-            intelligence: 0,
-            mana: 0,
+            base_strength: 0,
+            base_defense: 0,
+            base_intelligence: 0,
+            base_mana: 0,
+            strength_points: 0,
+            defense_points: 0,
+            intelligence_points: 0,
+            mana_points: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -436,10 +476,14 @@ mod tests {
             level: 0,
             experience: 0,
             available_skill_points: 0,
-            strength: 23,
-            defense: 10,
-            intelligence: 3,
-            mana: 3,
+            strength_points: 0,
+            defense_points: 0,
+            intelligence_points: 0,
+            mana_points: 0,
+            base_strength: 23,
+            base_defense: 10,
+            base_intelligence: 3,
+            base_mana: 3,
             health: 10,
         };
         let buffer = char.to_bytes();

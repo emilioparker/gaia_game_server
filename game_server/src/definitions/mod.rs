@@ -6,3 +6,12 @@ pub mod props_data;
 pub mod main_paths;
 pub mod items;
 pub mod card;
+
+
+pub trait Definition 
+{
+    fn fill_details(&mut self)
+    {
+
+    }
+}

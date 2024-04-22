@@ -1,3 +1,5 @@
+use super::Definition;
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Card 
 {
@@ -10,4 +12,11 @@ pub struct Card
     pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
     pub cost: u16
+}
+
+impl Definition for Card
+{
+    fn fill_details(&mut self)
+    {
+    }
 }

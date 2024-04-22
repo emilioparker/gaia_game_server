@@ -2,7 +2,7 @@ use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
 use crate::{battle::{battle_command::{self, BattleCommand}, battle_instance::{self, BattleInstance}, battle_join_message::BattleJoinMessage}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, gameplay_service::utils::{process_tile_attack, update_character_entity}, map::{map_entity::MapEntity, tile_attack::TileAttack, GameMap}, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_attack::CharacterAttack, character_reward::CharacterReward};
-
+use rand::prelude::SliceRandom;
 
 pub async fn process_battle_commands (
     map : Arc<GameMap>,
@@ -81,7 +81,7 @@ pub async fn process_battle_commands (
                         }
                     }
                 },
-                battle_command::BattleCommandInfo::Attack(participant_id) => 
+                battle_command::BattleCommandInfo::Attack(participant_id, card_id) => 
                 {
                     if let Some(battle_instance) = battle_option
                     {
@@ -89,7 +89,7 @@ pub async fn process_battle_commands (
                         let result = battle_instance.play_turn(*participant_id, battle_command.player_id, current_time_in_seconds);
                         let updated_battle_instance = battle_instance.clone();
                         println!("processing attack turn {} turn: {}", result, battle_instance.turn);
-                        let participants : Vec<u16> = battle_instance.participants.keys().copied().collect();
+                        // let participants : Vec<u16> = battle_instance.participants.keys().copied().collect();
                         battles_summary.push(updated_battle_instance);
                         drop(battles);
 
@@ -103,11 +103,50 @@ pub async fn process_battle_commands (
 
                             if let (Some(map_entity), Some(character_entity)) = (map_entity_option, character_entity_option)
                             {
+                                // calculate attack given the card
+                                let card_definition = map.definitions.get_card(*card_id as usize).unwrap();
+                                let attack = card_definition.strength_factor * character_entity.get_strength() as f32;
+                                let character_attack = attack.round() as u16;
+
+                                let defense = card_definition.defense_factor * character_entity.get_defense() as f32;
+                                let character_defense = defense.round() as u16;
+
+                                println!("---------Character: {character_attack} def {character_defense}");
+
+                                let tile_level = map_entity.level;
+                                let (mob_attack, mob_defense) = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
+                                {
+                                    if let Some(cards) = &entry.cards
+                                    {
+                                        let strength = (entry.skill_points / 4) as u16;
+                                        let selected_card = cards.choose(&mut rand::thread_rng()).unwrap();
+
+                                        let card_definition = map.definitions.get_card(*selected_card as usize).unwrap();
+                                        let damage = card_definition.strength_factor * strength as f32;
+                                        let damage = damage.round() as u16;
+
+                                        let defense = card_definition.defense_factor * strength as f32;
+                                        let defense = defense.round() as u16;
+                                        (damage, defense)
+                                    }
+                                    else 
+                                    {
+                                        (1,1)
+                                    }
+                                }
+                                else
+                                {
+                                    (1,1)
+                                };
+                                
+                                println!("---------Mob: {mob_attack} def {mob_defense}");
+                                let calculated_mob_damage = character_attack.saturating_sub(mob_defense);
+                                println!("--- mob damage {calculated_mob_damage}");
                                 // we need to update the tile health.
                                 // we need to check the player data.
                                 let (updated_tile, reward) = process_tile_attack(
                                     // &character_entity.strength, 
-                                    &1,
+                                    &calculated_mob_damage,
                                     &map_entity, 
                                 );
 
@@ -118,57 +157,29 @@ pub async fn process_battle_commands (
 
                                 if updated_tile.health == 0
                                 {
-                                    println!("Add inventory item for player");
-                                    let new_item = InventoryItem 
+                                    if let Some(reward) = reward
                                     {
-                                        item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                                        equipped :0,
-                                        amount: 1,
-                                    };
-
-                                    character_entity.add_inventory_item(new_item.clone());
-                                    character_entity.version += 1;
-
-                                    // let updated_character_entity = character_entity.clone();
-
-                                    // we should also give the player the reward
-                                    let reward = CharacterReward 
-                                    {
-                                        player_id: character_entity.character_id,
-                                        item_id: new_item.item_id,
-                                        amount: new_item.amount,
-                                        inventory_hash : character_entity.inventory_hash
-                                    };
-
-                                    println!("reward {:?}", reward);
-
-                                    rewards_summary.push(reward);
-
+                                        update_character_entity(character_entity,reward, &map.definitions, rewards_summary, characters_summary);
+                                    }
                                 }
 
-                                let tile_level = updated_tile.level;
-                                let damage = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
-                                {
-                                    (entry.skill_points / 4) as u32
-                                }
-                                else
-                                {
-                                    1
-                                };
+
+                                let calculated_character_damage = mob_attack.saturating_sub(character_defense);
+                                println!("--- character damage {calculated_character_damage}");
 
                                 let attack = TileAttack
                                 {
                                     tile_id: updated_tile.id.clone(),
                                     target_player_id: battle_command.player_id,
-                                    damage,
+                                    damage: calculated_character_damage,
                                     skill_id: 0,
                                 };
                                 tile_attacks_summary.push(attack);
 
                                 if character_entity.health > 0
-                                    && updated_tile.health > 0
+                                    // && updated_tile.health > 0 // both attacks hit, doesn't matter if it kills
                                 {
-                                    let result = character_entity.health.saturating_sub(damage as u16);
+                                    let result = character_entity.health.saturating_sub(calculated_character_damage);
                                     let updated_character_entity = CharacterEntity 
                                     {
                                         action: character_entity.action,
@@ -182,7 +193,6 @@ pub async fn process_battle_commands (
                                     tx_pe_gameplay_longterm.send(updated_character_entity.clone()).await.unwrap();
                                     characters_summary.push(updated_character_entity.clone());
                                 }
-
 
                                 map_summary.push(updated_tile.clone());
 

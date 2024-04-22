@@ -7,7 +7,7 @@ pub struct TileAttack
 {
     pub tile_id: TetrahedronId, // 6 bytes
     pub target_player_id: u16, // 2 bytes
-    pub damage: u32, // 4 bytes
+    pub damage: u16, // 4 bytes
     pub skill_id: u32 // 4 bytes
 }
 
@@ -30,8 +30,11 @@ impl TileAttack {
         buffer[start..end].copy_from_slice(&player_id_bytes);
         start = end;
 
-        end = start + 4;
-        u32_into_buffer(&mut buffer,self.damage, &mut start, end);
+        end = start + 2;
+        let damage_bytes = u16::to_le_bytes(self.damage); // 2 bytes
+        buffer[start..end].copy_from_slice(&damage_bytes);
+        start = end;
+
         end = start + 4;
         u32_into_buffer(&mut buffer,self.skill_id, &mut start, end);
         buffer

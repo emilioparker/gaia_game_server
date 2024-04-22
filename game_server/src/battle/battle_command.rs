@@ -6,7 +6,7 @@ pub enum BattleCommandInfo
 {
     Touch(),
     Join(),
-    Attack(u8),
+    Attack(u8, u32),
 }
 
 #[derive(Debug, Clone)]

@@ -1,3 +1,5 @@
+use super::Definition;
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct PropData 
 {
@@ -10,5 +12,11 @@ pub struct PropData
 }
 
 
+impl Definition for PropData
+{
+    fn fill_details(&mut self)
+    {
+    }
+}
 
 // id,name,type,area,item,attack

@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
-use game_server::definitions::card;
+use game_server::definitions;
 use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
 use game_server::definitions::definition_versions::DefinitionVersion;
@@ -17,6 +17,7 @@ use game_server::definitions::items::Item;
 use game_server::definitions::main_paths::MapPath;
 use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::props_data::PropData;
+use game_server::definitions::Definition;
 use game_server::ServerState;
 use game_server::chat_service;
 use game_server::gameplay_service;
@@ -238,7 +239,7 @@ async fn main() {
 
 
 async fn load_definition_by_name<T>(file_name : String) -> (Vec<T>, Vec<u8>)
-where T: serde::de::DeserializeOwned
+where T: serde::de::DeserializeOwned + Definition
 {
     let file_name = format!("definitions/{file_name}");
     let mut data = Vec::<T>::new();

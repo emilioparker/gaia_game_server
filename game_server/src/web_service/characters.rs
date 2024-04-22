@@ -79,10 +79,10 @@ pub struct JoinWithCharacterResponse
 pub struct ExchangeSkillPointsRequest 
 {
     pub character_id : u16,
-    pub strength:u16,
-    pub defense:u16,
-    pub intelligence:u16,
-    pub mana:u16,
+    pub strength:u8,
+    pub defense:u8,
+    pub intelligence:u8,
+    pub mana:u8,
 }
 
 pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
@@ -269,10 +269,14 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         level: 0,
         experience: 0,
         available_skill_points: 5,
-        strength: 1,
-        defense: 1,
-        intelligence: 0,
-        mana: 0,
+        strength_points: 0,
+        defense_points: 0,
+        intelligence_points: 0,
+        mana_points: 0,
+        strength: 5,
+        defense: 5,
+        intelligence: 5,
+        mana: 5,
         health: 1,
     };
 
@@ -301,10 +305,14 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         level: 0,
         experience: 0,
         available_skill_points: 5,
-        strength: 1,
-        defense: 1,
-        intelligence: 0,
-        mana: 0,
+        strength_points: 0,
+        defense_points: 0,
+        intelligence_points: 0,
+        mana_points: 0,
+        base_strength: 5,
+        base_defense: 5,
+        base_intelligence: 5,
+        base_mana: 5,
         health: 1,
     };
 
@@ -396,10 +404,10 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
             health: player.health,
             session_id,
             available_points: player.available_skill_points,
-            strength: player.strength,
-            defense: player.defense,
-            intelligence: player.intelligence,
-            mana: player.mana,
+            strength: player.base_strength,
+            defense: player.base_defense,
+            intelligence: player.base_intelligence,
+            mana: player.base_mana,
         };
         drop(players);
 
@@ -474,7 +482,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
     {
         println!("player points exchange {:?}", player);
         let total_points = data.strength + data.defense + data.mana + data.intelligence;
-        if total_points > player.available_skill_points as u16
+        if total_points > player.available_skill_points
         {
             let mut response = Response::new(Body::from(String::from("missing route")));
             *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
@@ -483,10 +491,10 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         else 
         {
             player.available_skill_points -= total_points as u8;
-            player.strength += data.strength;
-            player.defense += data.defense;
-            player.intelligence += data.intelligence;
-            player.mana += data.mana;
+            player.strength_points += data.strength;
+            player.defense_points += data.defense;
+            player.intelligence_points += data.intelligence;
+            player.mana_points += data.mana;
             player.version += 1;
         }
         drop(players);
