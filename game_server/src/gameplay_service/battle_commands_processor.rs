@@ -87,10 +87,9 @@ pub async fn process_battle_commands (
                     {
                         // play turn
                         let result = battle_instance.play_turn(*participant_id, battle_command.player_id, current_time_in_seconds);
-                        let updated_battle_instance = battle_instance.clone();
+                        let mut updated_battle_instance = battle_instance.clone();
                         println!("processing attack turn {} turn: {}", result, battle_instance.turn);
                         // let participants : Vec<u16> = battle_instance.participants.keys().copied().collect();
-                        battles_summary.push(updated_battle_instance);
                         drop(battles);
 
                         if result
@@ -114,7 +113,7 @@ pub async fn process_battle_commands (
                                 println!("---------Character: {character_attack} def {character_defense}");
 
                                 let tile_level = map_entity.level;
-                                let (mob_attack, mob_defense) = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
+                                let (mob_attack, mob_defense, selected_card) = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
                                 {
                                     if let Some(cards) = &entry.cards
                                     {
@@ -127,18 +126,23 @@ pub async fn process_battle_commands (
 
                                         let defense = card_definition.defense_factor * strength as f32;
                                         let defense = defense.round() as u16;
-                                        (damage, defense)
+                                        (damage, defense, *selected_card as u32)
                                     }
                                     else 
                                     {
-                                        (1,1)
+                                        (1,1, 10000)
                                     }
                                 }
                                 else
                                 {
-                                    (1,1)
+                                    (1,1, 10000)
                                 };
-                                
+
+                                // record enemy card                                
+                                // we already stored the battle instance, but we don't care about this bit of data, it is always overwriten.
+                                updated_battle_instance.last_enemy_card_used = selected_card;
+                                battles_summary.push(updated_battle_instance);
+
                                 println!("---------Mob: {mob_attack} def {mob_defense}");
                                 let calculated_mob_damage = character_attack.saturating_sub(mob_defense);
                                 println!("--- mob damage {calculated_mob_damage}");
@@ -174,6 +178,7 @@ pub async fn process_battle_commands (
                                     damage: calculated_character_damage,
                                     skill_id: 0,
                                 };
+
                                 tile_attacks_summary.push(attack);
 
                                 if character_entity.health > 0

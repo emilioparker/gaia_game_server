@@ -5,7 +5,7 @@ use tokio::time::error::Elapsed;
 
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const BATTLE_INSTANCE_SIZE: usize = 14;
+pub const BATTLE_INSTANCE_SIZE: usize = 18;
 
 #[derive(Debug)]
 pub struct BattleInstance
@@ -16,14 +16,24 @@ pub struct BattleInstance
     pub turn_time : u32, // if everyone participating has attacked, we move on.
     pub participants_log: u8, // 1 bytes
     pub turn_log: u8, // 1 bytes
-    pub participants: HashMap<u16, u8>
+    pub participants: HashMap<u16, u8>,
+    pub last_enemy_card_used: u32
 }
 
 impl Clone for BattleInstance 
 {
     fn clone(&self) -> Self 
     {
-        Self { target_tile_id: self.target_tile_id.clone(), version: self.version.clone(), turn: self.turn.clone(), turn_time: self.turn_time.clone(), participants_log: self.participants_log.clone(), turn_log: self.turn_log.clone(), participants: HashMap::with_capacity(0)}
+        Self { 
+            target_tile_id: self.target_tile_id.clone(),
+            version: self.version.clone(),
+            turn: self.turn.clone(),
+            turn_time: self.turn_time.clone(),
+            participants_log: self.participants_log.clone(),
+            turn_log: self.turn_log.clone(),
+            participants: HashMap::with_capacity(0),
+            last_enemy_card_used: 0
+        }
     }
 }
 
@@ -40,6 +50,7 @@ impl BattleInstance
             participants_log: 0,
             turn_log: 0,
             participants: HashMap::new(),
+            last_enemy_card_used: 0,
         }
     }
 
@@ -51,6 +62,7 @@ impl BattleInstance
         self.participants_log = 0;
         self.turn_log = 0;
         self.participants.clear();
+        self.last_enemy_card_used = 0;
     }
 
     pub fn reset(&mut self, time :u32)
@@ -185,8 +197,13 @@ impl BattleInstance
         buffer[start] = self.participants_log;
 
         start = end;
-        // end = start + 1;
+        end = start + 1;
         buffer[start] = self.turn_log;
+
+        start = end;
+        end = start + 4; 
+        let last_enemy_card_bytes = u32::to_le_bytes(self.last_enemy_card_used); // 4 bytes
+        buffer[start..end].copy_from_slice(&last_enemy_card_bytes);
 
         buffer
     }
@@ -207,7 +224,8 @@ mod tests {
             turn_time: 0,
             participants_log: 0,
             turn_log: 0,
-            participants: HashMap::new()
+            participants: HashMap::new(),
+            last_enemy_card_used: 0,
         };
 
 
