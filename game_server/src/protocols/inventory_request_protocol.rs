@@ -32,8 +32,8 @@ pub async fn process_request(
     let player_entities = map.players.lock().await;
     let player_option = player_entities.get(&player_id);
 
-    let (inventory, hash) = if let Some(player_entity) = player_option {
-        (player_entity.inventory.clone(), player_entity.inventory_hash)
+    let (inventory, version) = if let Some(player_entity) = player_option {
+        (player_entity.inventory.clone(), player_entity.inventory_version)
     }
     else {
         println!("Inventory Request - player not found {}" , player_id);
@@ -50,8 +50,8 @@ pub async fn process_request(
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &item_len_bytes).unwrap();
 
-    let hash_bytes = u32::to_le_bytes(hash);
-    std::io::Write::write_all(&mut encoder, &hash_bytes).unwrap();
+    let version_bytes = u32::to_le_bytes(version);
+    std::io::Write::write_all(&mut encoder, &version_bytes).unwrap();
 
     let mut offset = 0;
     for item in inventory {

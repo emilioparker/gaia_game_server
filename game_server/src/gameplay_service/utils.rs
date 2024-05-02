@@ -21,7 +21,7 @@ pub fn update_character_entity(
             player_id: player_entity.character_id,
             item_id: reward.item_id,
             amount: reward.amount,
-            inventory_hash : player_entity.inventory_hash
+            inventory_hash : player_entity.inventory_version
         };
 
         println!("reward {:?}", reward);

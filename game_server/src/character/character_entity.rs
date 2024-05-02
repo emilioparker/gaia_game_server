@@ -23,7 +23,7 @@ pub struct CharacterEntity
     pub second_position: [f32;3],
     pub action:u32,
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
-    pub inventory_hash : u32,
+    pub inventory_version : u32,
 
     pub level:u8,
     pub experience:u32,
@@ -130,9 +130,9 @@ impl CharacterEntity
         end = offset + 4;
         buffer[offset..end].copy_from_slice(&action_bytes);
         offset = end;
-        let inventory_hash_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
+        let inventory_version_bytes = u32::to_le_bytes(self.inventory_version); // 4 bytes
         end = offset + 4;
-        buffer[offset..end].copy_from_slice(&inventory_hash_bytes);
+        buffer[offset..end].copy_from_slice(&inventory_version_bytes);
         offset = end;
 
         // 8 bytes
@@ -236,7 +236,7 @@ impl CharacterEntity
             self.version += 1;
         }
 
-        self.inventory_hash = self.calculate_inventory_hash();
+        self.inventory_version += 1;
     }
 
     pub fn remove_inventory_item(&mut self, old_item : InventoryItem) -> bool
@@ -261,7 +261,7 @@ impl CharacterEntity
         }
 
         if successfuly_removed {
-            self.inventory_hash = self.calculate_inventory_hash();
+            self.inventory_version += 1;
             self.version += 1;
         }
         successfuly_removed
@@ -303,27 +303,27 @@ impl CharacterEntity
         if successfuly_removed 
         {
             self.add_inventory_item(InventoryItem { item_id, equipped: slot, amount: 1 });
-            self.inventory_hash = self.calculate_inventory_hash();
+            self.inventory_version += 1;
             self.version += 1;
         }
         successfuly_removed
     }
 
-    pub fn calculate_inventory_hash(&self) -> u32
-    {
-        let mut hash : u32 = 0;
-        let mut index = 1;
-        for item in &self.inventory 
-        {
-            let salt = ITEMS_PRIME_KEYS[index] as u32;
-            let key = (item.item_id + 1).wrapping_mul(salt);
-            let pair = key.wrapping_mul(item.amount as u32);
-            hash = hash.wrapping_add(pair); 
-            index += 1;
-        }
-        println!("hash {hash}");
-        hash
-    }
+    // pub fn calculate_inventory_hash(&self) -> u32
+    // {
+    //     let mut hash : u32 = 0;
+    //     let mut index = 1;
+    //     for item in &self.inventory 
+    //     {
+    //         let salt = ITEMS_PRIME_KEYS[index] as u32;
+    //         let key = (item.item_id + 1).wrapping_mul(salt);
+    //         let pair = key.wrapping_mul(item.amount as u32);
+    //         hash = hash.wrapping_add(pair); 
+    //         index += 1;
+    //     }
+    //     println!("hash {hash}");
+    //     hash
+    // }
 
     pub fn get_strength(&self) -> u16
     {
@@ -420,7 +420,7 @@ mod tests {
             position: [1.0, 2.0, 3.0],
             second_position: [1.0, 2.0, 3.0],
             inventory: Vec::new(),
-            inventory_hash: 1,
+            inventory_version: 1,
             health: 0,
             level: 1,
             experience: 0,
@@ -472,7 +472,7 @@ mod tests {
             second_position: [0.0,0.0,0.0],
             action: 1,
             inventory: Vec::new(),
-            inventory_hash: 10,
+            inventory_version: 10,
             level: 0,
             experience: 0,
             available_skill_points: 0,

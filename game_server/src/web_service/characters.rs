@@ -301,7 +301,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         position: [0.0, 0.0, 0.0],
         second_position: [0.0, 0.0, 0.0],
         inventory: Vec::new(), // fill this from storedcharacter
-        inventory_hash : 1,
+        inventory_version : 1,
         level: 0,
         experience: 0,
         available_skill_points: 5,

@@ -119,7 +119,7 @@ pub async fn process_tile_commands (
                                         player_id: *player_id,
                                         item_id: new_item.item_id,
                                         amount: new_item.amount,
-                                        inventory_hash : updated_player_entity.inventory_hash
+                                        inventory_hash : updated_player_entity.inventory_version
                                     };
 
                                     println!("reward {:?}", reward);

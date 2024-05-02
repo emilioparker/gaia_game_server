@@ -55,7 +55,7 @@ pub async fn get_characters_from_db_by_world(
                     action: 0,
                     character_name: doc.character_name,
                     inventory,
-                    inventory_hash: 1,
+                    inventory_version: 1,
                     level: doc.level,
                     experience: doc.experience,
                     available_skill_points: doc.available_skill_points,
