@@ -218,6 +218,19 @@ impl CharacterEntity
 
     }
 
+    pub fn has_inventory_item(&self, id : u32) -> bool
+    {
+        let mut found = false;
+        for item in &self.inventory 
+        {
+            if item.item_id == id
+            {
+                found = true;
+            }
+        }
+        return found;
+    }
+
     pub fn add_inventory_item(&mut self, new_item : InventoryItem)
     {
         let mut found = false;

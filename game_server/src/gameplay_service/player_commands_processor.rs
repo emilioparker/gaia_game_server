@@ -219,12 +219,14 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::BuyItem(_faction, item_id, amount) => 
             {
                 println!("Buy item with id {item_id}");
+                let mut is_card  = false;
                 let cost  = if *item_id < 10000
                 {
                     map.definitions.items.get(*item_id as usize).map(|d| d.cost)
                 }
                 else if *item_id >= 10000
                 {
+                    is_card = true;
                     map.definitions.get_card(*item_id as usize).map(|d| d.cost)
                 }
                 else
@@ -239,25 +241,33 @@ pub async fn process_player_commands (
                 {
                     (Some(player_entity), Some(cost)) => 
                     {
-                        let result = player_entity.remove_inventory_item(InventoryItem
+                        if is_card && player_entity.has_inventory_item(*item_id)
                         {
-                            item_id : 0,
-                            equipped : 0,
-                            amount : cost * amount,
-                        });// remove soft currency
-
-                        if result || cost == 0
-                        {
-                            player_entity.add_inventory_item(InventoryItem
-                            {
-                                item_id : *item_id,
-                                equipped : 0,
-                                amount: *amount,
-                            });// add item currency
+                            println!("can't purchase more than one card of the same type")
                         }
+                        else
+                        {
+                                
+                            let result = player_entity.remove_inventory_item(InventoryItem
+                            {
+                                item_id : 0,
+                                equipped : 0,
+                                amount : cost * amount,
+                            });// remove soft currency
 
-                        tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                        players_summary.push(player_entity.clone());
+                            if result || cost == 0
+                            {
+                                player_entity.add_inventory_item(InventoryItem
+                                {
+                                    item_id : *item_id,
+                                    equipped : 0,
+                                    amount: *amount,
+                                });// add item currency
+                            }
+
+                            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                            players_summary.push(player_entity.clone());
+                        }
 
                     },
                     _ => 

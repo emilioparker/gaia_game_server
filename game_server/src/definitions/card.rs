@@ -11,7 +11,8 @@ pub struct Card
     pub defense_factor:f32,
     pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
-    pub cost: u16
+    pub cost: u16,
+    pub cooldown:f32
 }
 
 impl Definition for Card
