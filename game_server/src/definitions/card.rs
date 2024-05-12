@@ -5,6 +5,7 @@ pub struct Card
 {
     pub id: u32,
     pub name: String,
+    pub icon: String,
     pub asset: String,
     pub rank:u8,
     pub strength_factor:f32,
@@ -12,6 +13,8 @@ pub struct Card
     pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
     pub cost: u16,
+    pub duration_time:f32,
+    pub duration_hits:u8,
     pub cooldown:f32
 }
 
