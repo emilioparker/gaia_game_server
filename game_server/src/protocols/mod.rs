@@ -19,6 +19,10 @@ pub mod buy_item_protocol;
 pub mod use_item_protocol;
 pub mod battle_protocols;
 pub mod equip_item_protocol;
+pub mod respawn_protocol;
+pub mod action_protocol;
+pub mod greet_protocol;
+pub mod activate_buff_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -28,6 +32,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
 use crate::battle::battle_command::BattleCommand;
+use crate::gameplay_service::player_commands_processor::activate_buff;
 use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::map::GameMap;
@@ -39,7 +44,7 @@ use crate::tower::TowerCommand;
 pub enum Protocol
 {
     Ping = 1,
-    CharacterGenericAction = 2,
+    CharacterMovement = 2,
     GlobalState = 3,
     ResourceExtraction = 4,
     InventoryRequest = 5,
@@ -59,8 +64,10 @@ pub enum Protocol
     BuyItem = 19,
     UseItem = 20,
     EquipItem = 21,
-    JoinBattle = 22,
-    PlayerTurn = 23,
+    Respawn = 22,
+    CharacterAction = 23,
+    Greet = 24,
+    ActivateBuff = 25,
 }
     
 pub async fn route_packet(
@@ -107,7 +114,7 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
             layfoundation_protocol::process_construction(socket, data, channel_map_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::CharacterGenericAction as u8 => {
+        Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => {
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             movement_protocol::process_movement(socket, data, channel_tx).await;
@@ -177,16 +184,31 @@ pub async fn route_packet(
             server_state.tx_mc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             lay_wall_foundation_protocol::process_construction(socket, data, channel_map_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::JoinBattle as u8 => {
-            println!("--------------------- join battle");
+        Some(protocol) if *protocol == Protocol::Respawn as u8 => {
+            println!("--------------------- process respawn");
             let capacity = channel_battle_tx.capacity();
-            server_state.tx_bc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-            battle_protocols::process_join(socket, data, channel_battle_tx).await;
+            server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            respawn_protocol::process_respawn(socket, data, channel_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::PlayerTurn as u8 => {
+        Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
+            println!("--------------------- process character action");
             let capacity = channel_battle_tx.capacity();
-            server_state.tx_bc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-            battle_protocols::process_turn(socket, data, channel_battle_tx).await;
+            server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            action_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::Greet as u8 => 
+        {
+            println!("--------------------- process greet");
+            let capacity = channel_battle_tx.capacity();
+            server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            greet_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::ActivateBuff as u8 => 
+        {
+            println!("--------------------- process buff");
+            let capacity = channel_battle_tx.capacity();
+            server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            activate_buff_protocol::process(socket, data, channel_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

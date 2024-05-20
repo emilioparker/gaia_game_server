@@ -78,7 +78,7 @@ pub enum MapCommandInfo {
     SpawnMob(u16, u32, u16),
     MoveMob(u16,u32, TetrahedronId, f32, f32),
     ControlMapEntity(u16, u32),
-    AttackMob(u16,u16,u32),
+    AttackMob(u16,u32,u32),
 }
 
 #[derive(Debug, Clone)]

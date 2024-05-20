@@ -83,132 +83,132 @@ pub async fn process_battle_commands (
                 },
                 battle_command::BattleCommandInfo::Attack(participant_id, card_id) => 
                 {
-                    if let Some(battle_instance) = battle_option
-                    {
-                        // play turn
-                        let result = battle_instance.play_turn(*participant_id, battle_command.player_id, current_time_in_seconds);
-                        let mut updated_battle_instance = battle_instance.clone();
-                        println!("processing attack turn {} turn: {}", result, battle_instance.turn);
-                        // let participants : Vec<u16> = battle_instance.participants.keys().copied().collect();
-                        drop(battles);
+                    // if let Some(battle_instance) = battle_option
+                    // {
+                    //     // play turn
+                    //     let result = battle_instance.play_turn(*participant_id, battle_command.player_id, current_time_in_seconds);
+                    //     let mut updated_battle_instance = battle_instance.clone();
+                    //     println!("processing attack turn {} turn: {}", result, battle_instance.turn);
+                    //     // let participants : Vec<u16> = battle_instance.participants.keys().copied().collect();
+                    //     drop(battles);
 
-                        if result
-                        {
-                            let region = map.get_region_from_child(&battle_command.tile_id);
-                            let mut tiles = region.lock().await;
-                            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-                            let character_entity_option = player_entities.get_mut(&battle_command.player_id);
-                            let map_entity_option = tiles.get_mut(&battle_command.tile_id);
+                    //     if result
+                    //     {
+                    //         let region = map.get_region_from_child(&battle_command.tile_id);
+                    //         let mut tiles = region.lock().await;
+                    //         let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                    //         let character_entity_option = player_entities.get_mut(&battle_command.player_id);
+                    //         let map_entity_option = tiles.get_mut(&battle_command.tile_id);
 
-                            if let (Some(map_entity), Some(character_entity)) = (map_entity_option, character_entity_option)
-                            {
-                                // calculate attack given the card
-                                let card_definition = map.definitions.get_card(*card_id as usize).unwrap();
-                                let attack = card_definition.strength_factor * character_entity.get_strength() as f32;
-                                let character_attack = attack.round() as u16;
+                    //         if let (Some(map_entity), Some(character_entity)) = (map_entity_option, character_entity_option)
+                    //         {
+                    //             // calculate attack given the card
+                    //             let card_definition = map.definitions.get_card(*card_id as usize).unwrap();
+                    //             let attack = card_definition.strength_factor * character_entity.get_strength() as f32;
+                    //             let character_attack = attack.round() as u16;
 
-                                let defense = card_definition.defense_factor * character_entity.get_defense() as f32;
-                                let character_defense = defense.round() as u16;
+                    //             let defense = card_definition.defense_factor * character_entity.get_defense() as f32;
+                    //             let character_defense = defense.round() as u16;
 
-                                println!("---------Character: {character_attack} def {character_defense}");
+                    //             println!("---------Character: {character_attack} def {character_defense}");
 
-                                let tile_level = map_entity.level;
-                                let (mob_attack, mob_defense, selected_card) = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
-                                {
-                                    if let Some(cards) = &entry.cards
-                                    {
-                                        let strength = (entry.skill_points / 4) as u16;
-                                        let selected_card = cards.choose(&mut rand::thread_rng()).unwrap();
+                    //             let tile_level = map_entity.level;
+                    //             let (mob_attack, mob_defense, selected_card) = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
+                    //             {
+                    //                 if let Some(cards) = &entry.cards
+                    //                 {
+                    //                     let strength = (entry.skill_points / 4) as u16;
+                    //                     let selected_card = cards.choose(&mut rand::thread_rng()).unwrap();
 
-                                        let card_definition = map.definitions.get_card(*selected_card as usize).unwrap();
-                                        let damage = card_definition.strength_factor * strength as f32;
-                                        let damage = damage.round() as u16;
+                    //                     let card_definition = map.definitions.get_card(*selected_card as usize).unwrap();
+                    //                     let damage = card_definition.strength_factor * strength as f32;
+                    //                     let damage = damage.round() as u16;
 
-                                        let defense = card_definition.defense_factor * strength as f32;
-                                        let defense = defense.round() as u16;
-                                        (damage, defense, *selected_card as u32)
-                                    }
-                                    else 
-                                    {
-                                        (1,1, 10000)
-                                    }
-                                }
-                                else
-                                {
-                                    (1,1, 10000)
-                                };
+                    //                     let defense = card_definition.defense_factor * strength as f32;
+                    //                     let defense = defense.round() as u16;
+                    //                     (damage, defense, *selected_card as u32)
+                    //                 }
+                    //                 else 
+                    //                 {
+                    //                     (1,1, 10000)
+                    //                 }
+                    //             }
+                    //             else
+                    //             {
+                    //                 (1,1, 10000)
+                    //             };
 
-                                // record enemy card                                
-                                // we already stored the battle instance, but we don't care about this bit of data, it is always overwriten.
-                                updated_battle_instance.last_enemy_card_used = selected_card;
-                                battles_summary.push(updated_battle_instance);
+                    //             // record enemy card                                
+                    //             // we already stored the battle instance, but we don't care about this bit of data, it is always overwriten.
+                    //             updated_battle_instance.last_enemy_card_used = selected_card;
+                    //             battles_summary.push(updated_battle_instance);
 
-                                println!("---------Mob: {mob_attack} def {mob_defense}");
-                                let calculated_mob_damage = character_attack.saturating_sub(mob_defense);
-                                println!("--- mob damage {calculated_mob_damage}");
-                                // we need to update the tile health.
-                                // we need to check the player data.
-                                let (updated_tile, reward) = process_tile_attack(
-                                    // &character_entity.strength, 
-                                    &calculated_mob_damage,
-                                    &map_entity, 
-                                );
+                    //             println!("---------Mob: {mob_attack} def {mob_defense}");
+                    //             let calculated_mob_damage = character_attack.saturating_sub(mob_defense);
+                    //             println!("--- mob damage {calculated_mob_damage}");
+                    //             // we need to update the tile health.
+                    //             // we need to check the player data.
+                    //             let (updated_tile, reward) = process_tile_attack(
+                    //                 // &character_entity.strength, 
+                    //                 &calculated_mob_damage,
+                    //                 &map_entity, 
+                    //             );
 
-                                *map_entity = updated_tile.clone();
-
-
-                                drop(tiles);
-
-                                if updated_tile.health == 0
-                                {
-                                    if let Some(reward) = reward
-                                    {
-                                        update_character_entity(character_entity,reward, &map.definitions, rewards_summary, characters_summary);
-                                    }
-                                }
+                    //             *map_entity = updated_tile.clone();
 
 
-                                let calculated_character_damage = mob_attack.saturating_sub(character_defense);
-                                println!("--- character damage {calculated_character_damage}");
+                    //             drop(tiles);
 
-                                let attack = TileAttack
-                                {
-                                    tile_id: updated_tile.id.clone(),
-                                    target_player_id: battle_command.player_id,
-                                    damage: calculated_character_damage,
-                                    skill_id: 0,
-                                };
+                    //             if updated_tile.health == 0
+                    //             {
+                    //                 if let Some(reward) = reward
+                    //                 {
+                    //                     update_character_entity(character_entity,reward, &map.definitions, rewards_summary, characters_summary);
+                    //                 }
+                    //             }
 
-                                tile_attacks_summary.push(attack);
 
-                                if character_entity.health > 0
-                                    // && updated_tile.health > 0 // both attacks hit, doesn't matter if it kills
-                                {
-                                    let result = character_entity.health.saturating_sub(calculated_character_damage);
-                                    let updated_character_entity = CharacterEntity 
-                                    {
-                                        action: character_entity.action,
-                                        version: character_entity.version + 1,
-                                        health: result,
-                                        ..character_entity.clone()
-                                    };
+                    //             let calculated_character_damage = mob_attack.saturating_sub(character_defense);
+                    //             println!("--- character damage {calculated_character_damage}");
 
-                                    *character_entity = updated_character_entity.clone();
-                                    drop(player_entities);
-                                    tx_pe_gameplay_longterm.send(updated_character_entity.clone()).await.unwrap();
-                                    characters_summary.push(updated_character_entity.clone());
-                                }
+                    //             let attack = TileAttack
+                    //             {
+                    //                 tile_id: updated_tile.id.clone(),
+                    //                 target_player_id: battle_command.player_id,
+                    //                 damage: calculated_character_damage,
+                    //                 skill_id: 0,
+                    //             };
 
-                                map_summary.push(updated_tile.clone());
+                    //             tile_attacks_summary.push(attack);
 
-                                crate::gameplay_service::utils::report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
+                    //             if character_entity.health > 0
+                    //                 // && updated_tile.health > 0 // both attacks hit, doesn't matter if it kills
+                    //             {
+                    //                 let result = character_entity.health.saturating_sub(calculated_character_damage);
+                    //                 let updated_character_entity = CharacterEntity 
+                    //                 {
+                    //                     action: character_entity.action,
+                    //                     version: character_entity.version + 1,
+                    //                     health: result,
+                    //                     ..character_entity.clone()
+                    //                 };
 
-                                // sending the updated tile somewhere.
-                                tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
-                                tx_me_gameplay_webservice.send(updated_tile).await.unwrap();
-                            }
-                        }
-                    }
+                    //                 *character_entity = updated_character_entity.clone();
+                    //                 drop(player_entities);
+                    //                 tx_pe_gameplay_longterm.send(updated_character_entity.clone()).await.unwrap();
+                    //                 characters_summary.push(updated_character_entity.clone());
+                    //             }
+
+                    //             map_summary.push(updated_tile.clone());
+
+                    //             crate::gameplay_service::utils::report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, server_state.clone());
+
+                    //             // sending the updated tile somewhere.
+                    //             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+                    //             tx_me_gameplay_webservice.send(updated_tile).await.unwrap();
+                    //         }
+                    //     }
+                    // }
                 },
             }
         }

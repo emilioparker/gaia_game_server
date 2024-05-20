@@ -3,7 +3,7 @@ use tokio::{sync::mpsc::Sender, net::UdpSocket};
 use crate::character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement};
 
 
-pub async fn process_movement(
+pub async fn process(
     _socket:&UdpSocket,
      data : &[u8; 508],
     channel_tx : &Sender<CharacterCommand>)
@@ -23,7 +23,6 @@ pub async fn process_movement(
     end = start + 1;
     let _faction = data[start];
 
-    // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
     start = end;
     end = start + 4;
     let pos_x = f32::from_le_bytes(data[start..end].try_into().unwrap());
@@ -40,33 +39,13 @@ pub async fn process_movement(
 
     start = end;
     end = start + 4;
-    let direction_x = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
+    let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
-    end = start + 4;
-    let direction_y = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    start = end;
-    end = start + 4;
-    let direction_z = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    let direction = [direction_x, direction_y, direction_z];
-
-    // end = start + 4;
-    // let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
-    //start = end;
-
-    let action = CharacterMovement 
-    {
-        player_id,
-        position,
-        second_position: direction
-    };
 
     let character_command = CharacterCommand
     {
         player_id,
-        info: CharacterCommandInfo::Movement(action)
+        info: CharacterCommandInfo::Action(action, position)
     };
 
     channel_tx.send(character_command).await.unwrap();

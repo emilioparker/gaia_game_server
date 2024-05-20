@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::{definitions::definitions_container::Definitions, map::map_entity::MapEntity};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 57;
+pub const CHARACTER_ENTITY_SIZE: usize = 67;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
@@ -43,6 +43,8 @@ pub struct CharacterEntity
 
     // stats
     pub health: u16,
+    pub buffs : Vec<Buff>,// this one is not serializable  normally
+    pub buffs_summary : [(u8,u8);5] // this one is serialized but not saved
 }
 
 pub enum ItemType
@@ -78,6 +80,55 @@ impl InventoryItem
         let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
         buffer[start..end].copy_from_slice(&amount_bytes);
         buffer
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum Stat
+{
+    Strength,
+    Defense,
+    Intelligence,
+    Mana
+}
+
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct Buff
+{
+    pub card_id : u32, //1
+    pub stat : Stat, //1
+    pub buff_amount : f32, // 4
+    pub hits: u8,// 1
+    pub expiration_time:u32 //4
+}
+
+impl Stat
+{
+    pub fn to_byte(&self) -> u8
+    {
+        let stat = match self
+        {
+            Stat::Strength => 0,
+            Stat::Defense => 1,
+            Stat::Intelligence => 2,
+            Stat::Mana => 3,
+        };
+
+        stat as u8
+    }
+
+    pub fn from_byte(data :u8) -> Stat
+    {
+        let stat = match data
+        {
+            0 => Stat::Strength,
+            1 => Stat::Defense,
+            2 => Stat::Intelligence,
+            3 => Stat::Mana,
+            _ => Stat::Mana,
+        };
+        stat
     }
 }
 
@@ -190,13 +241,104 @@ impl CharacterEntity
         let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&health_bytes);
-        // offset = end;
-        // 16 bytes
+        offset = end;
 
-
-        //5 +24+8 +16 = 53
+        // 5 pairs of 1 bytes, 10 bytes
+        for pair in self.buffs_summary
+        {
+            end = offset + 1;
+            buffer[offset] = pair.0;
+            offset = end;
+            
+            end = offset + 1;
+            buffer[offset] = pair.1;
+            offset = end;
+        }
 
         buffer
+    }
+
+    pub fn add_buff(&mut self, card_id:u32, definitions: &Definitions) -> bool
+    {
+        if self.has_buff(card_id) 
+        {
+            return false;
+        }
+
+        if let Some(card) = definitions.get_card(card_id as usize)
+        {
+            if card.card_type == "passive"
+            {
+                if card.defense_factor > 0f32
+                {
+                    self.buffs.push(Buff
+                    {
+                        card_id,
+                        stat: Stat::Defense,
+                        buff_amount: card.defense_factor,
+                        hits: card.duration_hits,
+                        expiration_time: 100,
+                    })
+                }
+                if card.strength_factor > 0f32
+                {
+                    self.buffs.push(Buff
+                    {
+                        card_id,
+                        stat: Stat::Strength,
+                        buff_amount: card.strength_factor,
+                        hits: card.duration_hits,
+                        expiration_time: 100,
+                    })
+                }
+            }
+            self.version += 1;
+            self.summarize_buffs();
+        }
+
+        return true;
+    }
+
+    pub fn use_buffs(&mut self, used_stats : Vec<Stat>)
+    {
+        self.buffs.iter_mut()
+        // .filter(|b| used_stats.contains(&b.stat))
+        .for_each(|b| b.hits = b.hits.saturating_sub(1));
+        let updated_buffs : Vec<Buff> = self.buffs.iter().filter(|b| b.hits > 0).map(|b| b.clone()).collect();
+        self.buffs = updated_buffs;
+        self.summarize_buffs();
+        self.version += 1;
+    }
+
+    pub fn has_buff(&self, card_id : u32) -> bool
+    {
+        let mut found = false;
+        for buff in &self.buffs 
+        {
+            if buff.card_id == card_id
+            {
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    pub fn summarize_buffs(&mut self)
+    {
+        // let mut buffs_summary : [(u8,u8);5]= [(0, 0),(0, 0), (0, 0), (0, 0), (0, 0)];
+        let mut index = 0;
+        for value in self.buffs_summary.iter_mut()
+        {
+            if let Some(buff) = self.buffs.get(index)
+            {
+                *value = ((buff.card_id - 10000) as u8, buff.hits);//(buff.card_id, buff.hits);
+            }
+            else
+            {
+                *value = (0u8,0u8);//(buff.card_id, buff.hits);
+            }
+            index += 1;
+        }
     }
 
     pub fn add_xp_mob_defeated(&mut self, definitions: &Definitions)
@@ -338,14 +480,18 @@ impl CharacterEntity
     //     hash
     // }
 
-    pub fn get_strength(&self) -> u16
+    pub fn get_strength(&self, strength : f32) -> u16
     {
-        CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32)
+        let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
+        let added_strength : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Strength).map(|b| b.buff_amount).sum();
+        (stat as f32 * strength).round() as u16  + added_strength.round() as u16
     }
 
-    pub fn get_defense(&self) -> u16
+    pub fn get_defense(&self, defense :f32) -> u16
     {
-        CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32)
+        let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
+        let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
+        (stat as f32 * defense).round() as u16  + added_defense.round() as u16
     }
 
     pub fn calculate_stat(base : u16, points : u8, class_multiplier:f32, efficiency:f32) -> u16
@@ -446,6 +592,8 @@ mod tests {
             defense_points: 0,
             intelligence_points: 0,
             mana_points: 0,
+            buffs: Vec::new(),
+            buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)],
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -498,6 +646,8 @@ mod tests {
             base_intelligence: 3,
             base_mana: 3,
             health: 10,
+            buffs: Vec::new(),
+            buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)],
         };
         let buffer = char.to_bytes();
         println!("{:?}", buffer);

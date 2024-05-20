@@ -1,9 +1,9 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
-use crate::long_term_storage_service::db_character::{StoredCharacter, StoredInventoryItem};
+use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
 use crate::map::GameMap;
-use crate::character::character_entity::{CharacterEntity, InventoryItem};
+use crate::character::character_entity::{Buff, CharacterEntity, InventoryItem, Stat};
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
@@ -43,6 +43,28 @@ pub async fn get_characters_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
+                let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| Buff
+                {
+                    card_id:stored_buff.card_id,
+                    stat: Stat::from_byte(stored_buff.stat),
+                    buff_amount: stored_buff.buff_amount,
+                    hits: stored_buff.hits,
+                    expiration_time: stored_buff.expiration_time,
+                }).collect();
+
+                let mut buffs_summary : [(u8,u8);5]= [(0, 0),(0, 0), (0, 0), (0, 0), (0, 0)];
+                let mut index = 0;
+                for value in buffs_summary.iter_mut()
+                {
+                    if let Some(buff) = buffs.get(index)
+                    {
+                        *value = ((buff.card_id - 10000) as u8, buff.hits);//(buff.card_id, buff.hits);
+                    }
+                    index += 1;
+                }
+
+                // let buffs_summary : Vec<(u8,u8)> = buffs.iter().map(|b| ((b.card_id - 10000) as u8, b.hits)).collect();
+
                 let player =  CharacterEntity
                 {
                     character_id: doc.character_id,
@@ -68,6 +90,8 @@ pub async fn get_characters_from_db_by_world(
                     base_intelligence: doc.intelligence,
                     base_mana: doc.mana,
                     health: doc.health,
+                    buffs,
+                    buffs_summary,
                 };
                 count += 1;
                 data.insert(doc.character_id, player);
@@ -149,6 +173,13 @@ pub fn start_server(
                 .collect();
 
                 let serialized_data= bson::to_bson(&updated_inventory).unwrap();
+
+                let updated_buffs : Vec<StoredBuff> = player.buffs
+                .into_iter()
+                .map(|buff| StoredBuff ::from(buff))
+                .collect();
+
+                let serialized_buffs_data= bson::to_bson(&updated_buffs).unwrap();
                 let serialized_position= bson::to_bson(&player.second_position).unwrap();
 
                 let update_result = data_collection.update_one(
@@ -171,6 +202,7 @@ pub fn start_server(
                             "strength": bson::to_bson(&player.base_strength).unwrap(),
                             "mana": bson::to_bson(&player.base_mana).unwrap(),
                             "intelligence": bson::to_bson(&player.base_intelligence).unwrap(),
+                            "buffs" : serialized_buffs_data,
                         }
                     },
                     None

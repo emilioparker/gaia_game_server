@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::character::character_entity::InventoryItem;
+use crate::character::character_entity::{Buff, InventoryItem, Stat};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,6 +36,7 @@ pub struct StoredCharacter {
 
     // stats
     pub health: u16,
+    pub buffs: Vec<StoredBuff>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -46,8 +47,28 @@ pub struct StoredInventoryItem{
 }
 
 
-impl From<InventoryItem> for StoredInventoryItem {
-    fn from(item: InventoryItem) -> Self {
+impl From<InventoryItem> for StoredInventoryItem
+{
+    fn from(item: InventoryItem) -> Self
+    {
         StoredInventoryItem { item_id: item.item_id, equipped: item.equipped, amount: item.amount }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoredBuff
+{
+    pub card_id:u32,
+    pub stat : u8, //1
+    pub buff_amount : f32, // 4
+    pub hits: u8,// 1
+    pub expiration_time:u32 //4
+}
+
+impl From<Buff> for StoredBuff
+{
+    fn from(buff: Buff) -> Self
+    {
+        StoredBuff { card_id: buff.card_id, stat: buff.stat.to_byte() , buff_amount: buff.buff_amount, hits: buff.hits, expiration_time: buff.expiration_time}
     }
 }

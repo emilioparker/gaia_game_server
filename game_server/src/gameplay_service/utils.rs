@@ -33,7 +33,7 @@ pub fn update_character_entity(
 pub fn report_map_process_capacity(
     tx_me_gameplay_longterm : &Sender<MapEntity>,
     tx_me_gameplay_webservice : &Sender<MapEntity>,
-    server_state : Arc<ServerState>
+    server_state : &Arc<ServerState>
 ){
     let capacity = tx_me_gameplay_longterm.capacity();
     server_state.tx_me_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
@@ -53,7 +53,7 @@ pub fn report_tower_process_capacity(
 }
 
 pub fn process_tile_attack(
-    damage: &u16, 
+    damage: u16, 
     tile : &MapEntity, 
 ) -> (MapEntity, Option<InventoryItem>)
 {
@@ -66,7 +66,7 @@ pub fn process_tile_attack(
     // this means this tile is being built
     if tile.health > tile.constitution 
     {
-        updated_tile.constitution = i16::max(0, updated_tile.constitution as i16 - *damage as i16) as u16;
+        updated_tile.constitution = i16::max(0, updated_tile.constitution as i16 - damage as i16) as u16;
         updated_tile.version += 1;
         if updated_tile.constitution == 0
         {
@@ -77,7 +77,7 @@ pub fn process_tile_attack(
     else if previous_health > 0
     {
         let collected_prop = updated_tile.prop;
-        updated_tile.health = i16::max(0, updated_tile.health as i16 - *damage as i16) as u16;
+        updated_tile.health = i16::max(0, updated_tile.health as i16 - damage as i16) as u16;
         updated_tile.version += 1;
         println!("new health {}", updated_tile.health);
         if updated_tile.health == 0

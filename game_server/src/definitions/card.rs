@@ -5,6 +5,7 @@ pub struct Card
 {
     pub id: u32,
     pub name: String,
+    pub card_type: String,
     pub icon: String,
     pub asset: String,
     pub rank:u8,

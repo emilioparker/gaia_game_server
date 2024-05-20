@@ -57,8 +57,7 @@ pub async fn process_tower_commands (
                             {
                                 player_id: *player_id,
                                 target_player_id: 0,
-                                damage : *damage as u32,
-                                skill_id: 0,
+                                card_id: 0,
                                 target_tile_id: tower_command.id.clone(),
                             };
                             player_attacks_summary.push(attack);

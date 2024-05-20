@@ -75,11 +75,11 @@ pub fn start_service(
     let tower_commands_processor_lock = tower_commands_mutex.clone();
     let tower_commands_agregator_from_client_lock = tower_commands_mutex.clone();
 
-    //tower commands -------------------------------------
-    let battle_commands = Vec::<BattleCommand>::new();
-    let battle_commands_mutex = Arc::new(Mutex::new(battle_commands));
-    let battle_commands_processor_lock = battle_commands_mutex.clone();
-    let battle_commands_agregator_from_client_lock = battle_commands_mutex.clone();
+    // //tower commands -------------------------------------
+    // let battle_commands = Vec::<BattleCommand>::new();
+    // let battle_commands_mutex = Arc::new(Mutex::new(battle_commands));
+    // let battle_commands_processor_lock = battle_commands_mutex.clone();
+    // let battle_commands_agregator_from_client_lock = battle_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
     let delayed_tile_commands = Vec::<(u64, MapCommand)>::new();
@@ -141,16 +141,16 @@ pub fn start_service(
         }
     });
 
-    tokio::spawn(async move 
-    {
-        loop
-        {
-            let message = rx_bc_client_game.recv().await.unwrap();
-            println!("got a battle command data {}", message.tile_id);
-            let mut data = battle_commands_agregator_from_client_lock.lock().await;
-            data.push(message);
-        }
-    });
+    // tokio::spawn(async move 
+    // {
+    //     loop
+    //     {
+    //         let message = rx_bc_client_game.recv().await.unwrap();
+    //         println!("got a battle command data {}", message.tile_id);
+    //         let mut data = battle_commands_agregator_from_client_lock.lock().await;
+    //         data.push(message);
+    //     }
+    // });
 
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
@@ -267,22 +267,22 @@ pub fn start_service(
                 &mut player_attacks_summary,
                 delayed_tower_commands_lock.clone()).await;
 
-            battle_commands_processor::process_battle_commands(
-                map.clone(),
-                server_state.clone(),
-                &tx_me_gameplay_longterm,
-                &tx_pe_gameplay_longterm,
-                &tx_me_gameplay_webservice,
-                current_time_in_millis,
-                battle_commands_processor_lock.clone(),
-                &mut battles_summary,
-                &mut battle_join_summary,
-                &mut players_summary,
-                &mut players_rewards_summary,
-                &mut tiles_summary,
-                &mut player_attacks_summary,
-                &mut tile_attacks_summary,
-                ).await;
+            // battle_commands_processor::process_battle_commands(
+            //     map.clone(),
+            //     server_state.clone(),
+            //     &tx_me_gameplay_longterm,
+            //     &tx_pe_gameplay_longterm,
+            //     &tx_me_gameplay_webservice,
+            //     current_time_in_millis,
+            //     battle_commands_processor_lock.clone(),
+            //     &mut battles_summary,
+            //     &mut battle_join_summary,
+            //     &mut players_summary,
+            //     &mut players_rewards_summary,
+            //     &mut tiles_summary,
+            //     &mut player_attacks_summary,
+            //     &mut tile_attacks_summary,
+            //     ).await;
 
             let tiles_state_update = tiles_summary
                 .into_iter()
@@ -312,13 +312,13 @@ pub fn start_service(
                 .into_iter()
                 .map(|p| StateUpdate::TileAttackState(p));
 
-            let battle_state_updates = battles_summary
-                .into_iter()
-                .map(|p| StateUpdate::BattleUpdate(p));
+            // let battle_state_updates = battles_summary
+            //     .into_iter()
+            //     .map(|p| StateUpdate::BattleUpdate(p));
 
-            let battle_joined_state_updates = battle_join_summary
-                .into_iter()
-                .map(|p| StateUpdate::BattleJoin(p));
+            // let battle_joined_state_updates = battle_join_summary
+            //     .into_iter()
+            //     .map(|p| StateUpdate::BattleJoin(p));
 
             let mut filtered_summary = Vec::new();
 
@@ -331,8 +331,8 @@ pub fn start_service(
             filtered_summary.extend(player_rewards_state_update);
             filtered_summary.extend(player_attack_state_updates);
             filtered_summary.extend(tile_attack_state_updates);
-            filtered_summary.extend(battle_state_updates);
-            filtered_summary.extend(battle_joined_state_updates);
+            // filtered_summary.extend(battle_state_updates);
+            // filtered_summary.extend(battle_joined_state_updates);
 
             if server_status_deliver_count > 50
             {

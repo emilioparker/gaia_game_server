@@ -278,6 +278,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         intelligence: 5,
         mana: 5,
         health: 1,
+        buffs : Vec::new()
     };
 
     let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
@@ -314,6 +315,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         base_intelligence: 5,
         base_mana: 5,
         health: 1,
+        buffs : Vec::new(),
+        buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)]
     };
 
     let mut players = context.working_game_map.players.lock().await;
@@ -427,46 +430,15 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
 
 pub async fn handle_characters_request(context: AppContext) -> Result<Response<Body>, Error> 
 {
-    // if current_time.as_secs() - last_time > 10 {
+    let presentation_cache = context.cached_presentation_data.lock().await;
+    let presentation_cache : Vec<u8> = presentation_cache.to_vec();
 
-    //     println!("generating presentation data {}", last_time);
-    //     let players_presentation_map = context.presentation_data.lock().await;
-
-    //     for presentation_data in players_presentation_map.iter()
-    //     {
-    //         let bytes = presentation_data.1;
-    //         encoder.write_all(bytes).unwrap();
-    //     }
-
-    //     drop(players_presentation_map);
-    //     let mut compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    //     let mut presentation_cache = context.cached_presentation_data.lock().await;
-
-    //     presentation_cache.clear();
-    //     presentation_cache.append(&mut compressed_bytes);
-
-    //     last_time_atomic.store(current_time.as_secs(), std::sync::atomic::Ordering::Relaxed);
-
-    //     let response = Response::builder()
-    //         .status(hyper::StatusCode::OK)
-    //         .header("Content-Type", "application/octet-stream")
-    //         .body(Body::from(presentation_cache.clone()))
-    //         .expect("Failed to create response");
-    //     Ok(response)
-    // }
-    // else
-    {
-        let presentation_cache = context.cached_presentation_data.lock().await;
-        let presentation_cache : Vec<u8> = presentation_cache.to_vec();
-
-        let response = Response::builder()
-            .status(hyper::StatusCode::OK)
-            .header("Content-Type", "application/octet-stream")
-            .body(Body::from(presentation_cache))
-            .expect("Failed to create response");
-        Ok(response)
-
-    }
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(presentation_cache))
+        .expect("Failed to create response");
+    Ok(response)
 }
 
 pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, Error> 
