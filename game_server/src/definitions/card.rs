@@ -15,8 +15,9 @@ pub struct Card
     pub store_location: String,
     pub cost: u16,
     pub duration_time:f32,
-    pub duration_hits:u8,
-    pub cooldown:f32
+    pub hits:u8,
+    pub cooldown:f32,
+    pub range:f32
 }
 
 impl Definition for Card

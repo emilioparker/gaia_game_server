@@ -55,10 +55,12 @@ pub async fn process_tower_commands (
                         {
                             let attack = CharacterAttack
                             {
+                                id : (current_time_in_milliseconds % 10000) as u16,
                                 player_id: *player_id,
                                 target_player_id: 0,
                                 card_id: 0,
                                 target_tile_id: tower_command.id.clone(),
+                                end_time : 0
                             };
                             player_attacks_summary.push(attack);
 

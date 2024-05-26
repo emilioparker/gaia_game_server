@@ -1,14 +1,16 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const CHARACTER_ATTACK_SIZE: usize = 14;
+pub const CHARACTER_ATTACK_SIZE: usize = 20;
 
 #[derive(Debug, Clone)]
 pub struct CharacterAttack 
 {
+    pub id:u16,// 2 bytes
     pub player_id: u16, // 2 bytes
     pub target_player_id: u16, // 2 bytes
     pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
-    pub card_id: u32 // 4 bytes
+    pub card_id: u32, // 4 bytes
+    pub end_time:u32, // 4 bytes
 }
 
 impl CharacterAttack 
@@ -20,11 +22,16 @@ impl CharacterAttack
         let mut start : usize = 0;
         let mut end : usize = 2;
 
+        let id_bytes = u16::to_le_bytes(self.id); // 2 bytes
+        buffer[start..end].copy_from_slice(&id_bytes);
+        start = end;
+
+        end = start + 2;
         let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
         buffer[start..end].copy_from_slice(&player_id_bytes);
         start = end;
-        end = start + 2;
 
+        end = start + 2;
         let target_player_id_bytes = u16::to_le_bytes(self.target_player_id); // 2 bytes
         buffer[start..end].copy_from_slice(&target_player_id_bytes);
         start = end;
@@ -36,6 +43,12 @@ impl CharacterAttack
 
         end = start + 4;
         u32_into_buffer(&mut buffer,self.card_id, &mut start, end);
+
+        end = start + 4;
+        let end_time_bytes = u32::to_le_bytes(self.end_time); // 2 bytes
+        buffer[start..end].copy_from_slice(&end_time_bytes);
+        start = end;
+
         buffer
     }
 

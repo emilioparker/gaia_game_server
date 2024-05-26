@@ -77,6 +77,7 @@ pub async fn process_tile_commands (
             // this is very similar to change health command, but here we need to send and arrow.
             MapCommandInfo::AttackMob(player_id, card_id, required_time) => 
             {
+                let end_time = current_time + *required_time as u64;
                 if *required_time == 0
                 {
                     attack_mob(
@@ -94,20 +95,22 @@ pub async fn process_tile_commands (
                 }
                 else 
                 {
-                    println!("------------ required time for attack {required_time} {card_id}");
+                    println!("------------ required time for attack {required_time} current time: {current_time} {card_id}");
                     let mut lock = delayed_tile_commands_lock.lock().await;
                     let info = MapCommandInfo::AttackMob(*player_id, *card_id, *required_time);
                     let map_action = MapCommand { id: tile_command.id.clone(), info };
-                    lock.push((current_time + *required_time as u64, map_action));
+                    lock.push((end_time, map_action));
                     drop(lock);
                 }
 
                 let attack = CharacterAttack
                 {
+                    id: (current_time % 10000) as u16,
                     player_id: *player_id,
                     target_player_id: 0,
                     card_id: *card_id,
                     target_tile_id: tile_command.id.clone(),
+                    end_time: (end_time / 1000) as u32,
                 };
                 player_attacks_summary.push(attack);
 
@@ -381,12 +384,12 @@ pub async fn lay_foundation(
     prop: u32
 )
 {
+    let current_time_in_seconds = (current_time / 1000) as u32;
     let region = map.get_region_from_child(&tile_id);
     let mut tiles = region.lock().await;
     if let Some(tile) = tiles.get_mut(&tile_id)
     {
         let mut updated_tile = tile.clone();
-        let current_time_in_seconds = (current_time / 1000) as u32;
         if updated_tile.prop == 0
         {
             updated_tile.health = 500;

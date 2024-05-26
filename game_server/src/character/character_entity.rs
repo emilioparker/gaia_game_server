@@ -276,7 +276,7 @@ impl CharacterEntity
                         card_id,
                         stat: Stat::Defense,
                         buff_amount: card.defense_factor,
-                        hits: card.duration_hits,
+                        hits: card.hits,
                         expiration_time: 100,
                     })
                 }
@@ -287,7 +287,7 @@ impl CharacterEntity
                         card_id,
                         stat: Stat::Strength,
                         buff_amount: card.strength_factor,
-                        hits: card.duration_hits,
+                        hits: card.hits,
                         expiration_time: 100,
                     })
                 }
