@@ -32,9 +32,13 @@ pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &S
     start = end;
     end = start + 4;
     let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
-    // start = end;
 
-    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time);
+    start = end;
+    let active_effect = data[start]; // 4 bytes
+
+    print!("active effect {active_effect}");
+
+    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
     let map_action = MapCommand { id: tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);

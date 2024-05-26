@@ -60,7 +60,8 @@ pub async fn process_tower_commands (
                                 target_player_id: 0,
                                 card_id: 0,
                                 target_tile_id: tower_command.id.clone(),
-                                end_time : 0
+                                required_time : 0,
+                                active_effect:1
                             };
                             player_attacks_summary.push(attack);
 

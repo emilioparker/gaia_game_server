@@ -6,5 +6,5 @@ id,name,card_type,icon,asset,rank,strength_factor,defense_factor,equip_slot,stor
 10004,fire_shield,passive,SkillsIcons/SkillIcons3/SkillVol3/Skill_FireElementShield,a,0,0,0.5,1,cards_knight,2,10,2,7,0
 10005,basic_lighting,target,SkillsIcons/SkillIcons1/Skill_standart/Shamanskill_23_lightning,a,0,0.85,0,1,cards_knight,2,0,1,10,2
 10006,lighting_storm,target,SkillsIcons/SkillIcons1/Skill_standart/Shamanskill_27_lightning,a,0,0.7,0,1,cards_knight,2,0,5,7,2
-10007,fire_tornado,target,SkillsIcons/SkillIcons3/SkillVol3/Skill_PillarOfFire,a,0,0.85,0,1,cards_knight,2,3,1,20,2
-10008,fire_ball,projectile,SkillsIcons/SkillIcons3/SkillVol3/Skill_FireBall,a,0,0.3,0,1,cards_knight,2,0,1,4,3
+10007,fire_tornado,invocation,SkillsIcons/SkillIcons3/SkillVol3/Skill_PillarOfFire,a,0,0.2,0,1,cards_knight,2,5,10,10,1
+10008,fire_ball,target,SkillsIcons/SkillIcons3/SkillVol3/Skill_FireBall,a,0,0.1,0,1,cards_knight,2,0,1,4,2

@@ -75,7 +75,7 @@ pub async fn process_tile_commands (
                 control_mob(&map, &server_state, tx_me_gameplay_longterm, tx_me_gameplay_webservice, tiles_summary, tile_command.id.clone(), current_time, *player_id, *mob_id).await;
             },
             // this is very similar to change health command, but here we need to send and arrow.
-            MapCommandInfo::AttackMob(player_id, card_id, required_time) => 
+            MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect) => 
             {
                 let end_time = current_time + *required_time as u64;
                 if *required_time == 0
@@ -97,7 +97,7 @@ pub async fn process_tile_commands (
                 {
                     println!("------------ required time for attack {required_time} current time: {current_time} {card_id}");
                     let mut lock = delayed_tile_commands_lock.lock().await;
-                    let info = MapCommandInfo::AttackMob(*player_id, *card_id, *required_time);
+                    let info = MapCommandInfo::AttackMob(*player_id, *card_id, *required_time, *active_effect);
                     let map_action = MapCommand { id: tile_command.id.clone(), info };
                     lock.push((end_time, map_action));
                     drop(lock);
@@ -110,8 +110,10 @@ pub async fn process_tile_commands (
                     target_player_id: 0,
                     card_id: *card_id,
                     target_tile_id: tile_command.id.clone(),
-                    end_time: (end_time / 1000) as u32,
+                    required_time: *required_time,
+                    active_effect: *active_effect
                 };
+                println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
                 player_attacks_summary.push(attack);
 
             }
@@ -153,7 +155,7 @@ pub async fn process_delayed_tile_commands (
             MapCommandInfo::SpawnMob(_, _, _) => todo!(),
             MapCommandInfo::MoveMob(_, _, _, _, _) => todo!(),
             MapCommandInfo::ControlMapEntity(_, _) => todo!(),
-            MapCommandInfo::AttackMob(player_id, card_id, _required_time) => 
+            MapCommandInfo::AttackMob(player_id, card_id, _required_time, _active_effect) => 
             {
                 attack_mob(
                     &map,

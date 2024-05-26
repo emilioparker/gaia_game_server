@@ -1,6 +1,6 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const CHARACTER_ATTACK_SIZE: usize = 20;
+pub const CHARACTER_ATTACK_SIZE: usize = 21;
 
 #[derive(Debug, Clone)]
 pub struct CharacterAttack 
@@ -10,7 +10,8 @@ pub struct CharacterAttack
     pub target_player_id: u16, // 2 bytes
     pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub card_id: u32, // 4 bytes
-    pub end_time:u32, // 4 bytes
+    pub required_time:u32, // 4 bytes
+    pub active_effect:u8, //1 byte
 }
 
 impl CharacterAttack 
@@ -45,10 +46,11 @@ impl CharacterAttack
         u32_into_buffer(&mut buffer,self.card_id, &mut start, end);
 
         end = start + 4;
-        let end_time_bytes = u32::to_le_bytes(self.end_time); // 2 bytes
+        let end_time_bytes = u32::to_le_bytes(self.required_time); // 4 bytes
         buffer[start..end].copy_from_slice(&end_time_bytes);
         start = end;
 
+        buffer[start] = self.active_effect;
         buffer
     }
 
