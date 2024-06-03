@@ -44,3 +44,4 @@ id,name,prop_type,area,item,attack
 42,enemy_2,mob,0,none,short
 43,enemy_3,mob,0,none,fire
 44,wall_1,structure,0,none,none
+45,cliff,obstacle,1,none,none
