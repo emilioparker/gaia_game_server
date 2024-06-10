@@ -46,5 +46,7 @@ id,name,prop_type,area,item,attack
 44,wall_1,structure,0,none,none
 45,cliff,obstacle,1,none,none
 46,cliff_2,obstacle,1,none,none
-47,cliff_bottom,obstacle,1,none,none
-48,cliff_bottom_2,obstacle,1,none,none
+47,cliff_bottom,cliff,1,none,none
+48,cliff_bottom_2,cliff,1,none,none
+49,ramp_top,ramp,1,none,none
+50,ramp_bottom,ramp,1,none,none
