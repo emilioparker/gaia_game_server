@@ -15,7 +15,7 @@ pub enum CharacterCommandInfo
     Touch(),
     Movement(CharacterMovement),
     Action(u32),
-    AttackCharacter(u16, u32, u32, u8), // player_id, card_id, required_time, effect
+    AttackCharacter(u16, u32, u32, u8), // other_character_id, card_id, required_time, effect
     Greet(),
     Respawn(),
     SellItem(u8,u32, u16),

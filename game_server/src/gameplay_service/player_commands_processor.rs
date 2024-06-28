@@ -107,22 +107,22 @@ pub async fn process_player_commands (
 pub async fn process_delayed_player_commands(
     map : Arc<GameMap>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
-    delayed_player_commands_to_execute : Vec<CharacterCommand>,
+    characters_summary : &mut Vec<CharacterEntity>,
+    delayed_character_commands_to_execute : Vec<CharacterCommand>,
 )
 {
-    if delayed_player_commands_to_execute.len() == 0
+    if delayed_character_commands_to_execute.len() == 0
     {
         return;
     }
 
-    for player_command in delayed_player_commands_to_execute.iter()
+    for player_command in delayed_character_commands_to_execute.iter()
     {
         match &player_command.info 
         {
             character_command::CharacterCommandInfo::AttackCharacter(other_character_id, card_id, _required_time, _active_effect) => 
             {
-                attack_character(&map, tx_pe_gameplay_longterm, players_summary, *card_id, player_command.player_id, *other_character_id).await;
+                attack_character(&map, tx_pe_gameplay_longterm, characters_summary, *card_id, player_command.player_id, *other_character_id).await;
             },
             _ => 
             {
@@ -388,34 +388,6 @@ pub async fn move_character(
     }
 }
 
-// pub async fn respawn(
-//     map : &Arc<GameMap>,
-//     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
-//     players_summary : &mut Vec<CharacterEntity>,
-//     player_id: u16)
-// {
-//     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-//     let player_option = player_entities.get_mut(&player_id);
-
-//     println!("respawn {}", player_id);
-//     if let Some(player_entity) = player_option 
-//     {
-//         let character_definition = map.definitions.character_progression.get(player_entity.level as usize).unwrap();
-//         println!("b-respawn {}", character_definition.constitution);
-//         let updated_player_entity = CharacterEntity 
-//         {
-//             action: character_command::IDLE_ACTION,
-//             health: character_definition.constitution,
-//             version: player_entity.version + 1,
-//             ..player_entity.clone()
-//         };
-
-//         *player_entity = updated_player_entity;
-//         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-//         players_summary.push(player_entity.clone());
-//     }
-// }
-
 pub async fn set_action(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
@@ -508,7 +480,7 @@ pub async fn activate_buff(
 pub async fn attack_character(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
+    characters_summary : &mut Vec<CharacterEntity>,
     card_id : u32,
     character_id: u16,
     other_character_id:u16)
@@ -531,7 +503,7 @@ pub async fn attack_character(
             return;
         }
         tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
-        players_summary.push(character_entity.clone());
+        characters_summary.push(character_entity.clone());
     }
 
     let other_character_option = character_entities.get_mut(&other_character_id);
@@ -546,6 +518,6 @@ pub async fn attack_character(
 
         character_entity.health = i16::max(0, damage as i16 - character_attack as i16) as u16;
         tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
-        players_summary.push(character_entity.clone());
+        characters_summary.push(character_entity.clone());
     }
 }

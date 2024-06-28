@@ -5,7 +5,7 @@ pub mod inventory_request_protocol;
 pub mod layfoundation_protocol;
 pub mod lay_wall_foundation_protocol;
 pub mod build_protocol;
-pub mod tile_attacks_walker_protocol;
+pub mod tile_attacks_character_protocol;
 pub mod spawn_mob_protocol;
 pub mod mob_moves_protocol;
 pub mod claim_mob_ownership;
@@ -22,6 +22,7 @@ pub mod respawn_protocol;
 pub mod action_protocol;
 pub mod greet_protocol;
 pub mod activate_buff_protocol;
+pub mod character_attacks_character_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -66,6 +67,7 @@ pub enum Protocol
     CharacterAction = 23,
     Greet = 24,
     ActivateBuff = 25,
+    CharacterAttacksCharacter = 26,
 }
     
 pub async fn route_packet(
@@ -130,7 +132,7 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::TileAttacksWalker as u8 => { // used by mobs and towers.
             let capacity = channel_map_tx.capacity();
             server_state.tx_mc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-            tile_attacks_walker_protocol::process(socket, data, channel_map_tx).await;
+            tile_attacks_character_protocol::process(socket, data, channel_map_tx).await;
         },
         Some(protocol) if *protocol == Protocol::SpawnMob as u8 => {
             let capacity = channel_map_tx.capacity();
@@ -184,29 +186,36 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == Protocol::Respawn as u8 => {
             println!("--------------------- process respawn");
-            let capacity = channel_battle_tx.capacity();
+            let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             respawn_protocol::process_respawn(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
             println!("--------------------- process character action");
-            let capacity = channel_battle_tx.capacity();
+            let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             action_protocol::process(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Greet as u8 => 
         {
             println!("--------------------- process greet");
-            let capacity = channel_battle_tx.capacity();
+            let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             greet_protocol::process(socket, data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::ActivateBuff as u8 => 
         {
             println!("--------------------- process buff");
-            let capacity = channel_battle_tx.capacity();
+            let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             activate_buff_protocol::process(socket, data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::CharacterAttacksCharacter as u8 => 
+        {
+            println!("--------------------- process character attack");
+            let capacity = channel_tx.capacity();
+            server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            character_attacks_character_protocol::process(socket, data, channel_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);
