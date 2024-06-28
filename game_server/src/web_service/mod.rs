@@ -94,7 +94,7 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
     let data: SellItemRequest = serde_json::from_slice(&data).unwrap();
     println!("handling request {:?}", data);
 
-    let mut players = context.working_game_map.players.lock().await;
+    let mut players = context.working_game_map.character.lock().await;
 
     if let Some(player) = players.get_mut(&data.character_id) {
         // println!("selling player {:?}", player);

@@ -35,7 +35,7 @@ pub async fn process_tower_commands (
                     TowerCommandInfo::RepairTower(player_id, repair_amount) => 
                     {
                         let mut updated_tower = tower.clone();
-                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
                         // we won't update the player, but might do it eventually. So I am paying the cost already.
                         let player_option = player_entities.get_mut(&player_id);
                         if let Some(player_entity) = player_option 
@@ -124,7 +124,7 @@ pub async fn process_delayed_tower_commands (
                     {
                         println!("Got a tower attack");
                         let mut updated_tower = tower.clone();
-                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
                         let player_option = player_entities.get_mut(&player_id);
                         let faction_damage = if let Some(player_entity) = player_option 
                             {

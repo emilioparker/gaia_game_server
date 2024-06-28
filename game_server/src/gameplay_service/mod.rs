@@ -87,7 +87,7 @@ pub fn start_service(
     let delayed_tile_commands_lock = delayed_tile_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
-    let delayed_player_commands = Vec::<(u64, u16)>::new();
+    let delayed_player_commands = Vec::<(u64, CharacterCommand)>::new();
     let delayed_player_commands_mutex = Arc::new(Mutex::new(delayed_player_commands));
     let delayed_player_commands_lock = delayed_player_commands_mutex.clone();
 

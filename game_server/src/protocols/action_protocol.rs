@@ -25,27 +25,13 @@ pub async fn process(
 
     start = end;
     end = start + 4;
-    let pos_x = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    start = end;
-    end = start + 4;
-    let pos_y = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    start = end;
-    end = start + 4;
-    let pos_z = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    let position = [pos_x, pos_y, pos_z];
-
-    start = end;
-    end = start + 4;
     let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     let character_command = CharacterCommand
     {
         player_id,
-        info: CharacterCommandInfo::Action(action, position)
+        info: CharacterCommandInfo::Action(action)
     };
 
     channel_tx.send(character_command).await.unwrap();

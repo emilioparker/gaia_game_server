@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterMovement}, character_entity::{CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, map::{tetrahedron_id::TetrahedronId, GameMap}};
+use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::TetrahedronId, GameMap}};
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
@@ -10,7 +10,7 @@ pub async fn process_player_commands (
     players_summary : &mut Vec<CharacterEntity>,
     players_presentation_summary : &mut Vec<CharacterPresentation>,
     player_attacks_summary : &mut  Vec<CharacterAttack>,
-    delayed_player_commands_lock : Arc<Mutex<Vec<(u64, u16)>>>
+    delayed_player_commands_lock : Arc<Mutex<Vec<(u64, CharacterCommand)>>>
 )
 {
     let mut player_commands_data = player_commands_processor_lock.lock().await;
@@ -33,94 +33,7 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::Touch() => todo!(),
             character_command::CharacterCommandInfo::Movement(movement_data) => 
             {
-                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position, movement_data.second_position).await;
-                // println!("command action received {}", movement_data.action );
-                // if movement_data.action == character_command::IDLE_ACTION 
-                // {
-                //     let player_option = player_entities.get_mut(&cloned_data.player_id);
-                //     if let Some(player_entity) = player_option 
-                //     {
-                //     }
-                // }
-                // else if movement_data.action == character_command::GREET_ACTION 
-                // {
-
-                // }
-                // else if movement_data.action == character_command::RESPAWN_ACTION 
-                // { // respawn, we only update health for the moment
-                // }
-
-                // else if movement_data.action == character_command::WALK_ACTION 
-                // { // respawn, we only update health for the moment
-                //     let player_option = player_entities.get_mut(&cloned_data.player_id);
-                //     if let Some(player_entity) = player_option 
-                //     {
-                //         let updated_player_entity = CharacterEntity 
-                //         {
-                //             action: movement_data.action,
-                //             version: player_entity.version + 1,
-                //             position: movement_data.position,
-                //             second_position: movement_data.second_position,
-                //             ..player_entity.clone()
-                //         };
-
-                //         *player_entity = updated_player_entity;
-                //         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                //         players_summary.push(player_entity.clone());
-                //     }
-                // }
-                // else if movement_data.action == character_command::ATTACK_ACTION 
-                // { 
-                //     // we anounce the attack
-                //     let attack = CharacterAttack
-                //     {
-                //         player_id: movement_data.player_id,
-                //         target_player_id: movement_data.other_player_id,
-                //         card_id: 0,
-                //         target_tile_id: TetrahedronId::from_string("a0"), // we need a default value
-                //     };
-                //     player_attacks_summary.push(attack);
-
-                //     let player_option = player_entities.get_mut(&cloned_data.player_id);
-                //     if let Some(player_entity) = player_option 
-                //     {
-                //         let updated_player_entity = CharacterEntity 
-                //         {
-                //             action: movement_data.action,
-                //             version: player_entity.version + 1,
-                //             ..player_entity.clone()
-                //         };
-                //         *player_entity = updated_player_entity;
-                //         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                //         players_summary.push(player_entity.clone());
-                //     }
-
-                //     // if player_command.required_time > 1 {
-                //     let mut lock = delayed_player_commands_lock.lock().await;
-                //     // let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
-                //     // println!("push attack in required time {}", player_command.required_time);
-                //     lock.push((current_time + movement_data.required_time as u64, movement_data.other_player_id));
-                // }
-                // else if movement_data.action == character_command::ATTACK_TILE_ACTION
-                // || movement_data.action == character_command::BUILD_ACTION 
-                // { // respawn, we only update health for the moment
-                //     let player_option = player_entities.get_mut(&cloned_data.player_id);
-                //     if let Some(player_entity) = player_option 
-                //     {
-                //         let updated_player_entity = CharacterEntity 
-                //         {
-                //             action: movement_data.action,
-                //             version: player_entity.version + 1,
-                //             ..player_entity.clone()
-                //         };
-
-                //         *player_entity = updated_player_entity;
-                //         // we don't need to store this
-                //         // tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                //         players_summary.push(player_entity.clone());
-                //     }
-                // }
-
+                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.second_position.clone()).await;
             },
             character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
             {
@@ -142,9 +55,9 @@ pub async fn process_player_commands (
             {
                 respawn(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id).await;
             },
-            character_command::CharacterCommandInfo::Action(action, pos) => 
+            character_command::CharacterCommandInfo::Action(action) => 
             {
-                set_action(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, *action, *pos).await;
+                set_action(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, *action).await;
             },
             character_command::CharacterCommandInfo::Greet() => 
             {
@@ -154,17 +67,48 @@ pub async fn process_player_commands (
             {
                 activate_buff(&map, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id).await;
             },
+            character_command::CharacterCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect) => 
+            {
+                let end_time = current_time + *required_time as u64;
+                if *required_time == 0
+                {
+                    attack_character(&map, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id, *other_player_id).await;
+                }
+                else 
+                {
+                    println!("------------ required time for player attack {required_time} current time: {current_time} {card_id}");
+                    let mut lock = delayed_player_commands_lock.lock().await;
+                    let info = CharacterCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect);
+                    let character_action = CharacterCommand { player_id: cloned_data.player_id, info };
+                    lock.push((end_time, character_action));
+                    drop(lock);
+                }
+
+                let attack = CharacterAttack
+                {
+                    id: (current_time % 10000) as u16,
+                    player_id: cloned_data.player_id,
+                    target_player_id: *other_player_id,
+                    card_id: *card_id,
+                    target_tile_id: TetrahedronId::from_string("A"),
+                    required_time: *required_time,
+                    active_effect: *active_effect
+                };
+
+                println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
+                player_attacks_summary.push(attack);
+            },
         }
     }
     player_commands_data.clear();
 }
 
 
-pub async fn process_delayed_player_commands (
+pub async fn process_delayed_player_commands(
     map : Arc<GameMap>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
-    delayed_player_commands_to_execute : Vec<u16>,
+    delayed_player_commands_to_execute : Vec<CharacterCommand>,
 )
 {
     if delayed_player_commands_to_execute.len() == 0
@@ -172,24 +116,18 @@ pub async fn process_delayed_player_commands (
         return;
     }
 
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-    // println!("delayed player commands to execute {}" , player_commands_to_execute.len()); 
     for player_command in delayed_player_commands_to_execute.iter()
     {
-        if let Some(other_entity) = player_entities.get_mut(player_command)
+        match &player_command.info 
         {
-            let result = other_entity.health.saturating_sub(11);
-            let updated_player_entity = CharacterEntity 
+            character_command::CharacterCommandInfo::AttackCharacter(other_character_id, card_id, _required_time, _active_effect) => 
             {
-                action: other_entity.action,
-                version: other_entity.version + 1,
-                health: result,
-                ..other_entity.clone()
-            };
-
-            *other_entity = updated_player_entity;
-            tx_pe_gameplay_longterm.send(other_entity.clone()).await.unwrap();
-            players_summary.push(other_entity.clone());
+                attack_character(&map, tx_pe_gameplay_longterm, players_summary, *card_id, player_command.player_id, *other_character_id).await;
+            },
+            _ => 
+            {
+                println!("delayed command not supported");
+            }
         }
     }
 }
@@ -204,7 +142,7 @@ pub async fn use_item(
 {
     let item_definition = map.definitions.items.get(item_id as usize);
 
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     match (player_option, item_definition) 
@@ -262,7 +200,7 @@ pub async fn equip_item(
     current_slot: u8,
     new_slot:u8)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     match player_option 
@@ -290,7 +228,7 @@ pub async fn buy_item(
     player_id: u16,
     amount: u16)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     println!("Buy item with id {item_id}");
     let mut is_card  = false;
     let cost  = if item_id < 10000
@@ -357,7 +295,7 @@ pub async fn sell_item(
     player_id: u16,
     amount: u16)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let item_definition = map.definitions.items.get(item_id as usize);
     let player_option = player_entities.get_mut(&player_id);
 
@@ -398,7 +336,7 @@ pub async fn respawn(
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     println!("respawn {}", player_id);
@@ -425,11 +363,11 @@ pub async fn move_character(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
-    pos:[f32;3],
-    next_pos:[f32;3],
+    pos:TetrahedronId,
+    next_pos:TetrahedronId,
 )
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     println!("move {}", player_id);
@@ -483,11 +421,10 @@ pub async fn set_action(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
-    action : u32,
-    pos:[f32;3]
+    action : u32
 )
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     println!("set action {} {action}", player_id);
@@ -503,8 +440,6 @@ pub async fn set_action(
         {
             action,
             version: player_entity.version + 1,
-            position: pos,
-            second_position: pos,
             ..player_entity.clone()
         };
 
@@ -520,7 +455,7 @@ pub async fn greet(
     player_id: u16
 )
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
     if let Some(player_entity) = player_option 
     {
@@ -545,7 +480,7 @@ pub async fn activate_buff(
     card_id : u32,
     player_id: u16)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
     println!("--- activate buff");
@@ -567,5 +502,50 @@ pub async fn activate_buff(
         {
             println!("error equipping item");
         }
+    }
+}
+
+pub async fn attack_character(
+    map : &Arc<GameMap>,
+    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    players_summary : &mut Vec<CharacterEntity>,
+    card_id : u32,
+    character_id: u16,
+    other_character_id:u16)
+{
+    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let character_option = character_entities.get_mut(&character_id);
+
+    let mut character_attack = 0u16;
+    if let Some(character_entity) = character_option 
+    {
+        if let Some(card_definition) = map.definitions.get_card(card_id as usize)
+        {
+            let attack = character_entity.get_strength(card_definition.strength_factor) as f32;
+            character_attack = attack.round() as u16;
+            character_entity.use_buffs(vec![crate::character::character_entity::Stat::Strength]);
+        }
+        else
+        {
+            println!("-- card id not found {card_id}");
+            return;
+        }
+        tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
+        players_summary.push(character_entity.clone());
+    }
+
+    let other_character_option = character_entities.get_mut(&other_character_id);
+
+    if let Some(character_entity) = other_character_option 
+    {
+        let defense = character_entity.get_defense(0f32) as f32;
+        let character_defense = defense.round() as u16;
+        character_entity.use_buffs(vec![crate::character::character_entity::Stat::Defense]);
+
+        let damage = character_attack.saturating_sub(character_defense);
+
+        character_entity.health = i16::max(0, damage as i16 - character_attack as i16) as u16;
+        tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
+        players_summary.push(character_entity.clone());
     }
 }

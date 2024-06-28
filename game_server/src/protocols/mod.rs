@@ -17,7 +17,6 @@ pub mod chat_message_protocol;
 pub mod sell_item_protocol;
 pub mod buy_item_protocol;
 pub mod use_item_protocol;
-pub mod battle_protocols;
 pub mod equip_item_protocol;
 pub mod respawn_protocol;
 pub mod action_protocol;
@@ -32,7 +31,6 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
 use crate::battle::battle_command::BattleCommand;
-use crate::gameplay_service::player_commands_processor::activate_buff;
 use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::map::GameMap;

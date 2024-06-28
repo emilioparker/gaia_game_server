@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{Request, Body, Response, http::Error, body, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{long_term_storage_service::{db_player::StoredPlayer, db_character::StoredCharacter, db_world::StoredWorld}, character::{character_entity::CharacterEntity, character_presentation::CharacterPresentation}};
+use crate::{character::{character_entity::CharacterEntity, character_presentation::CharacterPresentation}, long_term_storage_service::{db_character::StoredCharacter, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId};
 
 use super::AppContext;
 
@@ -23,7 +23,7 @@ pub struct PlayerCreationResponse {
 pub struct CharacterCreationRequest {
     pub player_token: String,
     pub character_name:String,
-    pub faction:String,
+    pub faction:u32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -63,8 +63,7 @@ pub struct JoinWithCharacterResponse
     pub session_id:u64,
     pub character_id:u16,
     pub faction:u8,
-    pub tetrahedron_id:String,
-    pub position:[f32;3],
+    pub position:String,
     pub level:u8,
     pub experience:u32,
     pub available_points:u8,
@@ -254,6 +253,33 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
 
     println!("got a {} as id base ",new_id);
 
+
+    let initial_position = match data.faction
+    {
+        1 => "t312222222",
+        2 => "m113222222",
+        3 => "k121222222",
+        _ => "k121222222",
+    };
+
+    // public TetrahedronId GetInitialTile()
+    // {
+    //     if (InitialCharacterState != null)
+    //     {
+    //         switch (InitialCharacterState.FactionCode)
+    //         {
+    //             case 1 :
+    //                 return TetrahedronId.GetTetrahedronId("t312222222");
+    //             case 2 :
+    //                 return TetrahedronId.GetTetrahedronId("m113222222");
+    //             case 3 :
+    //                 return TetrahedronId.GetTetrahedronId("k121222222");
+    //         }
+    //     }
+    //     return TetrahedronId.GetTetrahedronId("t312222222");
+    // }
+
+
     let stored_character = StoredCharacter
     {
         id: None,
@@ -263,8 +289,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         world_name: context.working_game_map.world_name.clone(),
         character_id: new_id,
         character_name: data.character_name.clone(),
-        position:[0f32,0f32,0f32],
-        faction: data.faction.clone(),
+        position:initial_position.to_owned(),
+        faction: data.faction as u8,
         inventory : Vec::new(),
         level: 0,
         experience: 0,
@@ -290,6 +316,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         _ => None,
     };
 
+    let initial_position_tile_id = TetrahedronId::from_string(initial_position);
     let player_entity = CharacterEntity 
     {
         object_id,
@@ -297,10 +324,10 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         character_name : data.character_name.clone(),
         character_id: new_id,
         version:1,
-        faction: crate::get_faction_code(&data.faction),
+        faction: data.faction as u8,
         action: 0,
-        position: [0.0, 0.0, 0.0],
-        second_position: [0.0, 0.0, 0.0],
+        position: initial_position_tile_id.clone(),
+        second_position: initial_position_tile_id,
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_version : 1,
         level: 0,
@@ -319,11 +346,11 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)]
     };
 
-    let mut players = context.working_game_map.players.lock().await;
+    let mut players = context.working_game_map.character.lock().await;
     players.insert(new_id, player_entity.clone());
     drop(players);
 
-    let mut players = context.storage_game_map.players.lock().await;
+    let mut players = context.storage_game_map.character.lock().await;
     players.insert(new_id, player_entity);
 
     drop(players);
@@ -387,7 +414,7 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         return Ok(response);
     }
 
-    let players = context.working_game_map.players.lock().await;
+    let players = context.working_game_map.character.lock().await;
 
     if let Some(player) = players.get(&data.character_id) {
         println!("player login {:?}", player);
@@ -400,8 +427,7 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         {
             character_id: data.character_id,
             faction:player.faction,
-            tetrahedron_id:"k120223211".to_owned(),
-            position: player.second_position,
+            position:  player.position.to_string(),
             level : player.level,
             experience : player.experience,
             health: player.health,
@@ -448,7 +474,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
     let data: ExchangeSkillPointsRequest = serde_json::from_slice(&data).unwrap();
     println!("handling request {:?}", data);
     
-    let mut players = context.working_game_map.players.lock().await;
+    let mut players = context.working_game_map.character.lock().await;
 
     if let Some(player) = players.get_mut(&data.character_id) 
     {

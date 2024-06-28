@@ -1,3 +1,5 @@
+use crate::map::tetrahedron_id::TetrahedronId;
+
 pub const IDLE_ACTION: u32 = 0;
 pub const WALK_ACTION: u32 = 1;
 pub const ATTACK_TILE_ACTION: u32 = 2;
@@ -6,12 +8,14 @@ pub const COLLECT_ACTION: u32 = 4;
 pub const BUILD_ACTION: u32 = 5;
 pub const TOUCH: u32 = 6;
 
+//    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
 #[derive(Debug, Clone)]
 pub enum CharacterCommandInfo 
 {
     Touch(),
     Movement(CharacterMovement),
-    Action(u32,[f32;3]),
+    Action(u32),
+    AttackCharacter(u16, u32, u32, u8), // player_id, card_id, required_time, effect
     Greet(),
     Respawn(),
     SellItem(u8,u32, u16),
@@ -32,8 +36,8 @@ pub struct CharacterCommand
 pub struct CharacterMovement 
 {
     pub player_id: u16,
-    pub position: [f32;3],
-    pub second_position: [f32;3],
+    pub position: TetrahedronId,
+    pub second_position: TetrahedronId,
 }
 
 #[derive(Debug, Clone)]

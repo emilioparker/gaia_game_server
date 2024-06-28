@@ -191,7 +191,7 @@ pub async fn attack_mob(
 )
 {
     println!("----- attack mob ");
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
     let mut character_attack = 0u16;
     if let Some(character_entity) = player_option 
@@ -235,7 +235,7 @@ pub async fn attack_mob(
         if let Some(reward) = reward 
         {
             println!("We got some reward {:?}", reward);
-            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
             let player_option = player_entities.get_mut(&player_id);
             if let Some(player_entity) = player_option {
                 update_character_entity(player_entity,reward, &map.definitions, players_rewards_summary, players_summary);
@@ -332,7 +332,7 @@ pub async fn extract_resource(
 
             if updated_tile.health == 0
             {
-                let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+                let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
                 let player_option = player_entities.get_mut(&player_id);
                 if let Some(player_entity) = player_option 
                 {
@@ -401,7 +401,7 @@ pub async fn lay_foundation(
             updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
             updated_tile.prop = prop;
 
-            let player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+            let player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
 
             let player_option = player_entities.get(&player_id);
             if let Some(player_entity) = player_option {
@@ -526,7 +526,7 @@ pub async fn attack_walker(
 )
 {
     // drop(tiles);
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
     if let Some(player_entity) = player_option 
     {

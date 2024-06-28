@@ -2,6 +2,7 @@
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
 use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
+use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
 use crate::character::character_entity::{Buff, CharacterEntity, InventoryItem, Stat};
 use bson::doc;
@@ -65,15 +66,17 @@ pub async fn get_characters_from_db_by_world(
 
                 // let buffs_summary : Vec<(u8,u8)> = buffs.iter().map(|b| ((b.card_id - 10000) as u8, b.hits)).collect();
 
+                println!("----- faction {}", doc.faction);
+                let pos = TetrahedronId::from_string(&doc.position);
                 let player =  CharacterEntity
                 {
                     character_id: doc.character_id,
                     player_id: doc.player_id,
                     version:doc.version,
-                    faction: crate::get_faction_code(&doc.faction),
+                    faction: doc.faction,
                     object_id: doc.id,
-                    position: doc.position,
-                    second_position: doc.position,
+                    position: pos.clone(),
+                    second_position: pos,
                     action: 0,
                     character_name: doc.character_name,
                     inventory,
@@ -130,7 +133,7 @@ pub fn start_server(
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.character_id.clone());
 
-            let mut locked_players = map_updater.players.lock().await;
+            let mut locked_players = map_updater.character.lock().await;
 
             let old = locked_players.get(&message.character_id);
             match old {
@@ -150,7 +153,7 @@ pub fn start_server(
         loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
             let mut modified_player_keys = modified_players_reader_lock.lock().await;
-            let locked_players = map_reader.players.lock().await;
+            let locked_players = map_reader.character.lock().await;
 
             let mut modified_player_entities = Vec::<CharacterEntity>::new();
             for player_id in modified_player_keys.iter(){
@@ -180,7 +183,7 @@ pub fn start_server(
                 .collect();
 
                 let serialized_buffs_data= bson::to_bson(&updated_buffs).unwrap();
-                let serialized_position= bson::to_bson(&player.second_position).unwrap();
+                let serialized_position= bson::to_bson(&player.second_position.to_string()).unwrap();
 
                 let update_result = data_collection.update_one(
                     doc! {

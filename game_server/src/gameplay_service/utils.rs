@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapEntity, MapCommand}, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
+use crate::{character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
 
 
 pub fn update_character_entity(
@@ -142,10 +142,9 @@ pub fn get_tower_commands_to_execute(current_time : u64, delayed_tower_commands_
 }
 
 
-
-pub fn get_player_commands_to_execute(current_time : u64, delayed_player_commands_guards : &mut Vec<(u64, u16)>) -> Vec<u16>
+pub fn get_player_commands_to_execute(current_time : u64, delayed_player_commands_guards : &mut Vec<(u64, CharacterCommand)>) -> Vec<CharacterCommand>
 {
-    let mut player_commands_to_execute = Vec::<u16>::new();
+    let mut player_commands_to_execute = Vec::<CharacterCommand>::new();
 
     // println!("checking delayed plaeyr commands {}" , delayed_commands_lock.len());
     delayed_player_commands_guards.retain(|b| 
@@ -154,7 +153,7 @@ pub fn get_player_commands_to_execute(current_time : u64, delayed_player_command
         // println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute
         {
-            player_commands_to_execute.push(b.1);
+            player_commands_to_execute.push(b.1.clone());
         }
 
         !should_execute // we keep items that we didn't execute

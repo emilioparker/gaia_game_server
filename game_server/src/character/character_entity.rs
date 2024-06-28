@@ -2,9 +2,9 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{definitions::definitions_container::Definitions, map::map_entity::MapEntity};
+use crate::{definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 67;
+pub const CHARACTER_ENTITY_SIZE: usize = 55;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
@@ -17,34 +17,42 @@ pub struct CharacterEntity
     pub player_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub character_name: String,
-    pub character_id: u16,
-    pub faction:u8,
-    pub position: [f32;3],
-    pub second_position: [f32;3],
-    pub action:u32,
+    pub character_id: u16, // 2 bytes
+    pub faction:u8, // 1 byte
+    pub position: TetrahedronId, // 6 bytes
+    pub second_position: TetrahedronId, // 6 bytes
+    pub action:u32, //4 bytes
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
-    pub inventory_version : u32,
+    pub inventory_version : u32, // 4 bytes
 
-    pub level:u8,
-    pub experience:u32,
-    pub available_skill_points:u8, // used for stats
+    // total = 25 bytes
 
-    // attributes
-    pub strength_points: u8,
+    pub level:u8, // 1 bytes
+    pub experience:u32, // 4 bytes
+    pub available_skill_points:u8, // 1 bytes used for stats
+
+    // attributes 4 bytes
+    pub strength_points: u8, 
     pub defense_points: u8,
     pub intelligence_points: u8,
     pub mana_points: u8,
 
-    // attributes
+    // attributes 8 bytes
     pub base_strength: u16,
     pub base_defense: u16,
     pub base_intelligence: u16,
     pub base_mana: u16,
 
+    // total 18
+
     // stats
-    pub health: u16,
+    pub health: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
-    pub buffs_summary : [(u8,u8);5] // this one is serialized but not saved
+    pub buffs_summary : [(u8,u8);5] // this one is serialized but not saved 10 bytes
+
+    // total 12 bytes
+
+    // 25 + 18 + 12
 }
 
 pub enum ItemType
@@ -155,27 +163,17 @@ impl CharacterEntity
         offset = end;
         // 5 bytes
 
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.position[0], offset, end);
-        offset = end;
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.position[1], offset, end);
-        offset = end;
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.position[2], offset, end);
+        end = offset + 6;
+        let position_tile_id_bytes = self.position.to_bytes();
+        buffer[offset..end].copy_from_slice(&position_tile_id_bytes);
         offset = end;
 
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.second_position[0], offset, end);
-        offset = end;
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.second_position[1], offset, end);
-        offset = end;
-        end = offset + 4;
-        float_into_buffer(&mut buffer, self.second_position[2], offset, end);
+        end = offset + 6;
+        let target_position_tile_id_bytes = self.second_position.to_bytes();
+        buffer[offset..end].copy_from_slice(&target_position_tile_id_bytes);
         offset = end;
 
-        // 24 bytes
+        // 12 bytes
 
         let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
         end = offset + 4;
@@ -217,7 +215,6 @@ impl CharacterEntity
         buffer[offset] = self.mana_points;
         offset = end;
 
-
         end = offset + 2;
         let strenght_bytes = u16::to_le_bytes(self.base_strength); // 2 bytes
         buffer[offset..end].copy_from_slice(&strenght_bytes);
@@ -242,6 +239,8 @@ impl CharacterEntity
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&health_bytes);
         offset = end;
+
+        // 20
 
         // 5 pairs of 1 bytes, 10 bytes
         for pair in self.buffs_summary
@@ -302,7 +301,7 @@ impl CharacterEntity
     pub fn use_buffs(&mut self, used_stats : Vec<Stat>)
     {
         self.buffs.iter_mut()
-        // .filter(|b| used_stats.contains(&b.stat))
+        .filter(|b| used_stats.contains(&b.stat))
         .for_each(|b| b.hits = b.hits.saturating_sub(1));
         let updated_buffs : Vec<Buff> = self.buffs.iter().filter(|b| b.hits > 0).map(|b| b.clone()).collect();
         self.buffs = updated_buffs;
@@ -508,18 +507,13 @@ impl Hash for CharacterEntity
     }
 }
 
-fn float_into_buffer(buffer : &mut [u8], data: f32, start : usize, end: usize)
-{
-    let bytes = f32::to_le_bytes(data);
-    buffer[start..end].copy_from_slice(&bytes);
-}
 
 #[cfg(test)]
 mod tests {
     use std::num::Wrapping;
 
 
-    use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
+    use crate::{character::character_entity::CHARACTER_ENTITY_SIZE, map::tetrahedron_id::TetrahedronId};
 
     use super::CharacterEntity;
 
@@ -576,8 +570,8 @@ mod tests {
             character_id: 1234,
             faction:0,
             action: 0,
-            position: [1.0, 2.0, 3.0],
-            second_position: [1.0, 2.0, 3.0],
+            position: TetrahedronId::from_string("A"),
+            second_position: TetrahedronId::from_string("A"),
             inventory: Vec::new(),
             inventory_version: 1,
             health: 0,
@@ -629,8 +623,8 @@ mod tests {
             character_name: "Park".to_string(),
             character_id: 2,
             faction: 0,
-            position: [0.0,0.0,0.0],
-            second_position: [0.0,0.0,0.0],
+            position: TetrahedronId::from_string("A"),
+            second_position: TetrahedronId::from_string("A"),
             action: 1,
             inventory: Vec::new(),
             inventory_version: 10,

@@ -29,7 +29,7 @@ pub async fn process_request(
     let start = end;
     let _page = data[start];
 
-    let player_entities = map.players.lock().await;
+    let player_entities = map.character.lock().await;
     let player_option = player_entities.get(&player_id);
 
     let (inventory, version) = if let Some(player_entity) = player_option {

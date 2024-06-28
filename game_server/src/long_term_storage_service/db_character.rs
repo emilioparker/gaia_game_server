@@ -13,9 +13,9 @@ pub struct StoredCharacter {
     pub player_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub character_id: u16,
-    pub faction: String,
+    pub faction: u8,
     pub character_name: String,
-    pub position:[f32;3],
+    pub position:String,
     pub inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,

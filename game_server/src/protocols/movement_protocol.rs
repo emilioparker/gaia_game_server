@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement};
+use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement}, map::tetrahedron_id::TetrahedronId};
 
 
 pub async fn process_movement(
@@ -18,49 +18,29 @@ pub async fn process_movement(
     start = end;
     end = start + 2;
     let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
-
     start = end;
+
     end = start + 1;
     let _faction = data[start];
-
-    // 1 byte + 8 bytes + 1 byte + 4x3:12 bytes + 4x3:12 bytes + 4 bytes = 18 bytes
     start = end;
-    end = start + 4;
-    let pos_x = f32::from_le_bytes(data[start..end].try_into().unwrap());
 
+    end = start + 6;
+    let mut buffer = [0u8;6];
+    buffer.copy_from_slice(&data[start..end]);
+    let position_tile_id = TetrahedronId::from_bytes(&buffer);
     start = end;
-    end = start + 4;
-    let pos_y = f32::from_le_bytes(data[start..end].try_into().unwrap());
 
+    end = start + 6;
+    let mut buffer = [0u8;6];
+    buffer.copy_from_slice(&data[start..end]);
+    let target_position_tile_id = TetrahedronId::from_bytes(&buffer);
     start = end;
-    end = start + 4;
-    let pos_z = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    let position = [pos_x, pos_y, pos_z];
-
-    start = end;
-    end = start + 4;
-    let direction_x = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    start = end;
-    end = start + 4;
-    let direction_y = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    start = end;
-    end = start + 4;
-    let direction_z = f32::from_le_bytes(data[start..end].try_into().unwrap());
-
-    let direction = [direction_x, direction_y, direction_z];
-
-    // end = start + 4;
-    // let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
-    //start = end;
 
     let action = CharacterMovement 
     {
         player_id,
-        position,
-        second_position: direction
+        position: position_tile_id,
+        second_position: target_position_tile_id
     };
 
     let character_command = CharacterCommand

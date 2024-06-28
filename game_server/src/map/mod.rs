@@ -22,7 +22,7 @@ pub struct GameMap
     pub battles : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, BattleInstance>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
-    pub players : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
+    pub character : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
     pub towers : Arc<Mutex<HashMap<TetrahedronId, TowerEntity>>>,
 }
 
@@ -83,7 +83,7 @@ impl GameMap
             logged_in_players : logged_in_players_set,
             regions : arc_regions,
             battles: arc_battles,
-            players : Arc::new(Mutex::new(players)),
+            character : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),
         }
     }
