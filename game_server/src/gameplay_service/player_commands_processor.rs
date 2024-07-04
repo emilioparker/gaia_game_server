@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::TetrahedronId, GameMap}};
+use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}};
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
@@ -33,7 +33,7 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::Touch() => todo!(),
             character_command::CharacterCommandInfo::Movement(movement_data) => 
             {
-                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.second_position.clone()).await;
+                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.second_position.clone(), movement_data.time).await;
             },
             character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
             {
@@ -51,9 +51,9 @@ pub async fn process_player_commands (
             {
                 equip_item(&map, tx_pe_gameplay_longterm, players_summary, equip_data.item_id, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
             },
-            character_command::CharacterCommandInfo::Respawn() => 
+            character_command::CharacterCommandInfo::Respawn(respawn_tile) => 
             {
-                respawn(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id).await;
+                respawn(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, respawn_tile.clone()).await;
             },
             character_command::CharacterCommandInfo::Action(action) => 
             {
@@ -334,7 +334,8 @@ pub async fn respawn(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
-    player_id: u16)
+    player_id: u16,
+    respawn_tile_id: TetrahedronId)
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
@@ -347,8 +348,10 @@ pub async fn respawn(
         let updated_player_entity = CharacterEntity 
         {
             action: 0,
+            time:0,
             health: character_definition.constitution,
             version: player_entity.version + 1,
+            second_position: respawn_tile_id,
             ..player_entity.clone()
         };
 
@@ -365,6 +368,7 @@ pub async fn move_character(
     player_id: u16,
     pos:TetrahedronId,
     next_pos:TetrahedronId,
+    movement_start_time:u32
 )
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
@@ -379,6 +383,7 @@ pub async fn move_character(
             version: player_entity.version + 1,
             position: pos,
             second_position: next_pos,
+            time: movement_start_time,
             ..player_entity.clone()
         };
 
@@ -393,7 +398,7 @@ pub async fn set_action(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
-    action : u32
+    action : u8
 )
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;

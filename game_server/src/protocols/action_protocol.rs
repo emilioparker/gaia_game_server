@@ -24,8 +24,8 @@ pub async fn process(
     let _faction = data[start];
 
     start = end;
-    end = start + 4;
-    let action = u32::from_le_bytes(data[start..end].try_into().unwrap());
+    end = start + 1;
+    let action = data[start];
     start = end;
 
     let character_command = CharacterCommand

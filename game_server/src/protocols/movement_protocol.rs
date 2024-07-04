@@ -14,8 +14,8 @@ pub async fn process_movement(
     let mut start = 1;
     let mut end = start + 8;
     let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
-
     start = end;
+
     end = start + 2;
     let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
@@ -36,11 +36,16 @@ pub async fn process_movement(
     let target_position_tile_id = TetrahedronId::from_bytes(&buffer);
     start = end;
 
+    end = start + 4;
+    let start_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
+    start = end;
+
     let action = CharacterMovement 
     {
         player_id,
         position: position_tile_id,
-        second_position: target_position_tile_id
+        second_position: target_position_tile_id,
+        time:start_time
     };
 
     let character_command = CharacterCommand

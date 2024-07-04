@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::{definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 55;
+pub const CHARACTER_ENTITY_SIZE: usize = 56;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
@@ -21,7 +21,8 @@ pub struct CharacterEntity
     pub faction:u8, // 1 byte
     pub position: TetrahedronId, // 6 bytes
     pub second_position: TetrahedronId, // 6 bytes
-    pub action:u32, //4 bytes
+    pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
+    pub action:u8, //4 bytes
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub inventory_version : u32, // 4 bytes
 
@@ -173,18 +174,23 @@ impl CharacterEntity
         buffer[offset..end].copy_from_slice(&target_position_tile_id_bytes);
         offset = end;
 
-        // 12 bytes
-
-        let action_bytes = u32::to_le_bytes(self.action); // 4 bytes
         end = offset + 4;
-        buffer[offset..end].copy_from_slice(&action_bytes);
+        let time_bytes = u32::to_le_bytes(self.time); // 4 bytes
+        buffer[offset..end].copy_from_slice(&time_bytes);
+        offset = end;
+
+        // 16 bytes
+
+        end = offset + 1;
+        buffer[offset] = self.action;
+
         offset = end;
         let inventory_version_bytes = u32::to_le_bytes(self.inventory_version); // 4 bytes
         end = offset + 4;
         buffer[offset..end].copy_from_slice(&inventory_version_bytes);
         offset = end;
 
-        // 8 bytes
+        // 5 bytes
 
         end = offset + 1;
         buffer[offset] = self.level;
@@ -572,6 +578,7 @@ mod tests {
             action: 0,
             position: TetrahedronId::from_string("A"),
             second_position: TetrahedronId::from_string("A"),
+            time:0,
             inventory: Vec::new(),
             inventory_version: 1,
             health: 0,
@@ -625,6 +632,7 @@ mod tests {
             faction: 0,
             position: TetrahedronId::from_string("A"),
             second_position: TetrahedronId::from_string("A"),
+            time:0,
             action: 1,
             inventory: Vec::new(),
             inventory_version: 10,

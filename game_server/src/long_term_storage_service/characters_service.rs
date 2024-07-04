@@ -77,6 +77,7 @@ pub async fn get_characters_from_db_by_world(
                     object_id: doc.id,
                     position: pos.clone(),
                     second_position: pos,
+                    time:0,
                     action: 0,
                     character_name: doc.character_name,
                     inventory,

@@ -19,8 +19,8 @@ pub async fn process(
         start = end;
         end = start + 1;
         let _faction = data[start];
-
         start = end;
+
         end = start + 6;
         let mut buffer = [0u8;6];
         buffer.copy_from_slice(&data[start..end]);

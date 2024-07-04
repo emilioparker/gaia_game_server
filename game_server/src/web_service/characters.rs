@@ -328,6 +328,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         action: 0,
         position: initial_position_tile_id.clone(),
         second_position: initial_position_tile_id,
+        time:0,
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_version : 1,
         level: 0,
