@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
+use crate::{buffs::buff::{Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
 pub const CHARACTER_ENTITY_SIZE: usize = 56;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
@@ -74,7 +74,8 @@ pub struct InventoryItem
 
 impl InventoryItem 
 {
-    pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]{
+    pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]
+    {
         let mut start = 0;
         let mut buffer = [0u8;CHARACTER_INVENTORY_SIZE];
         let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
@@ -92,59 +93,11 @@ impl InventoryItem
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum Stat
-{
-    Strength,
-    Defense,
-    Intelligence,
-    Mana
-}
-
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct Buff
-{
-    pub card_id : u32, //1
-    pub stat : Stat, //1
-    pub buff_amount : f32, // 4
-    pub hits: u8,// 1
-    pub expiration_time:u32 //4
-}
-
-impl Stat
-{
-    pub fn to_byte(&self) -> u8
-    {
-        let stat = match self
-        {
-            Stat::Strength => 0,
-            Stat::Defense => 1,
-            Stat::Intelligence => 2,
-            Stat::Mana => 3,
-        };
-
-        stat as u8
-    }
-
-    pub fn from_byte(data :u8) -> Stat
-    {
-        let stat = match data
-        {
-            0 => Stat::Strength,
-            1 => Stat::Defense,
-            2 => Stat::Intelligence,
-            3 => Stat::Mana,
-            _ => Stat::Mana,
-        };
-        stat
-    }
-}
-
 
 impl CharacterEntity 
 {
-    pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] {
+    pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] 
+    {
         let mut buffer = [0u8; CHARACTER_ENTITY_SIZE];
         let mut offset = 0;
         let mut end;
@@ -261,89 +214,6 @@ impl CharacterEntity
         }
 
         buffer
-    }
-
-    pub fn add_buff(&mut self, card_id:u32, definitions: &Definitions) -> bool
-    {
-        if self.has_buff(card_id) 
-        {
-            return false;
-        }
-
-        if let Some(card) = definitions.get_card(card_id as usize)
-        {
-            if card.card_type == "passive"
-            {
-                if card.defense_factor > 0f32
-                {
-                    self.buffs.push(Buff
-                    {
-                        card_id,
-                        stat: Stat::Defense,
-                        buff_amount: card.defense_factor,
-                        hits: card.hits,
-                        expiration_time: 100,
-                    })
-                }
-                if card.strength_factor > 0f32
-                {
-                    self.buffs.push(Buff
-                    {
-                        card_id,
-                        stat: Stat::Strength,
-                        buff_amount: card.strength_factor,
-                        hits: card.hits,
-                        expiration_time: 100,
-                    })
-                }
-            }
-            self.version += 1;
-            self.summarize_buffs();
-        }
-
-        return true;
-    }
-
-    pub fn use_buffs(&mut self, used_stats : Vec<Stat>)
-    {
-        self.buffs.iter_mut()
-        .filter(|b| used_stats.contains(&b.stat))
-        .for_each(|b| b.hits = b.hits.saturating_sub(1));
-        let updated_buffs : Vec<Buff> = self.buffs.iter().filter(|b| b.hits > 0).map(|b| b.clone()).collect();
-        self.buffs = updated_buffs;
-        self.summarize_buffs();
-        self.version += 1;
-    }
-
-    pub fn has_buff(&self, card_id : u32) -> bool
-    {
-        let mut found = false;
-        for buff in &self.buffs 
-        {
-            if buff.card_id == card_id
-            {
-                found = true;
-            }
-        }
-        return found;
-    }
-
-    pub fn summarize_buffs(&mut self)
-    {
-        // let mut buffs_summary : [(u8,u8);5]= [(0, 0),(0, 0), (0, 0), (0, 0), (0, 0)];
-        let mut index = 0;
-        for value in self.buffs_summary.iter_mut()
-        {
-            if let Some(buff) = self.buffs.get(index)
-            {
-                *value = ((buff.card_id - 10000) as u8, buff.hits);//(buff.card_id, buff.hits);
-            }
-            else
-            {
-                *value = (0u8,0u8);//(buff.card_id, buff.hits);
-            }
-            index += 1;
-        }
     }
 
     pub fn add_xp_mob_defeated(&mut self, definitions: &Definitions)
@@ -508,8 +378,31 @@ impl CharacterEntity
 
 impl Hash for CharacterEntity 
 {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) 
+    {
         self.action.hash(state);
+    }
+}
+impl BuffUser for CharacterEntity 
+{
+    fn get_buffs_mut(&mut self) -> &mut Vec<crate::buffs::buff::Buff> 
+    {
+        &mut self.buffs
+    }
+
+    fn get_buffs(&self) -> &Vec<crate::buffs::buff::Buff> 
+    {
+        &self.buffs
+    }
+
+    fn set_buffs(&mut self, new_buffs: Vec<crate::buffs::buff::Buff>) 
+    {
+        self.buffs = new_buffs;
+    }
+
+    fn get_buff_summary(&mut self) -> &mut [(u8,u8);5] 
+    {
+        &mut self.buffs_summary
     }
 }
 
