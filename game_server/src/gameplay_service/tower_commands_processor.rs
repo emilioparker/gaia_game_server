@@ -56,10 +56,10 @@ pub async fn process_tower_commands (
                             let attack = CharacterAttack
                             {
                                 id : (current_time_in_milliseconds % 10000) as u16,
-                                player_id: *player_id,
-                                target_player_id: 0,
+                                character_id: *player_id,
+                                target_character_id: 0,
                                 card_id: 0,
-                                target_tile_id: tower_command.id.clone(),
+                                target_mob_tile_id: tower_command.id.clone(),
                                 required_time : 0,
                                 active_effect:1
                             };

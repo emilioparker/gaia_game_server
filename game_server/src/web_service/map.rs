@@ -98,3 +98,41 @@ pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -
         .expect("Failed to create response");
     Ok(response)
 }
+
+pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
+
+    let mut iterator = data.into_iter();
+    let region_list = iterator.next();
+
+// this string might contain more than one region separated by semicolon
+    let regions = if let Some(regions_csv) = region_list 
+    {
+        println!("{}", regions_csv);
+        let data = regions_csv.split(",");
+        let regions_ids : Vec<&str> = data.collect();
+        let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
+        iterator
+    }
+    else 
+    {
+        Vec::new()
+    };
+
+    let mut binary_data = Vec::<u8>::new();
+    for region_id in &regions 
+    {
+        let region_map = context.temp_mobs_regions.get(region_id).unwrap();
+        let region_map_lock = region_map.lock().await;
+        let size = region_map_lock.index;
+        binary_data.extend_from_slice(&region_map_lock.buffer[..size]);
+
+        println!("mob region size {size}");
+    }
+
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .body(Body::from(binary_data))
+        .expect("Failed to create response");
+    Ok(response)
+}

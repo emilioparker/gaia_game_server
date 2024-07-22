@@ -13,7 +13,8 @@ pub mod tower;
 pub mod chat;
 pub mod chat_service;
 pub mod definitions;
-pub mod battle;
+pub mod mob;
+pub mod buffs;
 
 pub const SERVER_STATE_SIZE: usize = 20;
 
@@ -24,7 +25,8 @@ pub struct ServerState
     pub tx_pc_client_gameplay: AtomicU16,
     pub tx_tc_client_gameplay: AtomicU16,
     pub tx_cc_client_gameplay: AtomicU16,
-    pub tx_bc_client_gameplay: AtomicU16,
+    pub tx_moc_client_gameplay: AtomicU16,
+    pub tx_moe_gameplay_webservice:AtomicU16,
     pub tx_bytes_gameplay_socket: AtomicU16,
     pub tx_me_gameplay_longterm:AtomicU16,
     pub tx_me_gameplay_webservice:AtomicU16,

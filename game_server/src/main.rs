@@ -16,6 +16,7 @@ use game_server::definitions::definitions_container::DefinitionsData;
 use game_server::definitions::items::Item;
 use game_server::definitions::main_paths::MapPath;
 use game_server::definitions::mob_progression::MobProgression;
+use game_server::definitions::mobs_data::MobData;
 use game_server::definitions::props_data::PropData;
 use game_server::definitions::Definition;
 use game_server::ServerState;
@@ -47,13 +48,14 @@ async fn main() {
     let server_state = Arc::new(ServerState
     {
         tx_mc_client_gameplay: AtomicU16::new(0),
-        tx_bc_client_gameplay: AtomicU16::new(0),
+        tx_moc_client_gameplay: AtomicU16::new(0),
         tx_pc_client_gameplay: AtomicU16::new(0),
         tx_tc_client_gameplay: AtomicU16::new(0),
         tx_cc_client_gameplay: AtomicU16::new(0),
         tx_bytes_gameplay_socket: AtomicU16::new(0),
         tx_me_gameplay_longterm:AtomicU16::new(0),
         tx_me_gameplay_webservice:AtomicU16::new(0),
+        tx_moe_gameplay_webservice:AtomicU16::new(0),
         tx_pe_gameplay_longterm:AtomicU16::new(0),
         online_players:AtomicI32::new(0),
         total_players:AtomicU32::new(0)
@@ -111,7 +113,8 @@ async fn main() {
         storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data, storage_players, world_towers));
 
     }
-    else{
+    else
+    {
         println!("Creating world from scratch, because it was not found in the database");
         // any errors will just crash the app.
 
@@ -153,7 +156,7 @@ async fn main() {
 
             let (
                 rx_mc_client_gameplay,
-                rx_bc_client_gameplay, 
+                rx_moc_client_gameplay, 
                 rx_pc_client_gameplay, 
                 rx_tc_client_gameplay ,
                 rx_cc_client_gameplay ,
@@ -166,6 +169,7 @@ async fn main() {
 
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
+                rx_moe_gameplay_webservice,
                 rx_pe_gameplay_longterm,
                 rx_te_gameplay_longterm,
                 rx_te_gameplay_webservice,
@@ -173,7 +177,7 @@ async fn main() {
             ) = gameplay_service::start_service(
                 rx_pc_client_gameplay,
                 rx_mc_client_gameplay,
-                rx_bc_client_gameplay,
+                rx_moc_client_gameplay,
                 rx_tc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),
@@ -215,7 +219,7 @@ async fn main() {
                 db_client.clone(),
                 definitions.1,
                 rx_me_gameplay_webservice,
-                // tx_mc_webservice_gameplay,
+                rx_moe_gameplay_webservice,
                 rx_te_gameplay_webservice,
                 rx_ce_gameplay_webservice,
                 rx_me_saved_longterm_web,
@@ -284,6 +288,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("cards.csv");
     let cards_result = load_definition_by_name::<Card>(file_name).await;
 
+    let file_name = format!("mobs.csv");
+    let mobs_result = load_definition_by_name::<MobData>(file_name).await;
+
     let definitions = Definitions 
     {
         character_progression : character_result.0,
@@ -291,7 +298,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         mob_progression : mob_progression_result.0,
         main_paths: paths_result.0,
         items: items_result.0,
-        cards :cards_result.0, 
+        cards :cards_result.0,
+        mobs: mobs_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -303,7 +311,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         props_data : props_result.1,
         main_paths_data : paths_result.1,
         items_data :items_result.1,
-        cards_data: cards_result.1 
+        cards_data: cards_result.1,
+        mobs_data: mobs_result.1 
     };
     (definitions, definitions_data)
 }

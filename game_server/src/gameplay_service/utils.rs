@@ -2,32 +2,32 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
+use crate::{character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
 
 
-pub fn update_character_entity(
+pub fn add_rewards_to_character_entity(
     player_entity : &mut CharacterEntity, 
     reward : InventoryItem,
     definitions : &Definitions,
     players_rewards_summary : &mut Vec<CharacterReward>,
     players_summary : &mut Vec<CharacterEntity>)
 {
-        player_entity.add_xp_mob_defeated(definitions);
-        player_entity.add_inventory_item(reward.clone());
-        player_entity.version += 1;
-        // we should also give the player the reward
-        let reward = CharacterReward 
-        {
-            player_id: player_entity.character_id,
-            item_id: reward.item_id,
-            amount: reward.amount,
-            inventory_hash : player_entity.inventory_version
-        };
+    player_entity.add_xp_mob_defeated(definitions);
+    player_entity.add_inventory_item(reward.clone());
+    player_entity.version += 1;
+    // we should also give the player the reward
+    let reward = CharacterReward 
+    {
+        player_id: player_entity.character_id,
+        item_id: reward.item_id,
+        amount: reward.amount,
+        inventory_hash : player_entity.inventory_version
+    };
 
-        println!("reward {:?}", reward);
+    println!("reward {:?}", reward);
 
-        players_rewards_summary.push(reward);
-        players_summary.push(player_entity.clone());
+    players_rewards_summary.push(reward);
+    players_summary.push(player_entity.clone());
 }
 
 pub fn report_map_process_capacity(
@@ -52,53 +52,6 @@ pub fn report_tower_process_capacity(
     // server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
 }
 
-pub fn process_tile_attack(
-    damage: u16, 
-    tile : &MapEntity, 
-) -> (MapEntity, Option<InventoryItem>)
-{
-    // let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.players.lock().await;
-    let mut updated_tile : MapEntity = tile.clone();
-    let mut reward : Option<InventoryItem> = None;
-    let previous_health = tile.health;
-    println!("Change mob health!!! {}" ,previous_health);
-
-    // this means this tile is being built
-    if tile.health > tile.constitution 
-    {
-        updated_tile.constitution = i16::max(0, updated_tile.constitution as i16 - damage as i16) as u16;
-        updated_tile.version += 1;
-        if updated_tile.constitution == 0
-        {
-            updated_tile.prop = 0;
-            updated_tile.health = 0;
-        }
-    }
-    else if previous_health > 0
-    {
-        let collected_prop = updated_tile.prop;
-        updated_tile.health = i16::max(0, updated_tile.health as i16 - damage as i16) as u16;
-        updated_tile.version += 1;
-        println!("new health {}", updated_tile.health);
-        if updated_tile.health == 0
-        {
-            updated_tile.prop = 0;
-        }
-
-        if updated_tile.health == 0
-        {
-            println!("Add inventory item for player");
-
-            reward = Some(InventoryItem 
-                {
-                item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                equipped:0,
-                amount: 1,
-            });
-        }
-    }
-    (updated_tile, reward)
-}
 
 
 pub fn get_tile_commands_to_execute(current_time : u64, delayed_tile_commands_guard : &mut Vec<(u64, MapCommand)>) -> Vec<MapCommand>
@@ -108,6 +61,26 @@ pub fn get_tile_commands_to_execute(current_time : u64, delayed_tile_commands_gu
 
     delayed_tile_commands_guard.retain(|b| 
     {
+        let should_execute = b.0 <= current_time;
+        // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+        if should_execute
+        {
+            items_to_execute.push(b.1.clone());
+        }
+
+        !should_execute // we keep items that we didn't execute
+    });
+
+    items_to_execute
+}
+
+pub fn get_mob_commands_to_execute(current_time : u64, delayed_mob_commands_guard : &mut Vec<(u64, MobCommand)>) -> Vec<MobCommand>
+{
+    let mut items_to_execute = Vec::<MobCommand>::new();
+    // let current_time = time.load(std::sync::atomic::Ordering::Relaxed);
+
+    delayed_mob_commands_guard.retain(|b| 
+        {
         let should_execute = b.0 <= current_time;
         // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute

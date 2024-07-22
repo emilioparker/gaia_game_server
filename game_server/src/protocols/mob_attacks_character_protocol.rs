@@ -1,12 +1,12 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
+use crate::{map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{MobCommand, MobCommandInfo}};
 
 
 pub async fn process(
     _socket:&UdpSocket,
      data : &[u8; 508],
-    channel_map_tx : &Sender<MapCommand>)
+    channel_mob_tx : &Sender<MobCommand>)
 {
         let mut start = 1;
         let mut end = start + 8;
@@ -31,13 +31,13 @@ pub async fn process(
         let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         //start = end;
 
-        let map_action = MapCommand
+        let mob_action = MobCommand
         {
-            id: tile_id,
-            info: MapCommandInfo::AttackWalker(player_id, 0, required_time)
+            tile_id,
+            info: MobCommandInfo::AttackWalker(player_id, 0, required_time, 0)
         };
 
         // println!("got a {:?}", map_action);
 
-        channel_map_tx.send(map_action).await.unwrap();
+        channel_mob_tx.send(mob_action).await.unwrap();
 }

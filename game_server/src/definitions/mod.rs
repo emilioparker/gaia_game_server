@@ -6,6 +6,7 @@ pub mod props_data;
 pub mod main_paths;
 pub mod items;
 pub mod card;
+pub mod mobs_data;
 
 
 pub trait Definition 

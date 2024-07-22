@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{battle::battle_instance::BattleInstance, character::character_entity::CharacterEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
+use crate::{mob::mob_instance::MobEntity, character::character_entity::CharacterEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -19,7 +19,7 @@ pub struct GameMap
     pub id_generator : AtomicU16,
     pub definitions : Definitions,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
-    pub battles : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, BattleInstance>>>>,
+    pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
     pub character : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
@@ -38,13 +38,13 @@ impl GameMap
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
-        let mut arc_battles= HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, BattleInstance>>>>::new();
+        let mut arc_mobs= HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>::new();
         let mut region_keys = Vec::<TetrahedronId>::new();
 
         for (key, value) in regions.into_iter()
         {
             arc_regions.insert(key.clone(), Arc::new(Mutex::new(value)));
-            arc_battles.insert(key.clone(), Arc::new(Mutex::new(HashMap::new())));
+            arc_mobs.insert(key.clone(), Arc::new(Mutex::new(HashMap::new())));
             region_keys.push(key);
         }
 
@@ -82,7 +82,7 @@ impl GameMap
             active_players: Arc::new(active_players_set),
             logged_in_players : logged_in_players_set,
             regions : arc_regions,
-            battles: arc_battles,
+            mobs: arc_mobs,
             character : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),
         }
@@ -100,11 +100,11 @@ impl GameMap
         region.clone()
     }
 
-    pub fn get_battle_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<TetrahedronId, BattleInstance>>>
+    pub fn get_mob_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>
     {
         let key = self.get_parent(tetrahedron_id);
-        let battle_region = self.battles.get(&key).unwrap();
-        battle_region.clone()
+        let mob_region = self.mobs.get(&key).unwrap();
+        mob_region.clone()
     }
 
     pub fn get_region(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>

@@ -1,6 +1,7 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}};
+use crate::{buffs::buff::Stat, character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}};
+use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
@@ -87,10 +88,10 @@ pub async fn process_player_commands (
                 let attack = CharacterAttack
                 {
                     id: (current_time % 10000) as u16,
-                    player_id: cloned_data.player_id,
-                    target_player_id: *other_player_id,
+                    character_id: cloned_data.player_id,
+                    target_character_id: *other_player_id,
                     card_id: *card_id,
-                    target_tile_id: TetrahedronId::from_string("A"),
+                    target_mob_tile_id: TetrahedronId::from_string("A"),
                     required_time: *required_time,
                     active_effect: *active_effect
                 };
@@ -471,6 +472,7 @@ pub async fn activate_buff(
 
             if result 
             {
+                player_entity.version += 1;
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
             }
@@ -500,7 +502,8 @@ pub async fn attack_character(
         {
             let attack = character_entity.get_strength(card_definition.strength_factor) as f32;
             character_attack = attack.round() as u16;
-            character_entity.use_buffs(vec![crate::character::character_entity::Stat::Strength]);
+            character_entity.use_buffs(vec![Stat::Strength]);
+            character_entity.version += 1;
         }
         else
         {
@@ -517,7 +520,7 @@ pub async fn attack_character(
     {
         let defense = character_entity.get_defense(0f32) as f32;
         let character_defense = defense.round() as u16;
-        character_entity.use_buffs(vec![crate::character::character_entity::Stat::Defense]);
+        character_entity.use_buffs(vec![Stat::Defense]);
 
         let damage = character_attack.saturating_sub(character_defense);
 

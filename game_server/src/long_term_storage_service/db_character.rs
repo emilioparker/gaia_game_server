@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::character::character_entity::{Buff, InventoryItem, Stat};
+use crate::{buffs::buff::Buff, character::character_entity::InventoryItem};
 
 
 #[derive(Serialize, Deserialize, Debug)]

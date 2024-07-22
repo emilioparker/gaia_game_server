@@ -1,0 +1,5 @@
+id,name,mob_type,item,skills
+0,none,normal,none,bow
+1,enemy_1,normal,none,bow
+2,enemy_2,normal,none,meele
+3,enemy_3,normal,none,fire

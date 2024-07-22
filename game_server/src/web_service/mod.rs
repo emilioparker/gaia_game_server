@@ -19,6 +19,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::character::character_entity::InventoryItem;
+use crate::mob::mob_instance::{MobEntity, MOB_ENTITY_SIZE};
 use crate::ServerState;
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 
@@ -82,6 +83,7 @@ pub struct AppContext
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
+    temp_mobs_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
     temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>,
     old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
 }
@@ -190,6 +192,10 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 return Ok(Response::new(Body::from(context.definitions_data.cards_data)));
             }
+            else if definition_data.version == data.version && data.name == "mobs"
+            {
+                return Ok(Response::new(Body::from(context.definitions_data.mobs_data)));
+            }
             else
             {
                 let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
@@ -222,6 +228,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         match route {
             "region" => map::handle_region_request(context, rest).await,
             "temp_regions" => map::handle_temp_region_request(context, rest).await,
+            "temp_mob_regions" => map::handle_temp_mob_region_request(context, rest).await,
             "definitions" => handle_definition_request(context, req).await,
             "character_data" => characters::handle_characters_request(context).await,
             "player_creation" => characters::handle_create_player(context, req).await,
@@ -269,6 +276,7 @@ pub fn start_server(
     db_client : mongodb :: Client,
     definitions_data : DefinitionsData,
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
+    mut rx_moe_realtime_webservice : Receiver<MobEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
     mut rx_ce_realtime_webservice : Receiver<ChatEntry>,
     // tx_mc_webservice_gameplay : Sender<MapCommand>,
@@ -280,16 +288,33 @@ pub fn start_server(
     let regions = crate::map::get_region_ids(2);
     let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
 
-    for id in regions.into_iter()
+    for id in regions.iter()
     {
-        println!("webservice -preload region {}", id.to_string());
+        println!("webservice -preload map region {}", id.to_string());
         arc_regions.insert(id.clone(), Arc::new(Mutex::new(TempMapBuffer::new())));
     }
-    println!("len on preload {}",arc_regions.len());
+    println!("mpa regions len on preload {}",arc_regions.len());
 
     let regions_adder_reference = Arc::new(arc_regions);
     let regions_cleaner_reference = regions_adder_reference.clone();
     let regions_reader_reference = regions_adder_reference.clone();
+
+    // temp mobs
+    let mut arc_mob_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
+
+    for id in regions.into_iter()
+    {
+        println!("webservice -preload mob region {}", id.to_string());
+        arc_mob_regions.insert(id, Arc::new(Mutex::new(TempMapBuffer::new())));
+    }
+    println!("mob regions len on preload {}",arc_mob_regions.len());
+
+    let mob_regions_adder_reference = Arc::new(arc_mob_regions);
+    // this is not saved to disk, we never delete... haha... 
+    // let mob_regions_cleaner_reference = mob_regions_adder_reference.clone();
+    let mob_regions_reader_reference = mob_regions_adder_reference.clone();
+
+    // towers
 
     let towers = (0, [0; 100000]);
     let towers_adder_reference= Arc::new(Mutex::new(towers));
@@ -309,6 +334,7 @@ pub fn start_server(
         db_client : db_client,
         cached_presentation_data: Arc::new(Mutex::new(presentation_cache)),
         temp_regions : regions_reader_reference,
+        temp_mobs_regions : mob_regions_reader_reference,
         temp_towers : towers_reader_reference,
         old_messages : chat_reader_reference,
     };
@@ -384,6 +410,67 @@ pub fn start_server(
         }
     });
 
+
+    // mobs
+    tokio::spawn(async move {
+        loop 
+        {
+            let message = rx_moe_realtime_webservice.recv().await.unwrap();
+            let region_id = message.tile_id.get_parent(7);
+
+            let mob_region_map = mob_regions_adder_reference.get(&region_id).unwrap();
+            let mut mob_region_map_lock = mob_region_map.lock().await;
+
+            println!("saving temp mob");
+            
+            if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
+            {
+                if message.health == 0
+                {
+                    // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
+
+                    // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
+                    let last_index = mob_region_map_lock.index - MobEntity::get_size();
+                    let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
+
+                    let mut buffer = [0u8;6];
+                    buffer.copy_from_slice(&last_entry[0..6]);
+                    let tile_id = TetrahedronId::from_bytes(&buffer);
+
+                    let mut buffer = [0u8;MOB_ENTITY_SIZE];
+                    buffer.copy_from_slice(last_entry);
+
+                    mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
+                    mob_region_map_lock.tile_to_index.remove(&tile_id);
+                    mob_region_map_lock.tile_to_index.insert(tile_id, index);
+                    mob_region_map_lock.index = last_index;
+                }
+                else
+                {
+                    let idx = index;
+                    let bytes = message.to_bytes();
+                    mob_region_map_lock.buffer[idx.. idx + MobEntity::get_size()].copy_from_slice(&bytes);
+                }
+            }
+            else 
+            {
+                let index = mob_region_map_lock.index;
+                if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
+                {
+                    println!("temp mob in index {}, size {}", index, MobEntity::get_size());
+                    
+                    mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
+                    mob_region_map_lock.index = index + MobEntity::get_size();
+
+                    mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
+                }
+                else 
+                {
+                    println!("webservice - mob temp buffer at capacity {}", region_id);
+                }
+            }
+        }
+    });
 
     // towers
     tokio::spawn(async move 

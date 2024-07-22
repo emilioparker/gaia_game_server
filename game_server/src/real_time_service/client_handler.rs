@@ -8,9 +8,8 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
-use crate::battle::battle_command::BattleCommand;
-use crate::battle::battle_instance::BattleInstance;
-use crate::battle::battle_join_message::BattleJoinMessage;
+use crate::mob::mob_command::MobCommand;
+use crate::mob::mob_instance::MobEntity;
 use crate::character::character_attack::CharacterAttack;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::character::character_entity::CharacterEntity;
@@ -37,8 +36,7 @@ pub enum StateUpdate
     PlayerAttackState(CharacterAttack),
     TileAttackState(TileAttack),
     ChatMessage(ChatEntry),
-    BattleUpdate(BattleInstance),
-    BattleJoin(BattleJoinMessage),
+    MobUpdate(MobEntity),
     ServerStatus([u16;10]),
 }
 
@@ -51,7 +49,7 @@ pub async fn spawn_client_process(
     server_state: Arc<ServerState>,
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
-    channel_battle_action_tx : mpsc::Sender<BattleCommand>,
+    channel_mob_action_tx : mpsc::Sender<MobCommand>,
     channel_action_tx : mpsc::Sender<CharacterCommand>,
     channel_tower_action_tx : mpsc::Sender<TowerCommand>,
     channel_chat_action_tx : mpsc::Sender<ChatCommand>,
@@ -78,7 +76,7 @@ pub async fn spawn_client_process(
             missing_packets.clone(),
             &channel_action_tx, 
             &channel_map_action_tx,
-            &channel_battle_action_tx,
+            &channel_mob_action_tx,
             &channel_tower_action_tx,
             &channel_chat_action_tx,
         ).await;
@@ -103,7 +101,7 @@ pub async fn spawn_client_process(
                                 missing_packets.clone(),
                                 &channel_action_tx, 
                                 &channel_map_action_tx,
-                                &channel_battle_action_tx,
+                                &channel_mob_action_tx,
                                 &channel_tower_action_tx,
                                 &channel_chat_action_tx,
                             ).await;

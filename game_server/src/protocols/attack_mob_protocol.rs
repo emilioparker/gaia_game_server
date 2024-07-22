@@ -1,10 +1,10 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
+use crate::{map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{MobCommand, MobCommandInfo}};
 
 
-pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &Sender<MapCommand>)
+pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;
@@ -34,13 +34,13 @@ pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_map_tx : &S
     let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
 
     start = end;
-    let active_effect = data[start]; // 4 bytes
+    let active_effect = data[start]; // 1 bytes
 
-    print!("active effect {active_effect}");
+    println!("active effect {active_effect}");
 
-    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
-    let map_action = MapCommand { id: tile_id, info };
+    let info = MobCommandInfo::Attack(player_id, card_id, required_time, active_effect);
+    let mob_action = MobCommand { tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);
-    channel_map_tx.send(map_action).await.unwrap();
+    channel_mob_tx.send(mob_action).await.unwrap();
 }

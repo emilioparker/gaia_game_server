@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::collections::HashMap;
-use crate::battle::battle_command::BattleCommand;
+use crate::mob::mob_command::MobCommand;
 use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::map::GameMap;
@@ -27,8 +27,7 @@ pub enum DataType
     TowerState = 32,
     ChatMessage = 33,
     ServerStatus = 34,
-    BattleStatus = 35,
-    BattleJoinMessage = 36,
+    MobStatus = 35,
 }
 
 pub fn start_server(
@@ -36,14 +35,14 @@ pub fn start_server(
     server_state: Arc<ServerState>
 ) -> (
     Receiver<MapCommand>,
-    Receiver<BattleCommand>,
+    Receiver<MobCommand>,
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
     Sender<Vec<(u64,u8,Vec<u8>)>>) // packet number, faction, data
 {
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
-    let (tx_bc_client_statesys, rx_bc_client_statesys) = tokio::sync::mpsc::channel::<BattleCommand>(1000);
+    let (tx_moc_client_statesys, rx_moc_client_statesys) = tokio::sync::mpsc::channel::<MobCommand>(1000);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(1000);
     let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
     let (tx_tc_client_statesys, rx_tc_client_statesys) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
@@ -229,7 +228,7 @@ pub fn start_server(
                                     server_state.clone(),
                                     tx_addr_client_realtime.clone(), 
                                     tx_mc_client_statesys.clone(), 
-                                    tx_bc_client_statesys.clone(), 
+                                    tx_moc_client_statesys.clone(), 
                                     tx_pc_client_statesys.clone(), 
                                     tx_tc_client_statesys.clone(), 
                                     tx_cc_client_statesys.clone(), 
@@ -274,7 +273,7 @@ pub fn start_server(
 
     (
         rx_mc_client_statesys,
-        rx_bc_client_statesys,
+        rx_moc_client_statesys,
         rx_pc_client_statesys,
         rx_tc_client_statesys,
         rx_cc_client_statesys,

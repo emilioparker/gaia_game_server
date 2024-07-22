@@ -6,9 +6,9 @@ pub const CHARACTER_ATTACK_SIZE: usize = 21;
 pub struct CharacterAttack 
 {
     pub id:u16,// 2 bytes
-    pub player_id: u16, // 2 bytes
-    pub target_player_id: u16, // 2 bytes
-    pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
+    pub character_id: u16, // 2 bytes
+    pub target_character_id: u16, // 2 bytes
+    pub target_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub card_id: u32, // 4 bytes
     pub required_time:u32, // 4 bytes
     pub active_effect:u8, //1 byte
@@ -28,17 +28,17 @@ impl CharacterAttack
         start = end;
 
         end = start + 2;
-        let player_id_bytes = u16::to_le_bytes(self.player_id); // 2 bytes
+        let player_id_bytes = u16::to_le_bytes(self.character_id); // 2 bytes
         buffer[start..end].copy_from_slice(&player_id_bytes);
         start = end;
 
         end = start + 2;
-        let target_player_id_bytes = u16::to_le_bytes(self.target_player_id); // 2 bytes
-        buffer[start..end].copy_from_slice(&target_player_id_bytes);
+        let target_character_id_bytes = u16::to_le_bytes(self.target_character_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&target_character_id_bytes);
         start = end;
 
         end = start + 6;
-        let tile_id_bytes = self.target_tile_id.to_bytes();
+        let tile_id_bytes = self.target_mob_tile_id.to_bytes();
         buffer[start..end].copy_from_slice(&tile_id_bytes);
         start = end;
 
