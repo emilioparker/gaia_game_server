@@ -37,7 +37,7 @@ pub struct CharacterMovement
 {
     pub player_id: u16,
     pub position: TetrahedronId,
-    pub second_position: TetrahedronId,
+    pub path: [u8;6],
     pub time: u32,
 }
 

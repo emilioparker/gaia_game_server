@@ -20,7 +20,8 @@ pub struct CharacterEntity
     pub character_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub position: TetrahedronId, // 6 bytes
-    pub second_position: TetrahedronId, // 6 bytes
+    // pub second_position: TetrahedronId, // 6 bytes
+    pub path: [u8;6], // 6 bytes
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
     pub action:u8, //4 bytes
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
@@ -122,10 +123,12 @@ impl CharacterEntity
         buffer[offset..end].copy_from_slice(&position_tile_id_bytes);
         offset = end;
 
-        end = offset + 6;
-        let target_position_tile_id_bytes = self.second_position.to_bytes();
-        buffer[offset..end].copy_from_slice(&target_position_tile_id_bytes);
-        offset = end;
+        for path_point in self.path
+        {
+            end = offset + 1;
+            buffer[offset] = path_point;
+            offset = end;
+        }
 
         end = offset + 4;
         let time_bytes = u32::to_le_bytes(self.time); // 4 bytes
@@ -470,7 +473,7 @@ mod tests {
             faction:0,
             action: 0,
             position: TetrahedronId::from_string("A"),
-            second_position: TetrahedronId::from_string("A"),
+            path:[0,0,0,0,0,0],
             time:0,
             inventory: Vec::new(),
             inventory_version: 1,
@@ -524,7 +527,7 @@ mod tests {
             character_id: 2,
             faction: 0,
             position: TetrahedronId::from_string("A"),
-            second_position: TetrahedronId::from_string("A"),
+            path:[0,0,0,0,0,0],
             time:0,
             action: 1,
             inventory: Vec::new(),

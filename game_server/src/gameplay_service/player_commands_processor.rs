@@ -34,7 +34,7 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::Touch() => todo!(),
             character_command::CharacterCommandInfo::Movement(movement_data) => 
             {
-                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.second_position.clone(), movement_data.time).await;
+                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.path, movement_data.time).await;
             },
             character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
             {
@@ -352,7 +352,8 @@ pub async fn respawn(
             time:0,
             health: character_definition.constitution,
             version: player_entity.version + 1,
-            second_position: respawn_tile_id,
+            position: respawn_tile_id,
+            path:[0,0,0,0,0,0],
             ..player_entity.clone()
         };
 
@@ -368,7 +369,7 @@ pub async fn move_character(
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
     pos:TetrahedronId,
-    next_pos:TetrahedronId,
+    path:[u8;6],
     movement_start_time:u32
 )
 {
@@ -383,7 +384,7 @@ pub async fn move_character(
             action: character_command::WALK_ACTION,
             version: player_entity.version + 1,
             position: pos,
-            second_position: next_pos,
+            path,
             time: movement_start_time,
             ..player_entity.clone()
         };

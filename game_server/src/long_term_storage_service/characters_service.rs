@@ -77,7 +77,7 @@ pub async fn get_characters_from_db_by_world(
                     faction: doc.faction,
                     object_id: doc.id,
                     position: pos.clone(),
-                    second_position: pos,
+                    path: [0,0,0,0,0,0],
                     time:0,
                     action: 0,
                     character_name: doc.character_name,
@@ -185,7 +185,7 @@ pub fn start_server(
                 .collect();
 
                 let serialized_buffs_data= bson::to_bson(&updated_buffs).unwrap();
-                let serialized_position= bson::to_bson(&player.second_position.to_string()).unwrap();
+                let serialized_position= bson::to_bson(&player.position.to_string()).unwrap();
 
                 let update_result = data_collection.update_one(
                     doc! {
