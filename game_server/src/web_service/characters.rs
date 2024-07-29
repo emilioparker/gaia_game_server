@@ -64,6 +64,7 @@ pub struct JoinWithCharacterResponse
     pub character_id:u16,
     pub faction:u8,
     pub position:String,
+    pub vertex_id:i32,
     pub level:u8,
     pub experience:u32,
     pub available_points:u8,
@@ -290,6 +291,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         character_id: new_id,
         character_name: data.character_name.clone(),
         position:initial_position.to_owned(),
+        vertex_id: -1,
         faction: data.faction as u8,
         inventory : Vec::new(),
         level: 0,
@@ -327,6 +329,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         faction: data.faction as u8,
         action: 0,
         position: initial_position_tile_id.clone(),
+        second_position: initial_position_tile_id.clone(),
+        vertex_id: -1,
         path: [0,0,0,0,0,0],
         time:0,
         inventory: Vec::new(), // fill this from storedcharacter
@@ -417,8 +421,9 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
 
     let players = context.working_game_map.character.lock().await;
 
-    if let Some(player) = players.get(&data.character_id) {
-        println!("player login {:?}", player);
+    if let Some(player) = players.get(&data.character_id) 
+    {
+        println!("player login {:?} vertex id {}", player, player.vertex_id);
 
         println!("position {:?} {}", player.position, player.health);
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
@@ -428,7 +433,8 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         {
             character_id: data.character_id,
             faction:player.faction,
-            position:  player.position.to_string(),
+            position:  player.second_position.to_string(),
+            vertex_id: player.vertex_id,
             level : player.level,
             experience : player.experience,
             health: player.health,

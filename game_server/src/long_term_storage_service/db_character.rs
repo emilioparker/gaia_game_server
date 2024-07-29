@@ -16,6 +16,7 @@ pub struct StoredCharacter {
     pub faction: u8,
     pub character_name: String,
     pub position:String,
+    pub vertex_id:i32,
     pub inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,

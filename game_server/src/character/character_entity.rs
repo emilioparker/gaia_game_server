@@ -20,7 +20,8 @@ pub struct CharacterEntity
     pub character_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub position: TetrahedronId, // 6 bytes
-    // pub second_position: TetrahedronId, // 6 bytes
+    pub second_position: TetrahedronId, // not sent, when saving on the database, this on is stored. On login this on is used
+    pub vertex_id:i32,// not sent, also saved in db, but only used on login to properly set the position of the player.
     pub path: [u8;6], // 6 bytes
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
     pub action:u8, //4 bytes
@@ -473,6 +474,8 @@ mod tests {
             faction:0,
             action: 0,
             position: TetrahedronId::from_string("A"),
+            second_position: TetrahedronId::from_string("A"),
+            vertex_id:-1,
             path:[0,0,0,0,0,0],
             time:0,
             inventory: Vec::new(),
@@ -527,6 +530,8 @@ mod tests {
             character_id: 2,
             faction: 0,
             position: TetrahedronId::from_string("A"),
+            second_position: TetrahedronId::from_string("A"), 
+            vertex_id:-1,
             path:[0,0,0,0,0,0],
             time:0,
             action: 1,
