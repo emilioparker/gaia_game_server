@@ -23,6 +23,7 @@ pub mod action_protocol;
 pub mod greet_protocol;
 pub mod activate_buff_protocol;
 pub mod character_attacks_character_protocol;
+pub mod disconnect_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;

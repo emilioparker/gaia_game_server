@@ -99,6 +99,10 @@ pub async fn process_player_commands (
                 println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
                 player_attacks_summary.push(attack);
             },
+            character_command::CharacterCommandInfo::Disconnect() => 
+            {
+                disconnect(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id).await;
+            },
         }
     }
     player_commands_data.clear();
@@ -530,6 +534,24 @@ pub async fn attack_character(
         let damage = character_attack.saturating_sub(character_defense);
 
         character_entity.health = i16::max(0, damage as i16 - character_attack as i16) as u16;
+        tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
+        characters_summary.push(character_entity.clone());
+    }
+}
+
+pub async fn disconnect(
+    map : &Arc<GameMap>,
+    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    characters_summary : &mut Vec<CharacterEntity>,
+    character_id: u16)
+{
+    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let character_option = character_entities.get_mut(&character_id);
+
+    if let Some(character_entity) = character_option 
+    {
+        character_entity.action = 0;
+        character_entity.version += 1;
         tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
         characters_summary.push(character_entity.clone());
     }

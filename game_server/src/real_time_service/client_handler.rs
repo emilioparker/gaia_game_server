@@ -20,6 +20,7 @@ use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::map::tile_attack::TileAttack;
+use crate::protocols::disconnect_protocol;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
 use crate::{protocols, ServerState};
@@ -82,15 +83,19 @@ pub async fn spawn_client_process(
         ).await;
 
         let mut child_buff = [0u8; 508];
-        'main_loop : loop {
+        'main_loop : loop 
+        {
             let socket_receive = socket_local_instance.recv(&mut child_buff);
             let time_out = time::sleep(Duration::from_secs_f32(5.0)); 
             tokio::select! {
-                result = socket_receive => {
+                result = socket_receive => 
+                {
                     // read the player id and the session id and drop if session id is different
 
-                    match result{
-                        Ok(_size) => {
+                    match result
+                    {
+                        Ok(_size) => 
+                        {
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(
                                 player_id,
@@ -106,18 +111,23 @@ pub async fn spawn_client_process(
                                 &channel_chat_action_tx,
                             ).await;
                         }
-                        Err(error) => {
+                        Err(error) => 
+                        {
                             println!("we got an error {:?}", error);
                             break 'main_loop;
                         }
                     }
                 }
-                _ = time_out => {
+                _ = time_out => 
+                {
                     println!("we couldn't wait any longer sorry!");
                     break 'main_loop;
                 }
             }
         }
+
+        // before disconnecting, we set action to 0, to indicate that the player is not active
+        disconnect_protocol::process(player_id, &channel_action_tx).await;
 
         // if we are here, this task expired and we need to remove the key from the hashset
         channel_tx.send((from_address, session_id)).await.unwrap();

@@ -13,6 +13,7 @@ pub const TOUCH: u8 = 6;
 pub enum CharacterCommandInfo 
 {
     Touch(),
+    Disconnect(),
     Movement(CharacterMovement),
     Action(u8),
     AttackCharacter(u16, u32, u32, u8), // other_character_id, card_id, required_time, effect
