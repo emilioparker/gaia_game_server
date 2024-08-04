@@ -1,16 +1,18 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{buffs::buff::Stat, character::{character_attack::CharacterAttack, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}};
+use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
     map : Arc<GameMap>,
+    server_state: Arc<ServerState>,
     current_time : u64,
     player_commands_processor_lock : Arc<Mutex<Vec<CharacterCommand>>>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_presentation_summary : &mut Vec<CharacterPresentation>,
-    player_attacks_summary : &mut  Vec<CharacterAttack>,
+    attacks_summary : &mut  Vec<Attack>,
+    attack_details_summary : &mut  Vec<AttackDetails>,
     delayed_player_commands_lock : Arc<Mutex<Vec<(u64, CharacterCommand)>>>
 )
 {
@@ -73,7 +75,7 @@ pub async fn process_player_commands (
                 let end_time = current_time + *required_time as u64;
                 if *required_time == 0
                 {
-                    attack_character(&map, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id, *other_player_id).await;
+                    attack_character(&map, current_time, &server_state, tx_pe_gameplay_longterm, players_summary, attack_details_summary, *card_id, cloned_data.player_id, *other_player_id).await;
                 }
                 else 
                 {
@@ -85,7 +87,7 @@ pub async fn process_player_commands (
                     drop(lock);
                 }
 
-                let attack = CharacterAttack
+                let attack = Attack
                 {
                     id: (current_time % 10000) as u16,
                     character_id: cloned_data.player_id,
@@ -97,7 +99,7 @@ pub async fn process_player_commands (
                 };
 
                 println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
-                player_attacks_summary.push(attack);
+                attacks_summary.push(attack);
             },
             character_command::CharacterCommandInfo::Disconnect() => 
             {
@@ -111,8 +113,11 @@ pub async fn process_player_commands (
 
 pub async fn process_delayed_player_commands(
     map : Arc<GameMap>,
+    current_time : u64,
+    server_state: Arc<ServerState>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
+    attack_details_summary : &mut Vec<AttackDetails>,
     delayed_character_commands_to_execute : Vec<CharacterCommand>,
 )
 {
@@ -127,7 +132,7 @@ pub async fn process_delayed_player_commands(
         {
             character_command::CharacterCommandInfo::AttackCharacter(other_character_id, card_id, _required_time, _active_effect) => 
             {
-                attack_character(&map, tx_pe_gameplay_longterm, characters_summary, *card_id, player_command.player_id, *other_character_id).await;
+                attack_character(&map, current_time,&server_state, tx_pe_gameplay_longterm, characters_summary, attack_details_summary, *card_id, player_command.player_id, *other_character_id).await;
             },
             _ => 
             {
@@ -170,7 +175,7 @@ pub async fn use_item(
                 {
                     (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
                     {
-                        player_entity.health = u16::min(character_definition.constitution, player_entity.health + 5);
+                        player_entity.health = i32::min(character_definition.constitution as i32, player_entity.health + 5);
                         player_entity.version += 1;
                     },
                     (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal
@@ -354,7 +359,7 @@ pub async fn respawn(
         {
             action: 0,
             time:0,
-            health: character_definition.constitution,
+            health: character_definition.constitution as i32,
             version: player_entity.version + 1,
             position: respawn_tile_id,
             path:[0,0,0,0,0,0],
@@ -493,49 +498,65 @@ pub async fn activate_buff(
     }
 }
 
+
 pub async fn attack_character(
     map : &Arc<GameMap>,
+    current_time: u64,
+    server_state: &Arc<ServerState>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
+    attack_details_summary : &mut Vec<AttackDetails>,
     card_id : u32,
     character_id: u16,
     other_character_id:u16)
 {
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    let character_option = character_entities.get_mut(&character_id);
+    let attacker_option= character_entities.get(&character_id);
+    let defender_option= character_entities.get(&other_character_id);
 
-    let mut character_attack = 0u16;
-    if let Some(character_entity) = character_option 
+    if let (Some(attacker), Some(defender)) = (attacker_option, defender_option)
     {
-        if let Some(card_definition) = map.definitions.get_card(card_id as usize)
+        let mut attacker = attacker.clone();
+        let mut defender = defender.clone();
+
+        let result = super::utils::attack::<CharacterEntity, CharacterEntity>(&map.definitions, card_id, &mut attacker, &mut defender);
+
+        attacker.version += 1;
+        defender.version += 1;
+
+        let attacker_stored = attacker.clone();
+        let defender_stored = defender.clone();
+
+        if let Some(character) = character_entities.get_mut(&character_id)
         {
-            let attack = character_entity.get_strength(card_definition.strength_factor) as f32;
-            character_attack = attack.round() as u16;
-            character_entity.use_buffs(vec![Stat::Strength]);
-            character_entity.version += 1;
+            *character = attacker;
         }
-        else
+
+        if let Some(character) = character_entities.get_mut(&other_character_id)
         {
-            println!("-- card id not found {card_id}");
-            return;
+            *character = defender;
         }
-        tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
-        characters_summary.push(character_entity.clone());
-    }
 
-    let other_character_option = character_entities.get_mut(&other_character_id);
+        drop(character_entities);
 
-    if let Some(character_entity) = other_character_option 
-    {
-        let defense = character_entity.get_defense(0f32) as f32;
-        let character_defense = defense.round() as u16;
-        character_entity.use_buffs(vec![Stat::Defense]);
+        characters_summary.push(attacker_stored.clone());
+        characters_summary.push(defender_stored.clone());
 
-        let damage = character_attack.saturating_sub(character_defense);
+        attack_details_summary.push(AttackDetails
+        {
+            id: (current_time % 10000) as u16,
+            target_character_id: other_character_id,
+            target_mob_tile_id: TetrahedronId::from_string("A"),
+            result,
+        });
 
-        character_entity.health = i16::max(0, damage as i16 - character_attack as i16) as u16;
-        tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
-        characters_summary.push(character_entity.clone());
+        tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
+        tx_pe_gameplay_longterm.send(defender_stored).await.unwrap();
+
+        // metrics
+
+        let capacity = tx_pe_gameplay_longterm.capacity();
+        server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     }
 }
 

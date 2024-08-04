@@ -32,7 +32,8 @@ pub async fn process_request(
     let player_entities = map.character.lock().await;
     let player_option = player_entities.get(&player_id);
 
-    let (inventory, version) = if let Some(player_entity) = player_option {
+    let (inventory, inventory_version) = if let Some(player_entity) = player_option 
+    {
         (player_entity.inventory.clone(), player_entity.inventory_version)
     }
     else {
@@ -50,8 +51,7 @@ pub async fn process_request(
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &item_len_bytes).unwrap();
 
-    let version_bytes = u32::to_le_bytes(version);
-    std::io::Write::write_all(&mut encoder, &version_bytes).unwrap();
+    std::io::Write::write_all(&mut encoder, &[inventory_version]).unwrap();
 
     let mut offset = 0;
     for item in inventory {

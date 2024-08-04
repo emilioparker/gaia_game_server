@@ -1,11 +1,12 @@
 pub const CHARACTER_REWARD_SIZE: usize = 12;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CharacterReward {
+pub struct CharacterReward 
+{
     pub player_id: u16, // 2 bytes
     pub item_id: u32, // 4 bytes
     pub amount: u16, // 2 bytes
-    pub inventory_hash: u32 // 4 bytes
+    pub inventory_hash: u8 // 1 bytes
 }
 
 impl CharacterReward {
@@ -26,9 +27,8 @@ impl CharacterReward {
         let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
         buffer[start..end].copy_from_slice(&amount_bytes);
         start = end;
-        end = start + 4;
-        let amount_bytes = u32::to_le_bytes(self.inventory_hash); // 4 bytes
-        buffer[start..end].copy_from_slice(&amount_bytes);
+        end = start + 1;
+        buffer[start] = self.inventory_hash;
         buffer
     }
 
@@ -47,8 +47,8 @@ impl CharacterReward {
         let amount = u16::from_le_bytes(data[start..end].try_into().unwrap());
         start = end;
 
-        end = start + 4;
-        let inventory_hash = u32::from_le_bytes(data[start..end].try_into().unwrap());
+        end = start + 1;
+        let inventory_hash = data[start];
         //start = end;
 
         CharacterReward { player_id, item_id, amount, inventory_hash}

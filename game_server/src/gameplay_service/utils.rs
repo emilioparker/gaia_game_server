@@ -2,8 +2,38 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
+use crate::{ability_user::{attack_details::{BLOCKED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, Stat}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
 
+
+pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
+    definitions : &Definitions,
+    card_id:u32,
+    attacker: &mut T,
+    target : &mut S) -> u8
+{
+    let attack = attacker.get_total_attack(card_id, definitions);
+    attacker.use_buffs(vec![Stat::Strength]);
+
+    let defense = target.get_total_defense( definitions);
+    target.use_buffs(vec![Stat::Defense]);
+
+    let damage = attack.saturating_sub(defense);
+    println!("--- attack {attack} def {defense} damage {damage}");
+
+    let health = target.get_health();
+    let updated_health = health - damage as i32;
+
+    println!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
+    target.update_health(updated_health);
+
+    if health == updated_health
+    {
+        return BLOCKED_ATTACK_RESULT;
+    }
+    else {
+        return NORMAL_ATTACK_RESULT;
+    }
+}
 
 pub fn add_rewards_to_character_entity(
     player_entity : &mut CharacterEntity, 

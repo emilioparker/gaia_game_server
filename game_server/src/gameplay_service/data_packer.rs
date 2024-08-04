@@ -1,6 +1,7 @@
+use crate::ability_user::attack::ATTACK_SIZE;
+use crate::ability_user::attack_details::ATTACK_DETAILS_SIZE;
 use crate::mob::mob_instance::{self, MOB_ENTITY_SIZE};
 use crate::{SERVER_STATE_SIZE, ServerState};
-use crate::character::character_attack::CHARACTER_ATTACK_SIZE;
 use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
 use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
 use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
@@ -58,13 +59,14 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::PlayerState(_) => CHARACTER_ENTITY_SIZE as u32 + 1,
             StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
             StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
-            StateUpdate::PlayerAttackState(_) => CHARACTER_ATTACK_SIZE as u32 + 1,
+            StateUpdate::AttackState(_) => ATTACK_SIZE as u32 + 1,
             StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 + 1,
             StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 + 1,
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
             StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
             StateUpdate::ServerStatus(_) => SERVER_STATE_SIZE as u32 + 1,
             StateUpdate::MobUpdate(_) => MOB_ENTITY_SIZE as u32 + 1,
+            StateUpdate::AttackDetailsState(_) => ATTACK_DETAILS_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -135,15 +137,27 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::PlayerAttackState(player_attack) => 
+            StateUpdate::AttackState(player_attack) => 
             {
-                buffer[start] = DataType::PlayerAttack as u8;
+                buffer[start] = DataType::Attack as u8;
                 start += 1;
 
                 let attack_bytes = player_attack.to_bytes(); //24
-                let next = start + CHARACTER_ATTACK_SIZE;
+                let next = start + ATTACK_SIZE;
                 buffer[start..next].copy_from_slice(&attack_bytes);
-                stored_bytes = stored_bytes + CHARACTER_ATTACK_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + ATTACK_SIZE as u32 + 1;
+                stored_states = stored_states + 1;
+                start = next;
+            },
+            StateUpdate::AttackDetailsState(details) => 
+            {
+                buffer[start] = DataType::AttackDetails as u8;
+                start += 1;
+
+                let details_bytes = details.to_bytes(); //24
+                let next = start + ATTACK_DETAILS_SIZE;
+                buffer[start..next].copy_from_slice(&details_bytes);
+                stored_bytes = stored_bytes + ATTACK_DETAILS_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

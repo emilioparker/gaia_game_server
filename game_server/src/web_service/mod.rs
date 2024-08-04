@@ -425,7 +425,7 @@ pub fn start_server(
             
             if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
             {
-                if message.health == 0
+                if message.health <= 0
                 {
                     // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
 

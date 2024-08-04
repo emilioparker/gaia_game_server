@@ -11,7 +11,8 @@ pub struct TileAttack
     pub skill_id: u32 // 4 bytes
 }
 
-impl TileAttack {
+impl TileAttack 
+{
     pub fn to_bytes(&self) -> [u8;16] 
     {
         let mut buffer = [0u8; 16];

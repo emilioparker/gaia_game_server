@@ -21,13 +21,14 @@ pub enum DataType
     PlayerState = 26,
     TileState = 27,
     PlayerPresentation = 28,
-    PlayerAttack = 29,
+    Attack = 29,
     PlayerReward = 30,
     TileAttack = 31,
     TowerState = 32,
     ChatMessage = 33,
     ServerStatus = 34,
     MobStatus = 35,
+    AttackDetails = 36,
 }
 
 pub fn start_server(

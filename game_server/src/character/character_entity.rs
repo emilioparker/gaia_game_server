@@ -2,12 +2,10 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{buffs::buff::{Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
+use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 56;
+pub const CHARACTER_ENTITY_SIZE: usize = 55;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
-
-pub const ITEMS_PRIME_KEYS: [u16;46] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]; 
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -21,21 +19,27 @@ pub struct CharacterEntity
     pub faction:u8, // 1 byte
     pub position: TetrahedronId, // 6 bytes
 
+    // 11 bytes
+
     pub second_position: TetrahedronId, // not sent, when saving on the database, this on is stored. On login this on is used
     pub vertex_id:i32,// not sent, also saved in db, but only used on login to properly set the position of the player.
 
     pub path: [u8;6], // 6 bytes
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
     pub action:u8, //1 bytes
+
+    // 11 bytes
     
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
-    pub inventory_version : u32, // 4 bytes
+    pub inventory_version : u8, // 1 bytes
 
-    // total = 25 bytes
+    // 1 bytes
 
     pub level:u8, // 1 bytes
     pub experience:u32, // 4 bytes
     pub available_skill_points:u8, // 1 bytes used for stats
+
+    // 6 bytes
 
     // attributes 4 bytes
     pub strength_points: u8, 
@@ -43,22 +47,23 @@ pub struct CharacterEntity
     pub intelligence_points: u8,
     pub mana_points: u8,
 
-    // attributes 8 bytes
+    // 4 bytes
+
     pub base_strength: u16,
     pub base_defense: u16,
     pub base_intelligence: u16,
     pub base_mana: u16,
 
-    // total 18
+    // 8 bytes
 
     // stats
-    pub health: u16, // 2 bytes
+    pub health: i32, // 4 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [(u8,u8);5] // this one is serialized but not saved 10 bytes
 
-    // total 12 bytes
+    // 14 bytes 
 
-    // 25 + 18 + 12
+    // 11 + 11 + 1 + 6 + 4 + 8 + 14 = 55
 }
 
 pub enum ItemType
@@ -145,12 +150,11 @@ impl CharacterEntity
         buffer[offset] = self.action;
 
         offset = end;
-        let inventory_version_bytes = u32::to_le_bytes(self.inventory_version); // 4 bytes
-        end = offset + 4;
-        buffer[offset..end].copy_from_slice(&inventory_version_bytes);
+        end = offset + 1;
+        buffer[offset] = self.inventory_version;
         offset = end;
 
-        // 5 bytes
+        // 2 bytes
 
         end = offset + 1;
         buffer[offset] = self.level;
@@ -201,12 +205,10 @@ impl CharacterEntity
         buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
 
-        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
-        end = offset + 2;
+        let health_bytes = i32::to_le_bytes(self.health); // 4 bytes
+        end = offset + 4;
         buffer[offset..end].copy_from_slice(&health_bytes);
         offset = end;
-
-        // 20
 
         // 5 pairs of 1 bytes, 10 bytes
         for pair in self.buffs_summary
@@ -361,26 +363,6 @@ impl CharacterEntity
     //     println!("hash {hash}");
     //     hash
     // }
-
-    pub fn get_strength(&self, strength : f32) -> u16
-    {
-        let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
-        let added_strength : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Strength).map(|b| b.buff_amount).sum();
-        (stat as f32 * strength).round() as u16  + added_strength.round() as u16
-    }
-
-    pub fn get_defense(&self, defense :f32) -> u16
-    {
-        let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
-        let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
-        (stat as f32 * defense).round() as u16  + added_defense.round() as u16
-    }
-
-    pub fn calculate_stat(base : u16, points : u8, class_multiplier:f32, efficiency:f32) -> u16
-    {
-        (base as f32 + (points as f32) * class_multiplier * efficiency).round() as u16
-    }
-
 }
 
 impl Hash for CharacterEntity 
@@ -413,9 +395,42 @@ impl BuffUser for CharacterEntity
     }
 }
 
+impl AbilityUser for CharacterEntity
+{
+    fn get_health(&self) -> i32 
+    {
+        self.health
+    }
+
+    fn update_health(&mut self, new_health : i32) 
+    {
+        self.health = new_health;
+    }
+    
+    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 
+    {
+        let card_attack = definition.get_card(card_id as usize).map_or(0f32, |d| d.strength_factor);
+        let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
+        let added_strength : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Strength).map(|b| b.buff_amount).sum();
+
+        let base = self.base_strength;
+        let points = self.strength_points;
+        println!(" -- calculate total attack {card_attack} base {base} points {points}  stat {stat} buff {added_strength}");
+        (stat as f32 * card_attack).round() as u16  + added_strength.round() as u16
+    }
+    
+    fn get_total_defense(&self, definition: &Definitions) -> u16 
+    {
+        let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
+        let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
+        stat + added_defense.round() as u16
+    }
+}
+
 
 #[cfg(test)]
-mod tests {
+mod tests 
+{
     use std::num::Wrapping;
 
 

@@ -1,20 +1,21 @@
-use std::{sync::Arc, collections::HashMap};
+use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, gameplay_service::utils::add_rewards_to_character_entity, map::{tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
-use crate::character::{character_entity::CharacterEntity, character_attack::CharacterAttack, character_reward::CharacterReward};
+use crate::{ability_user::{attack::Attack, attack_details::AttackDetails}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, gameplay_service::utils::add_rewards_to_character_entity, map::{tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
     map : Arc<GameMap>,
+    current_time : u64,
     server_state: Arc<ServerState>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     tx_moe_gameplay_webservice : &Sender<MobEntity>,
-    current_time : u64,
     mobs_commands_processor_lock : Arc<Mutex<Vec<MobCommand>>>,
     delayed_mob_commands_lock : Arc<Mutex<Vec<(u64, MobCommand)>>>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut  Vec<CharacterEntity>,
+    attack_details_summary : &mut Vec<AttackDetails>,
     rewards_summary : &mut  Vec<CharacterReward>,
-    player_attacks_summary : &mut  Vec<CharacterAttack>,
+    player_attacks_summary : &mut  Vec<Attack>,
     tile_attacks_summary : &mut  Vec<TileAttack>,
 )
 {
@@ -38,11 +39,13 @@ pub async fn process_mob_commands (
                     {
                         attack_mob(
                             &map,
+                            current_time,
                             &server_state,
                             tx_moe_gameplay_webservice,
                             tx_pe_gameplay_longterm,
                             mobs_summary,
                             characters_summary,
+                            attack_details_summary,
                             rewards_summary,
                             *card_id,
                             *character_id,
@@ -59,7 +62,7 @@ pub async fn process_mob_commands (
                         drop(lock);
                     }
 
-                    let attack = CharacterAttack
+                    let attack = Attack
                     {
                         id: (current_time % 10000) as u16,
                         character_id: *character_id,
@@ -69,6 +72,7 @@ pub async fn process_mob_commands (
                         required_time: *required_time,
                         active_effect: *active_effect
                     };
+
                     println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
                     player_attacks_summary.push(attack);
                     println!("-------- attack mob");
@@ -92,11 +96,13 @@ pub async fn process_mob_commands (
 
 pub async fn process_delayed_mob_commands (
     map : Arc<GameMap>,
+    current_time : u64,
     server_state: Arc<ServerState>,
     tx_moe_gameplay_webservice : &Sender<MobEntity>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
+    attack_details_summary : &mut Vec<AttackDetails>,
     rewards_summary : &mut Vec<CharacterReward>,
     delayed_mob_commands_to_execute : Vec<MobCommand>
 )
@@ -112,11 +118,13 @@ pub async fn process_delayed_mob_commands (
             {
                 attack_mob(
                     &map,
+                    current_time,
                     &server_state,
                     tx_moe_gameplay_webservice,
                     tx_pe_gameplay_longterm,
                     mobs_summary,
                     characters_summary,
+                    attack_details_summary,
                     rewards_summary,
                     *card_id,
                     *character_id,
@@ -163,7 +171,7 @@ pub async fn spawn_mob(
     if let Some(entry) = map.definitions.mob_progression.get(level as usize) 
     {
         // let attribute = (entry.skill_points / 4) as u16;
-        new_mob.health =  entry.constitution;
+        new_mob.health =  entry.constitution as i32;
         // updated_mob.strength = attribute; // attack
         // updated_mob.dexterity = attribute; // attack
     }
@@ -173,7 +181,7 @@ pub async fn spawn_mob(
     let mut mobs = region.lock().await;
     if let Some(mob) = mobs.get_mut(&tile_id)
     {
-        if mob.health == 0 // we can spawn a mob here.
+        if mob.health <= 0 // we can spawn a mob here.
         {
             new_mob.version = mob.version + 1;
             // println!("new mob {:?}", updated_tile);
@@ -251,75 +259,72 @@ pub async fn control_mob(
 
 pub async fn attack_mob(
     map : &Arc<GameMap>,
+    current_time : u64,
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &Sender<MobEntity>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
+    attack_details_summary : &mut Vec<AttackDetails>,
     characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id: u32,
-    player_id:u16,
-    tile_id: TetrahedronId
+    character_id:u16,
+    mob_id: TetrahedronId
 )
 {
     println!("----- attack mob ");
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    let player_option = player_entities.get_mut(&player_id);
-    let mut character_attack = 0u16;
-    if let Some(character_entity) = player_option 
-    {
-        if let Some(card_definition) = map.definitions.get_card(card_id as usize)
-        {
-            let attack = character_entity.get_strength(card_definition.strength_factor) as f32;
-            character_attack = attack.round() as u16;
-            character_entity.use_buffs(vec![Stat::Strength]);
-            character_entity.version += 1;
-        }
-        else
-        {
-            println!("-- card id not found {card_id}");
-            return;
-        }
-    }
+    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let character_attacker_option = character_entities.get(&character_id);
 
-    drop(player_entities);
-
-    println!("----- attack mob {character_attack}");
-    let mob_region = map.get_mob_region_from_child(&tile_id);
+    let mob_region = map.get_mob_region_from_child(&mob_id);
     let mut mobs = mob_region.lock().await;
 
-    if let Some(mob) = mobs.get_mut(&tile_id) 
+    let mob_defender_option = mobs.get(&mob_id);
+    
+    if let (Some(attacker), Some(defender)) = (character_attacker_option, mob_defender_option)
     {
-        let (updated_mob, reward) = process_mob_attack(
-            character_attack, 
-            mob, 
-        );
-        
-        *mob = updated_mob.clone();
+        let mut attacker = attacker.clone();
+        let mut defender = defender.clone();
+        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, &mut attacker, &mut defender);
+
+        attacker.version += 1;
+        defender.version += 1;
+
+        let attacker_stored = attacker.clone();
+        let defender_stored = defender.clone();
+
+        if let Some(character) = character_entities.get_mut(&character_id)
+        {
+            *character = attacker;
+        }
+        if let Some(mob) = mobs.get_mut(&mob_id)
+        {
+            *mob = defender;
+        }
+        drop(character_entities);
         drop(mobs);
 
+        attack_details_summary.push(AttackDetails
+        {
+            id: (current_time % 10000) as u16,
+            target_character_id: u16::MAX,
+            target_mob_tile_id: mob_id,
+            result,
+        });
+
+        characters_summary.push(attacker_stored.clone());
+        mobs_summary.push(defender_stored.clone());
+
+        tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
+        tx_moe_gameplay_webservice.send(defender_stored).await.unwrap();
+
+        // metrics
         let capacity = tx_moe_gameplay_webservice.capacity();
         server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
-        // sending the updated tile somewhere.
-        tx_moe_gameplay_webservice.send(updated_mob.clone()).await.unwrap();
-        mobs_summary.push(updated_mob);
-
-        if let Some(reward) = reward 
-        {
-            println!("We got some reward {:?}", reward);
-            let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-            let player_option = player_entities.get_mut(&player_id);
-            if let Some(player_entity) = player_option 
-            {
-                add_rewards_to_character_entity(player_entity,reward, &map.definitions, characters_rewards_summary, characters_summary);
-                let updated_player_entity = player_entity.clone();
-                drop(player_entities);
-                // we try to drop any locks before doing an await
-                tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
-            }
-        }
-    } // end of if let
+        let capacity = tx_pe_gameplay_longterm.capacity();
+        server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 fn process_mob_attack(
@@ -336,15 +341,15 @@ fn process_mob_attack(
 
     if previous_health > 0
     {
-        updated_mob.health = i16::max(0, updated_mob.health as i16 - damage as i16) as u16;
+        updated_mob.health = updated_mob.health - damage as i32;
         updated_mob.version += 1;
         println!("new health {}", updated_mob.health);
-        if updated_mob.health == 0
+        if updated_mob.health <= 0
         {
             updated_mob.mob_definition_id = 0;
         }
 
-        if updated_mob.health == 0
+        if updated_mob.health <= 0
         {
             println!("Add inventory item for player");
 
@@ -384,14 +389,15 @@ pub async fn announce_walker_attack(
         let tile_level = tile.level;
         drop(tiles);
 
-        let damage = if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
-        {
-            (entry.skill_points / 4) as u16
-        }
-        else
-        {
-            1
-        };
+        let damage =  1;
+        // if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
+        // {
+        //     (entry.skill_points / 4) as u16
+        // }
+        // else
+        // {
+        //     1
+        // };
 
         let attack = TileAttack
         {

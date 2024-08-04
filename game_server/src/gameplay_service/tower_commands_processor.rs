@@ -1,7 +1,7 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{map::GameMap, ServerState, tower::{TowerCommand, TowerCommandInfo, tower_entity::TowerEntity}};
-use crate::character::{character_entity::CharacterEntity, character_attack::CharacterAttack, character_reward::CharacterReward};
+use crate::{ability_user::attack::Attack, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
+use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 
 pub async fn process_tower_commands (
@@ -11,7 +11,7 @@ pub async fn process_tower_commands (
     _tx_te_gameplay_longterm : &Sender<TowerEntity>,
     _tx_te_gameplay_webservice : &Sender<TowerEntity>,
     _towers_summary : &mut Vec<TowerEntity>,
-    player_attacks_summary : &mut  Vec<CharacterAttack>,
+    player_attacks_summary : &mut  Vec<Attack>,
     delayed_tower_commands_lock : Arc<Mutex<Vec<(u64, TowerCommand)>>>
 )
 {
@@ -53,7 +53,7 @@ pub async fn process_tower_commands (
 
                         if tower.cooldown < current_time_in_seconds
                         {
-                            let attack = CharacterAttack
+                            let attack = Attack
                             {
                                 id : (current_time_in_milliseconds % 10000) as u16,
                                 character_id: *player_id,

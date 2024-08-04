@@ -15,6 +15,7 @@ pub mod chat_service;
 pub mod definitions;
 pub mod mob;
 pub mod buffs;
+pub mod ability_user;
 
 pub const SERVER_STATE_SIZE: usize = 20;
 

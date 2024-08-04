@@ -20,6 +20,7 @@ pub struct Buff
     pub expiration_time:u32 //4
 }
 
+
 pub trait BuffUser
 {
     fn get_buffs_mut(&mut self) -> &mut Vec<Buff>;
@@ -113,6 +114,7 @@ pub trait BuffUser
         self.set_buffs(updated_buffs);
         self.summarize_buffs();
     }
+
 }
 
 impl Stat

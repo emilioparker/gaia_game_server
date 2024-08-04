@@ -8,9 +8,10 @@ use tokio::time;
 use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
+use crate::ability_user::attack::Attack;
+use crate::ability_user::attack_details::AttackDetails;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
-use crate::character::character_attack::CharacterAttack;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::character::character_entity::CharacterEntity;
 use crate::character::character_presentation::CharacterPresentation;
@@ -34,7 +35,8 @@ pub enum StateUpdate
     Rewards(CharacterReward),
     TileState(MapEntity),
     TowerState(TowerEntity),
-    PlayerAttackState(CharacterAttack),
+    AttackState(Attack),
+    AttackDetailsState(AttackDetails),
     TileAttackState(TileAttack),
     ChatMessage(ChatEntry),
     MobUpdate(MobEntity),

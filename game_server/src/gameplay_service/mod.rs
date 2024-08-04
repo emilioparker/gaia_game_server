@@ -172,7 +172,8 @@ pub fn start_service(
             server_status_deliver_count += 1;
 
             let mut players_summary = Vec::new();
-            let mut player_attacks_summary = Vec::new();
+            let mut attacks_summary = Vec::new();
+            let mut attack_details_summary = Vec::new();
             let mut tile_attacks_summary = Vec::new();
             let mut players_presentation_summary = Vec::new();
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
@@ -190,8 +191,11 @@ pub fn start_service(
 
             player_commands_processor::process_delayed_player_commands(
                 map.clone(), 
+                current_time_in_millis,
+                server_state.clone(),
                 &tx_pe_gameplay_longterm, 
                 &mut players_summary, 
+                &mut attack_details_summary, 
                 delayed_player_commands_to_execute
             ).await;
 
@@ -200,12 +204,14 @@ pub fn start_service(
 
             player_commands_processor::process_player_commands(
                 map.clone(), 
+                server_state.clone(),
                 current_time_in_millis,
                 player_commands_processor_lock.clone(),
                 &tx_pe_gameplay_longterm, 
                 &mut players_summary, 
                 &mut players_presentation_summary, 
-                &mut player_attacks_summary, 
+                &mut attacks_summary, 
+                &mut attack_details_summary, 
                 delayed_player_commands_mutex.clone()).await;
 
             // check for delayed_commands
@@ -244,7 +250,7 @@ pub fn start_service(
                 &mut tiles_summary,
                 &mut players_summary,
                 &mut players_rewards_summary,
-                &mut player_attacks_summary,
+                &mut attacks_summary,
                 &mut tile_attacks_summary,
                 delayed_tile_commands_lock.clone()).await;
 
@@ -271,7 +277,7 @@ pub fn start_service(
                 &tx_te_gameplay_webservice,
                 // &tx_pe_gameplay_longterm,
                 &mut towers_summary,
-                &mut player_attacks_summary,
+                &mut attacks_summary,
                 delayed_tower_commands_lock.clone()).await;
 
             let mut delayed_mob_commands_guard = delayed_mob_commands_lock.lock().await;
@@ -280,26 +286,29 @@ pub fn start_service(
 
             mob_commands_processor::process_delayed_mob_commands(
                 map.clone(),
+                current_time_in_millis,
                 server_state.clone(),
                 &tx_moe_gameplay_webservice,
                 &tx_pe_gameplay_longterm,
                 &mut mobs_summary,
                 &mut players_summary,
+                &mut attack_details_summary,
                 &mut players_rewards_summary,
                 delayed_mob_commands_to_execute).await;
 
             mob_commands_processor::process_mob_commands(
                 map.clone(),
+                current_time_in_millis,
                 server_state.clone(),
                 &tx_pe_gameplay_longterm,
                 &tx_moe_gameplay_webservice,
-                current_time_in_millis,
                 mob_commands_processor_lock.clone(),
                 delayed_mob_commands_lock.clone(),
                 &mut mobs_summary,
                 &mut players_summary,
+                &mut attack_details_summary,
                 &mut players_rewards_summary,
-                &mut player_attacks_summary,
+                &mut attacks_summary,
                 &mut tile_attacks_summary,
                 ).await;
 
@@ -324,9 +333,13 @@ pub fn start_service(
                 .into_iter()
                 .map(|p| StateUpdate::PlayerState(p));
 
-            let player_attack_state_updates = player_attacks_summary
+            let attack_state_updates = attacks_summary
                 .into_iter()
-                .map(|p| StateUpdate::PlayerAttackState(p));
+                .map(|p| StateUpdate::AttackState(p));
+
+            let attack_details_state_updates = attack_details_summary
+                .into_iter()
+                .map(|p| StateUpdate::AttackDetailsState(p));
 
             let tile_attack_state_updates = tile_attacks_summary
                 .into_iter()
@@ -345,7 +358,8 @@ pub fn start_service(
             filtered_summary.extend(tower_state_update);
             filtered_summary.extend(player_presentation_state_update);
             filtered_summary.extend(player_rewards_state_update);
-            filtered_summary.extend(player_attack_state_updates);
+            filtered_summary.extend(attack_state_updates);
+            filtered_summary.extend(attack_details_state_updates);
             filtered_summary.extend(tile_attack_state_updates);
             filtered_summary.extend(mob_state_updates);
 

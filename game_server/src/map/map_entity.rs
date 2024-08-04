@@ -33,7 +33,8 @@ pub struct MapEntity { // 76 bytes
 }
 
 impl MapEntity {
-    pub fn new(id : &str, health : u16) -> MapEntity {
+    pub fn new(id : &str, health : u16) -> MapEntity 
+    {
         
         let entity = MapEntity{
             object_id: None,

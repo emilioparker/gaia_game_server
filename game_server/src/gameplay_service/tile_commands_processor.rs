@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{buffs::buff::Stat, character::{character_attack::CharacterAttack, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, gameplay_service::utils::add_rewards_to_character_entity, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, ServerState};
+use crate::{ability_user::attack::Attack, buffs::buff::Stat, character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, gameplay_service::utils::add_rewards_to_character_entity, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 use super::utils::{report_map_process_capacity};
 
@@ -16,7 +16,7 @@ pub async fn process_tile_commands (
     tiles_summary : &mut Vec<MapEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_rewards_summary : &mut Vec<CharacterReward>,
-    player_attacks_summary : &mut  Vec<CharacterAttack>,
+    player_attacks_summary : &mut  Vec<Attack>,
     tile_attacks_summary : &mut  Vec<TileAttack>,
     delayed_tile_commands_lock : Arc<Mutex<Vec<(u64, MapCommand)>>>
 )
@@ -417,7 +417,7 @@ pub async fn attack_walker(
             // && updated_tile.faction != 0 
             // && updated_tile.faction != player_entity.faction 
         {
-            let result = player_entity.health.saturating_sub(damage);
+            let result = player_entity.health - damage as i32;
             let updated_player_entity = CharacterEntity 
             {
                 action: player_entity.action,
