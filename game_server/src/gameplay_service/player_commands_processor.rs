@@ -70,18 +70,28 @@ pub async fn process_player_commands (
             {
                 activate_buff(&map, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id).await;
             },
-            character_command::CharacterCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect) => 
+            character_command::CharacterCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
             {
                 let end_time = current_time + *required_time as u64;
                 if *required_time == 0
                 {
-                    attack_character(&map, current_time, &server_state, tx_pe_gameplay_longterm, players_summary, attack_details_summary, *card_id, cloned_data.player_id, *other_player_id).await;
+                    attack_character(
+                        &map,
+                        current_time,
+                        &server_state,
+                        tx_pe_gameplay_longterm,
+                        players_summary,
+                        attack_details_summary,
+                        *card_id,
+                        cloned_data.player_id,
+                        *other_player_id,
+                        *missed).await;
                 }
                 else 
                 {
                     println!("------------ required time for player attack {required_time} current time: {current_time} {card_id}");
                     let mut lock = delayed_player_commands_lock.lock().await;
-                    let info = CharacterCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect);
+                    let info = CharacterCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect, *missed);
                     let character_action = CharacterCommand { player_id: cloned_data.player_id, info };
                     lock.push((end_time, character_action));
                     drop(lock);
@@ -130,9 +140,19 @@ pub async fn process_delayed_player_commands(
     {
         match &player_command.info 
         {
-            character_command::CharacterCommandInfo::AttackCharacter(other_character_id, card_id, _required_time, _active_effect) => 
+            character_command::CharacterCommandInfo::AttackCharacter(other_character_id, card_id, _required_time, _active_effect, missed) => 
             {
-                attack_character(&map, current_time,&server_state, tx_pe_gameplay_longterm, characters_summary, attack_details_summary, *card_id, player_command.player_id, *other_character_id).await;
+                attack_character(
+                    &map,
+                    current_time,
+                    &server_state,
+                    tx_pe_gameplay_longterm,
+                    characters_summary, 
+                    attack_details_summary,
+                    *card_id,
+                    player_command.player_id,
+                    *other_character_id,
+                    *missed).await;
             },
             _ => 
             {
@@ -508,7 +528,8 @@ pub async fn attack_character(
     attack_details_summary : &mut Vec<AttackDetails>,
     card_id : u32,
     character_id: u16,
-    other_character_id:u16)
+    other_character_id:u16,
+    missed: u8)
 {
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let attacker_option= character_entities.get(&character_id);
@@ -519,7 +540,7 @@ pub async fn attack_character(
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
 
-        let result = super::utils::attack::<CharacterEntity, CharacterEntity>(&map.definitions, card_id, &mut attacker, &mut defender);
+        let result = super::utils::attack::<CharacterEntity, CharacterEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;

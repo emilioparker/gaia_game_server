@@ -16,7 +16,7 @@ pub enum CharacterCommandInfo
     Disconnect(),
     Movement(CharacterMovement),
     Action(u8),
-    AttackCharacter(u16, u32, u32, u8), // other_character_id, card_id, required_time, effect
+    AttackCharacter(u16, u32, u32, u8, u8), // other_character_id, card_id, required_time, effect
     Greet(),
     Respawn(TetrahedronId),
     SellItem(u8,u32, u16),

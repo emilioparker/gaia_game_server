@@ -32,7 +32,7 @@ pub async fn process_mob_commands (
                 {
 
                 },
-                mob_command::MobCommandInfo::Attack(character_id, card_id, required_time, active_effect) => 
+                mob_command::MobCommandInfo::Attack(character_id, card_id, required_time, active_effect, missed) => 
                 {
                     let end_time = current_time + *required_time as u64;
                     if *required_time == 0
@@ -49,14 +49,15 @@ pub async fn process_mob_commands (
                             rewards_summary,
                             *card_id,
                             *character_id,
-                            mobs_command.tile_id.clone()
+                            mobs_command.tile_id.clone(),
+                            *missed,
                         ).await;
                     }
                     else 
                     {
                         println!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::Attack(*character_id, *card_id, *required_time, *active_effect);
+                        let info = mob_command::MobCommandInfo::Attack(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
                         lock.push((end_time, mob_action));
                         drop(lock);
@@ -114,7 +115,7 @@ pub async fn process_delayed_mob_commands (
             mob_command::MobCommandInfo::Touch() => todo!(),
             mob_command::MobCommandInfo::Spawn(_, _, _) => todo!(),
             mob_command::MobCommandInfo::ControlMapEntity(_) => todo!(),
-            mob_command::MobCommandInfo::Attack(character_id, card_id, _required_time, _active_effect) => 
+            mob_command::MobCommandInfo::Attack(character_id, card_id, _required_time, _active_effect, missed) => 
             {
                 attack_mob(
                     &map,
@@ -128,7 +129,8 @@ pub async fn process_delayed_mob_commands (
                     rewards_summary,
                     *card_id,
                     *character_id,
-                    mobs_command.tile_id.clone()
+                    mobs_command.tile_id.clone(),
+                    *missed,
                 ).await;
             },
             mob_command::MobCommandInfo::AttackWalker(_, _, _, _) => todo!(),
@@ -269,7 +271,8 @@ pub async fn attack_mob(
     characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id: u32,
     character_id:u16,
-    mob_id: TetrahedronId
+    mob_id: TetrahedronId,
+    missed: u8,
 )
 {
     println!("----- attack mob ");
@@ -285,7 +288,7 @@ pub async fn attack_mob(
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, &mut attacker, &mut defender);
+        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;

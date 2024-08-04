@@ -7,7 +7,7 @@ pub enum MobCommandInfo
     Touch(),
     Spawn(u16, u32, u8), // character id, definition id
     ControlMapEntity(u16),
-    Attack(u16, u32, u32, u8), // character id, card id, time, active_effect
+    Attack(u16, u32, u32, u8, u8), // character id, card id, time, active_effect, missed
     AttackWalker(u16, u32, u32, u8), // character id, card id, time, active_effect
 }
 
