@@ -166,6 +166,8 @@ impl AbilityUser for MobEntity
         let (base_defense, defense_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_defense, d.defense_points));
         let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
         let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
+        let level = self.level;
+        println!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
         stat + added_defense.round() as u16
     }
 }

@@ -34,12 +34,14 @@ pub async fn get_characters_from_db_by_world(
     .unwrap();
 
     let mut count = 0;
-    while let Some(result) = cursor.next().await {
+    while let Some(result) = cursor.next().await 
+    {
         match result 
         {
-            Ok(doc) => {
-
-                let inventory = doc.inventory.into_iter().map(|item| InventoryItem {
+            Ok(doc) => 
+            {
+                let inventory = doc.inventory.into_iter().map(|item| InventoryItem 
+                {
                     item_id: item.item_id,
                     equipped: item.equipped,
                     amount: item.amount,
@@ -81,7 +83,8 @@ pub async fn get_characters_from_db_by_world(
                     vertex_id: doc.vertex_id,
                     path: [0,0,0,0,0,0],
                     time:0,
-                    action: 0,
+                    action: doc.action,
+                    flags: doc.flags,
                     character_name: doc.character_name,
                     inventory,
                     inventory_version: 1,
@@ -173,7 +176,8 @@ pub fn start_server(
 
             let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("characters");
 
-            for player in modified_player_entities {
+            for player in modified_player_entities 
+            {
                 let updated_inventory : Vec<StoredInventoryItem> = player.inventory
                 .into_iter()
                 .map(|item| StoredInventoryItem ::from(item))
@@ -197,6 +201,8 @@ pub fn start_server(
                         "$set": {
                             "position":serialized_position,
                             "vertex_id": bson::to_bson(&player.vertex_id).unwrap(),
+                            "action":bson::to_bson(&player.action).unwrap(),
+                            "flags":bson::to_bson(&player.flags).unwrap(),
                             "inventory" : serialized_data,
                             "level": bson::to_bson(&player.level).unwrap(),
                             "experience" : bson::to_bson(&player.experience).unwrap(),

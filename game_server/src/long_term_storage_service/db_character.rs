@@ -5,7 +5,8 @@ use crate::{buffs::buff::Buff, character::character_entity::InventoryItem};
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct StoredCharacter {
+pub struct StoredCharacter 
+{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub world_id: Option<ObjectId>,
@@ -17,6 +18,9 @@ pub struct StoredCharacter {
     pub character_name: String,
     pub position:String,
     pub vertex_id:i32,
+
+    pub action: u8,
+    pub flags:u8,
     pub inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,

@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -36,7 +36,18 @@ pub async fn process_player_commands (
             character_command::CharacterCommandInfo::Touch() => todo!(),
             character_command::CharacterCommandInfo::Movement(movement_data) => 
             {
-                move_character(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, movement_data.position.clone(), movement_data.second_position.clone(), movement_data.vertex_id, movement_data.path, movement_data.time).await;
+                move_character(
+                    &map,
+                    tx_pe_gameplay_longterm,
+                    players_summary,
+                    cloned_data.player_id,
+                    movement_data.position.clone(),
+                    movement_data.second_position.clone(),
+                    movement_data.vertex_id,
+                    movement_data.path,
+                    movement_data.time,
+                    movement_data.dash,
+                ).await;
             },
             character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
             {
@@ -397,11 +408,12 @@ pub async fn move_character(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
-    pos:TetrahedronId,
-    second_pos:TetrahedronId,
-    vertex_id:i32,
-    path:[u8;6],
-    movement_start_time:u32
+    pos: TetrahedronId,
+    second_pos: TetrahedronId,
+    vertex_id: i32,
+    path: [u8;6],
+    movement_start_time: u32,
+    dash: bool
 )
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
@@ -410,7 +422,7 @@ pub async fn move_character(
     println!("move {} vertex id {}", player_id, vertex_id);
     if let Some(player_entity) = player_option 
     {
-        let updated_player_entity = CharacterEntity 
+        let mut updated_player_entity = CharacterEntity 
         {
             action: character_command::WALK_ACTION,
             version: player_entity.version + 1,
@@ -421,6 +433,8 @@ pub async fn move_character(
             time: movement_start_time,
             ..player_entity.clone()
         };
+
+        updated_player_entity.set_flag(DASH_FLAG, dash);
 
         *player_entity = updated_player_entity;
         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();

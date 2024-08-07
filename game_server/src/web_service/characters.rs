@@ -10,34 +10,40 @@ use super::AppContext;
 
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct PlayerCreationRequest {
+pub struct PlayerCreationRequest 
+{
     pub player_name: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct PlayerCreationResponse {
+pub struct PlayerCreationResponse 
+{
     pub player_token: String
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CharacterCreationRequest {
+pub struct CharacterCreationRequest 
+{
     pub player_token: String,
     pub character_name:String,
     pub faction:u32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CharacterCreationResponse {
+pub struct CharacterCreationResponse 
+{
     pub character_id:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct PlayerDetailsRequest {
+pub struct PlayerDetailsRequest 
+{
     pub player_name:String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Iteration {
+pub struct Iteration 
+{
     pub playing:bool,
     pub world_name:String,
     pub character_id:u16,
@@ -45,14 +51,16 @@ pub struct Iteration {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct PlayerDetailsResponse {
+pub struct PlayerDetailsResponse 
+{
     pub player_token: String,
     pub joined_worlds: Vec<Iteration>,
     pub active_worlds: Vec<String>
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct JoinWithCharacterRequest {
+pub struct JoinWithCharacterRequest 
+{
     pub player_token: String,
     pub character_id:u16,
 }
@@ -95,7 +103,8 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let data_from_db: Option<StoredPlayer> = data_collection
     .find_one(
-        bson::doc! {
+        bson::doc! 
+        {
                 "player_name": data.player_name.clone(),
         },
         None,
@@ -293,6 +302,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         position:initial_position.to_owned(),
         vertex_id: -1,
         faction: data.faction as u8,
+        action: 0,
+        flags: 0,
         inventory : Vec::new(),
         level: 0,
         experience: 0,
@@ -335,6 +346,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         time:0,
         inventory: Vec::new(), // fill this from storedcharacter
         inventory_version : 1,
+        flags:0,
         level: 0,
         experience: 0,
         available_skill_points: 5,

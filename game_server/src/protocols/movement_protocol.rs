@@ -52,6 +52,10 @@ pub async fn process_movement(
     let start_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
+    // end = start + 1;
+    let dash = data[start];
+    // start = end;
+
     let action = CharacterMovement 
     {
         player_id,
@@ -59,7 +63,8 @@ pub async fn process_movement(
         second_position: second_position_tile_id,
         vertex_id,
         path,
-        time:start_time
+        time:start_time,
+        dash: dash == 1
     };
 
     let character_command = CharacterCommand

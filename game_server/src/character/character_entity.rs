@@ -4,8 +4,10 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 55;
+pub const CHARACTER_ENTITY_SIZE: usize = 56;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
+
+pub const DASH_FLAG : u8 = 0b00000001;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -27,6 +29,8 @@ pub struct CharacterEntity
     pub path: [u8;6], // 6 bytes
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
     pub action:u8, //1 bytes
+
+    pub flags:u8,
 
     // 11 bytes
     
@@ -148,8 +152,12 @@ impl CharacterEntity
 
         end = offset + 1;
         buffer[offset] = self.action;
-
         offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.flags;
+        offset = end;
+
         end = offset + 1;
         buffer[offset] = self.inventory_version;
         offset = end;
@@ -348,6 +356,18 @@ impl CharacterEntity
         successfuly_removed
     }
 
+    pub fn set_flag(&mut self, flag : u8, value : bool)
+    {
+        if value
+        {
+            self.flags = self.flags | flag;
+        }
+        else
+        {
+            self.flags = self.flags & !flag;
+        }
+    }
+
     // pub fn calculate_inventory_hash(&self) -> u32
     // {
     //     let mut hash : u32 = 0;
@@ -483,7 +503,8 @@ mod tests
     #[test]
     fn test_add_inventory_item()
     {
-        let mut entity = CharacterEntity{
+        let mut entity = CharacterEntity
+        {
             object_id: None,
             player_id: None,
             version:1,
@@ -491,6 +512,7 @@ mod tests
             character_id: 1234,
             faction:0,
             action: 0,
+            flags:0,
             position: TetrahedronId::from_string("A"),
             second_position: TetrahedronId::from_string("A"),
             vertex_id:-1,
@@ -553,6 +575,7 @@ mod tests
             path:[0,0,0,0,0,0],
             time:0,
             action: 1,
+            flags:0,
             inventory: Vec::new(),
             inventory_version: 10,
             level: 0,
