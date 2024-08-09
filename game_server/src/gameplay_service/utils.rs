@@ -41,30 +41,30 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     }
 }
 
-pub fn add_rewards_to_character_entity(
-    player_entity : &mut CharacterEntity, 
-    reward : InventoryItem,
-    definitions : &Definitions,
-    players_rewards_summary : &mut Vec<CharacterReward>,
-    players_summary : &mut Vec<CharacterEntity>)
-{
-    player_entity.add_xp_mob_defeated(definitions);
-    player_entity.add_inventory_item(reward.clone());
-    player_entity.version += 1;
-    // we should also give the player the reward
-    let reward = CharacterReward 
-    {
-        player_id: player_entity.character_id,
-        item_id: reward.item_id,
-        amount: reward.amount,
-        inventory_hash : player_entity.inventory_version
-    };
+// pub fn add_rewards_to_character_entity(
+//     player_entity : &mut CharacterEntity, 
+//     reward : InventoryItem,
+//     definitions : &Definitions,
+//     players_rewards_summary : &mut Vec<CharacterReward>,
+//     players_summary : &mut Vec<CharacterEntity>)
+// {
+//     player_entity.add_xp_mob_defeated(definitions);
+//     player_entity.add_inventory_item(reward.clone());
+//     player_entity.version += 1;
+//     // we should also give the player the reward
+//     let reward = CharacterReward 
+//     {
+//         player_id: player_entity.character_id,
+//         item_id: reward.item_id,
+//         amount: reward.amount,
+//         inventory_hash : player_entity.inventory_version
+//     };
 
-    println!("reward {:?}", reward);
+//     println!("reward {:?}", reward);
 
-    players_rewards_summary.push(reward);
-    players_summary.push(player_entity.clone());
-}
+//     players_rewards_summary.push(reward);
+//     players_summary.push(player_entity.clone());
+// }
 
 pub fn report_map_process_capacity(
     tx_me_gameplay_longterm : &Sender<MapEntity>,

@@ -4,3 +4,4 @@ item_id,cost,usage,equip_slot,benefit,store_location,item_name,item_description,
 2,1,0,0,0,resource_monster,Skull,The skull of a monster,Icons/Items/Nobg/21_Skull
 3,5,1,0,3,potion_heal,Basic Heal Potion,Gives you 3 health points,Icons/Items/Nobg/15_Heal_potion_nobg
 4,15,2,0,3,potion_xp,Basic XP Potion,Gives you 3 skill points,Icons/Items/Nobg/18_Crystal
+5,10,3,0,3,none,XP,Gives you xp,Icons/Items/Nobg/18_Crystal

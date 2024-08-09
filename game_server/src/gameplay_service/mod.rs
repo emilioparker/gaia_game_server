@@ -196,6 +196,7 @@ pub fn start_service(
                 &tx_pe_gameplay_longterm, 
                 &mut players_summary, 
                 &mut attack_details_summary, 
+                &mut players_rewards_summary, 
                 delayed_player_commands_to_execute
             ).await;
 
@@ -212,6 +213,7 @@ pub fn start_service(
                 &mut players_presentation_summary, 
                 &mut attacks_summary, 
                 &mut attack_details_summary, 
+                &mut players_rewards_summary, 
                 delayed_player_commands_mutex.clone()).await;
 
             // check for delayed_commands

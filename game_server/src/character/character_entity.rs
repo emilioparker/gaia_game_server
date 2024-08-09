@@ -233,9 +233,9 @@ impl CharacterEntity
         buffer
     }
 
-    pub fn add_xp_mob_defeated(&mut self, definitions: &Definitions)
+    pub fn add_xp_from_battle(&mut self, xp:u32, definitions: &Definitions)
     {
-        self.experience += 1;
+        self.experience += xp;
         if let Some(next_level_data) = definitions.character_progression.get(self.level as usize + 1)
         {
             if next_level_data.required_xp <= self.experience
@@ -244,12 +244,7 @@ impl CharacterEntity
                 self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
             }
         }
-        println!("----- add xp mob defeated {}", self.experience);
-    }
-
-    pub fn add_xp_player_defeated(&mut self, _defeated_entity : MapEntity)
-    {
-
+        println!("----- add xp:{} from battle {}", xp, self.experience);
     }
 
     pub fn has_inventory_item(&self, id : u32) -> bool

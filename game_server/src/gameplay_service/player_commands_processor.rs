@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -13,6 +13,7 @@ pub async fn process_player_commands (
     players_presentation_summary : &mut Vec<CharacterPresentation>,
     attacks_summary : &mut  Vec<Attack>,
     attack_details_summary : &mut  Vec<AttackDetails>,
+    rewards_summary : &mut Vec<CharacterReward>,
     delayed_player_commands_lock : Arc<Mutex<Vec<(u64, CharacterCommand)>>>
 )
 {
@@ -93,6 +94,7 @@ pub async fn process_player_commands (
                         tx_pe_gameplay_longterm,
                         players_summary,
                         attack_details_summary,
+                        rewards_summary,
                         *card_id,
                         cloned_data.player_id,
                         *other_player_id,
@@ -139,6 +141,7 @@ pub async fn process_delayed_player_commands(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackDetails>,
+    rewards_summary : &mut Vec<CharacterReward>,
     delayed_character_commands_to_execute : Vec<CharacterCommand>,
 )
 {
@@ -160,6 +163,7 @@ pub async fn process_delayed_player_commands(
                     tx_pe_gameplay_longterm,
                     characters_summary, 
                     attack_details_summary,
+                    rewards_summary,
                     *card_id,
                     player_command.player_id,
                     *other_character_id,
@@ -540,6 +544,7 @@ pub async fn attack_character(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackDetails>,
+    characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id : u32,
     character_id: u16,
     other_character_id:u16,
@@ -558,6 +563,40 @@ pub async fn attack_character(
 
         attacker.version += 1;
         defender.version += 1;
+        
+        if defender.health <= 0 
+        {
+            let base_xp = defender.level + 1;
+            let factor = 1.1f32.powf((defender.level as i32 - attacker.level as i32).max(0) as f32);
+            let xp = base_xp as f32 * factor;
+
+            println!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
+
+            attacker.add_xp_from_battle(xp.ceil() as u32, &map.definitions);
+            let reward = InventoryItem 
+            {
+                item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                equipped:0,
+                amount: 1,
+            };
+            attacker.add_inventory_item(reward);
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 2,
+                amount: 1,
+                inventory_hash: attacker.inventory_version,
+            });
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 5,
+                amount: xp as u16,
+                inventory_hash: attacker.inventory_version,
+            });
+        }
 
         let attacker_stored = attacker.clone();
         let defender_stored = defender.clone();

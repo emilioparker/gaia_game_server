@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_details::AttackDetails}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, gameplay_service::utils::add_rewards_to_character_entity, map::{tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_details::AttackDetails}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
@@ -76,16 +76,13 @@ pub async fn process_mob_commands (
 
                     println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
                     player_attacks_summary.push(attack);
-                    println!("-------- attack mob");
                 },
                 mob_command::MobCommandInfo::Spawn(character_id, mob_id, level) => 
                 {
-                    println!("------ spawn mob!!!!");
                     spawn_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id, *mob_id, *level).await;
                 },
                 mob_command::MobCommandInfo::ControlMapEntity(character_id) => 
                 {
-                    println!("------ control mob!!!!");
                     control_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id).await;
                 },
                 mob_command::MobCommandInfo::AttackWalker(_, _, _, _) => todo!(),
@@ -177,7 +174,6 @@ pub async fn spawn_mob(
         // updated_mob.strength = attribute; // attack
         // updated_mob.dexterity = attribute; // attack
     }
-    println!("---- added new mob {new_mob:?}");
 
     let region = map.get_mob_region_from_child(&tile_id);
     let mut mobs = region.lock().await;
@@ -293,6 +289,42 @@ pub async fn attack_mob(
         attacker.version += 1;
         defender.version += 1;
 
+
+        if defender.health <= 0 
+        {
+            let base_xp = defender.level + 1;
+            let factor = 1.1f32.powf((defender.level as i32 - attacker.level as i32).max(0) as f32);
+            let xp = base_xp as f32 * factor;
+
+            println!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
+
+            attacker.add_xp_from_battle(xp.ceil() as u32, &map.definitions);
+            let reward = InventoryItem 
+            {
+                item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                equipped:0,
+                amount: 1,
+            };
+            attacker.add_inventory_item(reward);
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 2,
+                amount: 1,
+                inventory_hash: attacker.inventory_version,
+            });
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 5,
+                amount: xp as u16,
+                inventory_hash: attacker.inventory_version,
+            });
+        }
+
+
         let attacker_stored = attacker.clone();
         let defender_stored = defender.clone();
 
@@ -314,6 +346,7 @@ pub async fn attack_mob(
             target_mob_tile_id: mob_id,
             result,
         });
+
 
         characters_summary.push(attacker_stored.clone());
         mobs_summary.push(defender_stored.clone());
