@@ -9,7 +9,7 @@ use tokio::time::Duration;
 use tokio::sync::{mpsc};
 
 use crate::ability_user::attack::Attack;
-use crate::ability_user::attack_details::AttackDetails;
+use crate::ability_user::attack_result::AttackResult;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -20,7 +20,6 @@ use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity, MapCommand};
-use crate::map::tile_attack::TileAttack;
 use crate::protocols::disconnect_protocol;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
@@ -36,8 +35,7 @@ pub enum StateUpdate
     TileState(MapEntity),
     TowerState(TowerEntity),
     AttackState(Attack),
-    AttackDetailsState(AttackDetails),
-    TileAttackState(TileAttack),
+    AttackResultState(AttackResult),
     ChatMessage(ChatEntry),
     MobUpdate(MobEntity),
     ServerStatus([u16;10]),

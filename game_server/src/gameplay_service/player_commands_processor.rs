@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_details::{AttackDetails, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -12,7 +12,7 @@ pub async fn process_player_commands (
     players_summary : &mut Vec<CharacterEntity>,
     players_presentation_summary : &mut Vec<CharacterPresentation>,
     attacks_summary : &mut  Vec<Attack>,
-    attack_details_summary : &mut  Vec<AttackDetails>,
+    attack_details_summary : &mut  Vec<AttackResult>,
     rewards_summary : &mut Vec<CharacterReward>,
     delayed_player_commands_lock : Arc<Mutex<Vec<(u64, CharacterCommand)>>>
 )
@@ -108,21 +108,23 @@ pub async fn process_player_commands (
                     let character_action = CharacterCommand { player_id: cloned_data.player_id, info };
                     lock.push((end_time, character_action));
                     drop(lock);
+
+                    let attack = Attack
+                    {
+                        id: (current_time % 10000) as u16,
+                        character_id: cloned_data.player_id,
+                        target_character_id: *other_player_id,
+                        card_id: *card_id,
+                        target_mob_tile_id: TetrahedronId::from_string("A"),
+                        required_time: *required_time,
+                        active_effect: *active_effect,
+                        battle_type: BATTLE_CHAR_CHAR,
+                    };
+
+                    println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
+                    attacks_summary.push(attack);
                 }
 
-                let attack = Attack
-                {
-                    id: (current_time % 10000) as u16,
-                    character_id: cloned_data.player_id,
-                    target_character_id: *other_player_id,
-                    card_id: *card_id,
-                    target_mob_tile_id: TetrahedronId::from_string("A"),
-                    required_time: *required_time,
-                    active_effect: *active_effect
-                };
-
-                println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
-                attacks_summary.push(attack);
             },
             character_command::CharacterCommandInfo::Disconnect() => 
             {
@@ -140,7 +142,7 @@ pub async fn process_delayed_player_commands(
     server_state: Arc<ServerState>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
-    attack_details_summary : &mut Vec<AttackDetails>,
+    attack_details_summary : &mut Vec<AttackResult>,
     rewards_summary : &mut Vec<CharacterReward>,
     delayed_character_commands_to_execute : Vec<CharacterCommand>,
 )
@@ -543,7 +545,7 @@ pub async fn attack_character(
     server_state: &Arc<ServerState>,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
-    attack_details_summary : &mut Vec<AttackDetails>,
+    attack_details_summary : &mut Vec<AttackResult>,
     characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id : u32,
     character_id: u16,
@@ -616,11 +618,15 @@ pub async fn attack_character(
         characters_summary.push(attacker_stored.clone());
         characters_summary.push(defender_stored.clone());
 
-        attack_details_summary.push(AttackDetails
+        attack_details_summary.push(AttackResult
         {
             id: (current_time % 10000) as u16,
+            card_id,
+            attacker_mob_tile_id: TetrahedronId::from_string("A"),
+            attacker_character_id: character_id,
             target_character_id: other_character_id,
             target_mob_tile_id: TetrahedronId::from_string("A"),
+            battle_type: BATTLE_CHAR_CHAR,
             result,
         });
 

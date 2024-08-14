@@ -1,5 +1,5 @@
 use crate::ability_user::attack::ATTACK_SIZE;
-use crate::ability_user::attack_details::ATTACK_DETAILS_SIZE;
+use crate::ability_user::attack_result::ATTACK_RESULT_SIZE;
 use crate::mob::mob_instance::{self, MOB_ENTITY_SIZE};
 use crate::{SERVER_STATE_SIZE, ServerState};
 use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
@@ -7,7 +7,6 @@ use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
 use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
 use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
-use crate::map::tile_attack::TILE_ATTACK_SIZE;
 use crate::real_time_service::DataType;
 use crate::real_time_service::client_handler::StateUpdate;
 use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
@@ -61,12 +60,11 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
             StateUpdate::AttackState(_) => ATTACK_SIZE as u32 + 1,
             StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 + 1,
-            StateUpdate::TileAttackState(_) =>TILE_ATTACK_SIZE as u32 + 1,
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
             StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
             StateUpdate::ServerStatus(_) => SERVER_STATE_SIZE as u32 + 1,
             StateUpdate::MobUpdate(_) => MOB_ENTITY_SIZE as u32 + 1,
-            StateUpdate::AttackDetailsState(_) => ATTACK_DETAILS_SIZE as u32 + 1,
+            StateUpdate::AttackResultState(_) => ATTACK_RESULT_SIZE as u32 + 1,
         };
 
         if stored_bytes + required_space > 5000 // 1 byte for protocol, 8 bytes for the sequence number 
@@ -149,15 +147,15 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 stored_states = stored_states + 1;
                 start = next;
             },
-            StateUpdate::AttackDetailsState(details) => 
+            StateUpdate::AttackResultState(details) => 
             {
                 buffer[start] = DataType::AttackDetails as u8;
                 start += 1;
 
                 let details_bytes = details.to_bytes(); //24
-                let next = start + ATTACK_DETAILS_SIZE;
+                let next = start + ATTACK_RESULT_SIZE;
                 buffer[start..next].copy_from_slice(&details_bytes);
-                stored_bytes = stored_bytes + ATTACK_DETAILS_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + ATTACK_RESULT_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -170,18 +168,6 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
                 let next = start + character_reward::CHARACTER_REWARD_SIZE;
                 buffer[start..next].copy_from_slice(&reward_bytes);
                 stored_bytes = stored_bytes + character_reward::CHARACTER_REWARD_SIZE as u32 + 1;
-                stored_states = stored_states + 1;
-                start = next;
-            },
-            StateUpdate::TileAttackState(tile_attack) => 
-            {
-                buffer[start] = DataType::TileAttack as u8;
-                start += 1;
-
-                let attack_bytes = tile_attack.to_bytes(); //22
-                let next = start + TILE_ATTACK_SIZE;
-                buffer[start..next].copy_from_slice(&attack_bytes);
-                stored_bytes = stored_bytes + TILE_ATTACK_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

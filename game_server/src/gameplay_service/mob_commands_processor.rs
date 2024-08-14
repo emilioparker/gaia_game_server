@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_details::AttackDetails}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB}}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
@@ -13,10 +13,9 @@ pub async fn process_mob_commands (
     delayed_mob_commands_lock : Arc<Mutex<Vec<(u64, MobCommand)>>>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut  Vec<CharacterEntity>,
-    attack_details_summary : &mut Vec<AttackDetails>,
+    attack_details_summary : &mut Vec<AttackResult>,
     rewards_summary : &mut  Vec<CharacterReward>,
     player_attacks_summary : &mut  Vec<Attack>,
-    tile_attacks_summary : &mut  Vec<TileAttack>,
 )
 {
     let mut mobs_commands_data = mobs_commands_processor_lock.lock().await;
@@ -61,21 +60,24 @@ pub async fn process_mob_commands (
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
                         lock.push((end_time, mob_action));
                         drop(lock);
+
+                        // we only send attack messages if attack is delayed, for projectiles and other instances.
+                        let attack = Attack
+                        {
+                            id: (current_time % 10000) as u16,
+                            character_id: *character_id,
+                            target_character_id: 0,
+                            card_id: *card_id,
+                            target_mob_tile_id: mobs_command.tile_id.clone(),
+                            required_time: *required_time,
+                            active_effect: *active_effect,
+                            battle_type : BATTLE_CHAR_MOB
+                        };
+
+                        println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        player_attacks_summary.push(attack);
                     }
 
-                    let attack = Attack
-                    {
-                        id: (current_time % 10000) as u16,
-                        character_id: *character_id,
-                        target_character_id: 0,
-                        card_id: *card_id,
-                        target_mob_tile_id: mobs_command.tile_id.clone(),
-                        required_time: *required_time,
-                        active_effect: *active_effect
-                    };
-
-                    println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
-                    player_attacks_summary.push(attack);
                 },
                 mob_command::MobCommandInfo::Spawn(character_id, mob_id, level) => 
                 {
@@ -100,7 +102,7 @@ pub async fn process_delayed_mob_commands (
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
-    attack_details_summary : &mut Vec<AttackDetails>,
+    attack_details_summary : &mut Vec<AttackResult>,
     rewards_summary : &mut Vec<CharacterReward>,
     delayed_mob_commands_to_execute : Vec<MobCommand>
 )
@@ -263,7 +265,7 @@ pub async fn attack_mob(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
-    attack_details_summary : &mut Vec<AttackDetails>,
+    attack_details_summary : &mut Vec<AttackResult>,
     characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id: u32,
     character_id:u16,
@@ -339,11 +341,15 @@ pub async fn attack_mob(
         drop(character_entities);
         drop(mobs);
 
-        attack_details_summary.push(AttackDetails
+        attack_details_summary.push(AttackResult
         {
             id: (current_time % 10000) as u16,
+            card_id,
+            attacker_mob_tile_id: TetrahedronId::from_string("A"),
+            attacker_character_id: character_id,
             target_character_id: u16::MAX,
             target_mob_tile_id: mob_id,
+            battle_type: BATTLE_CHAR_MOB,
             result,
         });
 
@@ -398,53 +404,4 @@ fn process_mob_attack(
         }
     }
     (updated_mob, reward)
-}
-
-pub async fn announce_walker_attack(
-    map : &Arc<GameMap>,
-    tile_attacks_summary : &mut Vec<TileAttack>,
-    tile_id: TetrahedronId,
-    player_id: u16,
-    current_time : u64
-)
-{
-    let region = map.get_region_from_child(&tile_id);
-    let mut tiles = region.lock().await;
-    if let Some(tile) = tiles.get_mut(&tile_id)
-    {
-        let mut updated_tile = tile.clone();
-        // updating tile stuff inmediately and releasing lock before another await.
-        updated_tile.version += 1;
-
-        if updated_tile.owner_id == player_id {
-            // the controller is fighting this mob, we give him more control
-            updated_tile.ownership_time = (current_time / 1000) as u32; 
-        }
-        *tile = updated_tile.clone();
-        let tile_id = tile.id.clone();
-        let tile_level = tile.level;
-        drop(tiles);
-
-        let damage =  1;
-        // if let Some(entry) = map.definitions.mob_progression.get(tile_level as usize) 
-        // {
-        //     (entry.skill_points / 4) as u16
-        // }
-        // else
-        // {
-        //     1
-        // };
-
-        let attack = TileAttack
-        {
-            tile_id: updated_tile.id.clone(),
-            target_player_id: player_id,
-            damage,
-            skill_id: 0,
-        };
-        tile_attacks_summary.push(attack);
-
-        // now we push the delayed message.
-
-    }
 }

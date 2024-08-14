@@ -9,7 +9,6 @@ use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
 pub mod map_entity;
 pub mod tetrahedron_id;
-pub mod tile_attack;
 
 
 pub struct GameMap

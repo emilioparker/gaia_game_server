@@ -1,6 +1,6 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const ATTACK_SIZE: usize = 21;
+pub const ATTACK_SIZE: usize = 22;
 
 #[derive(Debug, Clone)]
 pub struct Attack 
@@ -12,6 +12,7 @@ pub struct Attack
     pub card_id: u32, // 4 bytes
     pub required_time:u32, // 4 bytes
     pub active_effect:u8, //1 byte
+    pub battle_type: u8, // 1 byte
 }
 
 impl Attack 
@@ -55,6 +56,10 @@ impl Attack
 
         end = start + 1;
         buffer[start] = self.active_effect;
+        start = end;
+
+        end = start + 1;
+        buffer[start] = self.battle_type;
         start = end;
 
         buffer

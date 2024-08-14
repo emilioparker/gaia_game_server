@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::attack::Attack, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::BATTLE_MOB_MOB}, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 
@@ -61,7 +61,8 @@ pub async fn process_tower_commands (
                                 card_id: 0,
                                 target_mob_tile_id: tower_command.id.clone(),
                                 required_time : 0,
-                                active_effect:1
+                                active_effect:1,
+                                battle_type: BATTLE_MOB_MOB
                             };
                             player_attacks_summary.push(attack);
 

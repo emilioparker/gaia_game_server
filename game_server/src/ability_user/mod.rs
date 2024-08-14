@@ -2,7 +2,7 @@ use crate::definitions::definitions_container::Definitions;
 
 
 pub mod attack;
-pub mod attack_details;
+pub mod attack_result;
 
 pub trait AbilityUser
 {

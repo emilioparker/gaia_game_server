@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::attack::Attack, buffs::buff::Stat, character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, tile_attack::TileAttack, GameMap}, ServerState};
+use crate::{ability_user::attack::Attack, buffs::buff::Stat, character::{character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 use super::utils::{report_map_process_capacity};
 
@@ -17,7 +17,6 @@ pub async fn process_tile_commands (
     players_summary : &mut Vec<CharacterEntity>,
     players_rewards_summary : &mut Vec<CharacterReward>,
     player_attacks_summary : &mut  Vec<Attack>,
-    tile_attacks_summary : &mut  Vec<TileAttack>,
     delayed_tile_commands_lock : Arc<Mutex<Vec<(u64, MapCommand)>>>
 )
 {

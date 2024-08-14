@@ -23,7 +23,6 @@ pub enum DataType
     PlayerPresentation = 28,
     Attack = 29,
     PlayerReward = 30,
-    TileAttack = 31,
     TowerState = 32,
     ChatMessage = 33,
     ServerStatus = 34,

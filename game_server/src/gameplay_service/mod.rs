@@ -174,7 +174,6 @@ pub fn start_service(
             let mut players_summary = Vec::new();
             let mut attacks_summary = Vec::new();
             let mut attack_details_summary = Vec::new();
-            let mut tile_attacks_summary = Vec::new();
             let mut players_presentation_summary = Vec::new();
             let mut tiles_summary : Vec<MapEntity>= Vec::new();
             let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
@@ -253,7 +252,6 @@ pub fn start_service(
                 &mut players_summary,
                 &mut players_rewards_summary,
                 &mut attacks_summary,
-                &mut tile_attacks_summary,
                 delayed_tile_commands_lock.clone()).await;
 
             let mut delayed_tower_commands_guard = delayed_tower_commands_lock.lock().await;
@@ -311,7 +309,6 @@ pub fn start_service(
                 &mut attack_details_summary,
                 &mut players_rewards_summary,
                 &mut attacks_summary,
-                &mut tile_attacks_summary,
                 ).await;
 
 
@@ -341,11 +338,7 @@ pub fn start_service(
 
             let attack_details_state_updates = attack_details_summary
                 .into_iter()
-                .map(|p| StateUpdate::AttackDetailsState(p));
-
-            let tile_attack_state_updates = tile_attacks_summary
-                .into_iter()
-                .map(|p| StateUpdate::TileAttackState(p));
+                .map(|p| StateUpdate::AttackResultState(p));
 
             let mob_state_updates = mobs_summary
                 .into_iter()
@@ -362,7 +355,6 @@ pub fn start_service(
             filtered_summary.extend(player_rewards_state_update);
             filtered_summary.extend(attack_state_updates);
             filtered_summary.extend(attack_details_state_updates);
-            filtered_summary.extend(tile_attack_state_updates);
             filtered_summary.extend(mob_state_updates);
 
             if server_status_deliver_count > 50
