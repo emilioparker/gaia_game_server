@@ -180,11 +180,13 @@ pub fn start_service(
             let mut towers_summary : Vec<TowerEntity>= Vec::new();
             let mut mobs_summary : Vec<MobEntity>= Vec::new();
 
-            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
-            let current_time_in_millis = current_time.as_millis() as u64;
 
             // check for delayed_commands from player
             let mut delayed_player_commands_guards = delayed_player_commands_lock.lock().await;
+
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+
             let delayed_player_commands_to_execute = get_player_commands_to_execute(current_time_in_millis, &mut delayed_player_commands_guards);
             drop(delayed_player_commands_guards);
 
@@ -215,12 +217,13 @@ pub fn start_service(
                 &mut players_rewards_summary, 
                 delayed_player_commands_mutex.clone()).await;
 
+
+            let mut delayed_tile_commands_guard = delayed_tile_commands_lock.lock().await;
+
             // check for delayed_commands
-            // check if tile commands can be executed.
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
-            let mut delayed_tile_commands_guard = delayed_tile_commands_lock.lock().await;
             let delayed_tile_commands_to_execute = get_tile_commands_to_execute(current_time_in_millis, &mut delayed_tile_commands_guard);
             drop(delayed_tile_commands_guard);
 
@@ -281,6 +284,10 @@ pub fn start_service(
                 delayed_tower_commands_lock.clone()).await;
 
             let mut delayed_mob_commands_guard = delayed_mob_commands_lock.lock().await;
+
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+
             let delayed_mob_commands_to_execute = get_mob_commands_to_execute(current_time_in_millis, &mut delayed_mob_commands_guard);
             drop(delayed_mob_commands_guard);
 
