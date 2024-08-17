@@ -18,7 +18,7 @@ use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 
-pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
+pub fn create_data_packets(data : &Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
 {
     *packet_number += 1u64;
     // println!("{packet_number} -A");
@@ -97,7 +97,8 @@ pub fn create_data_packets(data : Vec<StateUpdate>, packet_number : &mut u64) ->
             start = end;
         }
 
-        match state_update{
+        match state_update
+        {
             StateUpdate::PlayerState(player_state) => 
             {
                 

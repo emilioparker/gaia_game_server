@@ -165,21 +165,22 @@ pub fn start_service(
     {
         let mut packet_number = 1u64;
         let mut server_status_deliver_count = 0u32;
+
+        let mut players_summary = Vec::new();
+        let mut attacks_summary = Vec::new();
+        let mut attack_details_summary = Vec::new();
+        let mut players_presentation_summary = Vec::new();
+        let mut tiles_summary : Vec<MapEntity>= Vec::new();
+        let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
+        let mut towers_summary : Vec<TowerEntity>= Vec::new();
+        let mut mobs_summary : Vec<MobEntity>= Vec::new();
+
+        let mut filtered_summary = Vec::new();
         loop 
         {
             interval.tick().await;
 
             server_status_deliver_count += 1;
-
-            let mut players_summary = Vec::new();
-            let mut attacks_summary = Vec::new();
-            let mut attack_details_summary = Vec::new();
-            let mut players_presentation_summary = Vec::new();
-            let mut tiles_summary : Vec<MapEntity>= Vec::new();
-            let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
-            let mut towers_summary : Vec<TowerEntity>= Vec::new();
-            let mut mobs_summary : Vec<MobEntity>= Vec::new();
-
 
             // check for delayed_commands from player
             let mut delayed_player_commands_guards = delayed_player_commands_lock.lock().await;
@@ -303,6 +304,9 @@ pub fn start_service(
                 &mut players_rewards_summary,
                 delayed_mob_commands_to_execute).await;
 
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+
             mob_commands_processor::process_mob_commands(
                 map.clone(),
                 current_time_in_millis,
@@ -318,43 +322,32 @@ pub fn start_service(
                 &mut attacks_summary,
                 ).await;
 
-
-            let tiles_state_update = tiles_summary
-                .into_iter()
+            let tiles_state_update = tiles_summary.drain(..)
                 .map(|t| StateUpdate::TileState(t));
 
-            let tower_state_update = towers_summary
-                .into_iter()
+            let tower_state_update = towers_summary.drain(..)
                 .map(|t| StateUpdate::TowerState(t));
 
-            let player_presentation_state_update = players_presentation_summary
-                .into_iter()
+            let player_presentation_state_update = players_presentation_summary.drain(..)
                 .map(|p| StateUpdate::PlayerGreetings(p));
 
-            let player_rewards_state_update = players_rewards_summary
-                .into_iter()
+            let player_rewards_state_update = players_rewards_summary.drain(..)
                 .map(|p| StateUpdate::Rewards(p));
 
-            let player_state_updates = players_summary
-                .into_iter()
+            let player_state_updates = players_summary.drain(..)
                 .map(|p| StateUpdate::PlayerState(p));
 
-            let attack_state_updates = attacks_summary
-                .into_iter()
+            let attack_state_updates = attacks_summary.drain(..)
                 .map(|p| StateUpdate::AttackState(p));
 
-            let attack_details_state_updates = attack_details_summary
-                .into_iter()
+            let attack_details_state_updates = attack_details_summary.drain(..)
                 .map(|p| StateUpdate::AttackResultState(p));
 
-            let mob_state_updates = mobs_summary
-                .into_iter()
+            let mob_state_updates = mobs_summary.drain(..)
                 .map(|p| StateUpdate::MobUpdate(p));
 
-            let mut filtered_summary = Vec::new();
 
-
-    // println!("filtered player state {}", player_state_updates.len());
+            filtered_summary.clear();
             filtered_summary.extend(player_state_updates);
             filtered_summary.extend(tiles_state_update);
             filtered_summary.extend(tower_state_update);
@@ -373,7 +366,7 @@ pub fn start_service(
             // println!("filtered summarny total {}" , filtered_summary.len());
             if filtered_summary.len() > 0 
             {
-                let packages = data_packer::create_data_packets(filtered_summary, &mut packet_number);
+                let packages = data_packer::create_data_packets(&filtered_summary, &mut packet_number);
                 // the data that will be sent to each client is not copied.
                 let capacity = tx_bytes_game_socket.capacity();
                 server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
