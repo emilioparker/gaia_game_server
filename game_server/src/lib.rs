@@ -72,6 +72,11 @@ impl ServerState
         }
         buffer
     }
+
+    pub fn get_size() -> usize 
+    {
+        SERVER_STATE_SIZE
+    }
 }
 
 pub fn get_faction_code(faction : &str) -> u8

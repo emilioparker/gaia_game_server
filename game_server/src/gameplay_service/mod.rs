@@ -5,6 +5,7 @@ use crate::ability_user::attack_result::AttackResult;
 use crate::character::character_presentation::CharacterPresentation;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
+use crate::real_time_service::DataType;
 use crate::ServerState;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::map::GameMap;
@@ -327,8 +328,8 @@ pub fn start_service(
                 &mut attacks_summary,
                 ).await;
 
-            let mut offset : usize = 0;
-            data_packer::init_data_packet(&mut buffer, &mut packet_number);
+            let mut offset : usize;
+            offset = data_packer::init_data_packet(&mut buffer, &mut packet_number);
 
             tiles_summary.drain(..)
             .for_each(|d| 
@@ -340,9 +341,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType:: TileState,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             towers_summary.drain(..)
@@ -355,9 +356,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::TowerState,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             players_presentation_summary.drain(..)
@@ -370,9 +371,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::PlayerPresentation,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             players_rewards_summary.drain(..)
@@ -385,9 +386,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::PlayerReward,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             players_summary.drain(..)
@@ -400,9 +401,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::PlayerState,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             attacks_summary.drain(..)
@@ -415,9 +416,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::Attack,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             attack_details_summary.drain(..)
@@ -430,9 +431,9 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::AttackDetails,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
 
             mobs_summary.drain(..)
@@ -445,27 +446,37 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    DataType::MobStatus,
                     &chunk,
                     chunk_size);
-                // send result if not none
             });
+
+            server_status_deliver_count += packets.len() as u32;
+            if server_status_deliver_count > 50
+            {
+                server_status_deliver_count = 0;
+
+                let stats = server_state.get_stats();
+                let chunk = ServerState::stats_to_bytes(&stats); //20
+                let chunk_size = ServerState::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    DataType::ServerStatus,
+                    &chunk,
+                    chunk_size);
+            }
 
             if offset > 0
             {
                 let encoded_data = data_packer::encode_packet(&mut buffer, offset);
                 packets.push((packet_number, 0, encoded_data));
             }
-            // if server_status_deliver_count > 50
-            // {
-            //     server_status_deliver_count = 0;
-            //     filtered_summary.push(StateUpdate::ServerStatus(server_state.get_stats()))
-            // }
-            // filtered_summary.extend(chat_updates);
-            // println!("filtered summarny total {}" , filtered_summary.len());
+
             if packets.len() > 0 
             {
-                // let packages = data_packer::create_data_packets(&filtered_summary, &mut packet_number);
-                // the data that will be sent to each client is not copied.
                 let capacity = tx_bytes_game_socket.capacity();
                 server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
                 tx_bytes_game_socket.send(packets).await.unwrap();

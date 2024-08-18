@@ -45,13 +45,38 @@ pub fn init_data_packet(
     start
 }
 
+pub fn build_data_packet(
+    packet_number : &mut u64,
+    buffer : &mut [u8;5000],
+    packets : &mut Vec<(u64,u8,Vec<u8>)>,
+    offset: &mut usize,
+    data_type: DataType,
+    chunk : &[u8],
+    chunk_size: usize)
+{
+    if *offset + chunk_size + 1 > 5000
+    {
+        // this means we already have some data
+        let encoded_data = encode_packet(buffer, *offset);
+        packets.push((*packet_number, 0, encoded_data));
+        *offset = init_data_packet( buffer, packet_number);
+    }
+
+    add_to_data_packet(buffer, offset, data_type, chunk_size, &chunk);
+}
+
 pub fn add_to_data_packet(
     buffer : &mut [u8;5000],
     offset: &mut usize ,
+    data_type: DataType,
     chunk_size : usize,
     chunk : &[u8])
 {
-    let start = *offset;
+    let mut start = *offset;
+
+    buffer[start] = data_type as u8;
+    start += 1;
+
     let next = start + chunk_size;
     buffer[start..next].copy_from_slice(chunk);
     *offset = next;
@@ -69,26 +94,8 @@ pub fn encode_packet(buffer : &mut [u8;5000], start : usize) -> Vec<u8>
     compressed_bytes
 }
 
-pub fn build_data_packet(
-    packet_number : &mut u64,
-    buffer : &mut [u8;5000],
-    packets : &mut Vec<(u64,u8,Vec<u8>)>,
-    offset: &mut usize ,
-    chunk : &[u8],
-    chunk_size: usize)
-{
-    if *offset + chunk_size > 5000
-    {
-        // this means we already have some data
-        let encoded_data = encode_packet(buffer, *offset);
-        packets.push((*packet_number, 0, encoded_data));
-        *offset = init_data_packet( buffer, packet_number);
-    }
 
-    add_to_data_packet(buffer, offset, chunk_size, &chunk);
-}
-
-pub fn create_data_packets(data : &Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
+pub fn create_data_packets_deprecated(data : &Vec<StateUpdate>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
 {
     *packet_number += 1u64;
     // println!("{packet_number} -A");
