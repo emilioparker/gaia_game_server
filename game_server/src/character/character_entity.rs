@@ -378,6 +378,12 @@ impl CharacterEntity
     //     println!("hash {hash}");
     //     hash
     // }
+
+    pub fn get_size() -> usize 
+    {
+        CHARACTER_ENTITY_SIZE
+    }
+
 }
 
 impl Hash for CharacterEntity 

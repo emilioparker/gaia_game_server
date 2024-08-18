@@ -64,4 +64,9 @@ impl Attack
 
         buffer
     }
+
+    pub fn get_size() -> usize 
+    {
+        ATTACK_SIZE
+    }
 }

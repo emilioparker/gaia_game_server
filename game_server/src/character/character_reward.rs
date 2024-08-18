@@ -53,6 +53,11 @@ impl CharacterReward {
 
         CharacterReward { player_id, item_id, amount, inventory_hash}
     }
+
+    pub fn get_size() -> usize 
+    {
+        CHARACTER_REWARD_SIZE
+    }
 }
 
 pub fn decode_u32(buffer: &[u8], start: &mut usize, end: usize) -> u32

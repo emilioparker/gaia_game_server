@@ -58,6 +58,11 @@ impl CharacterPresentation {
 
         CharacterPresentation { player_id, character_name: [a,b,c,d,e] }
     }
+
+    pub fn get_size() -> usize 
+    {
+        CHARACTER_PRESENTATION_SIZE
+    }
 }
 
 pub fn decode_u32(buffer: &[u8;508], start: &mut usize, end: usize) -> u32

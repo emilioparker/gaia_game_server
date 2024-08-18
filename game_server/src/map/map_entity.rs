@@ -63,6 +63,7 @@ impl MapEntity {
           
         entity
     }
+
     pub fn get_size() -> usize {
         MAP_ENTITY_SIZE
     }

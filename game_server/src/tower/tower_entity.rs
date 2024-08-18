@@ -202,6 +202,11 @@ impl TowerEntity
 
         self.damage_received_in_event.clear();
     }
+
+    pub fn get_size() -> usize 
+    {
+        TOWER_ENTITY_SIZE
+    }
 }
 
 #[cfg(test)]

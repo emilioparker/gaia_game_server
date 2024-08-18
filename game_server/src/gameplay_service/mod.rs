@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use crate::ability_user::attack::Attack;
+use crate::ability_user::attack_result::AttackResult;
+use crate::character::character_presentation::CharacterPresentation;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::ServerState;
@@ -163,6 +166,8 @@ pub fn start_service(
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
     {
+        let mut buffer = [0u8; 5000];
+
         let mut packet_number = 1u64;
         let mut server_status_deliver_count = 0u32;
 
@@ -175,9 +180,9 @@ pub fn start_service(
         let mut towers_summary : Vec<TowerEntity>= Vec::new();
         let mut mobs_summary : Vec<MobEntity>= Vec::new();
 
-        let mut filtered_summary = Vec::new();
         loop 
         {
+            let mut packets = Vec::new();
             interval.tick().await;
 
             server_status_deliver_count += 1;
@@ -322,55 +327,148 @@ pub fn start_service(
                 &mut attacks_summary,
                 ).await;
 
-            let tiles_state_update = tiles_summary.drain(..)
-                .map(|t| StateUpdate::TileState(t));
+            let mut offset : usize = 0;
+            data_packer::init_data_packet(&mut buffer, &mut packet_number);
 
-            let tower_state_update = towers_summary.drain(..)
-                .map(|t| StateUpdate::TowerState(t));
-
-            let player_presentation_state_update = players_presentation_summary.drain(..)
-                .map(|p| StateUpdate::PlayerGreetings(p));
-
-            let player_rewards_state_update = players_rewards_summary.drain(..)
-                .map(|p| StateUpdate::Rewards(p));
-
-            let player_state_updates = players_summary.drain(..)
-                .map(|p| StateUpdate::PlayerState(p));
-
-            let attack_state_updates = attacks_summary.drain(..)
-                .map(|p| StateUpdate::AttackState(p));
-
-            let attack_details_state_updates = attack_details_summary.drain(..)
-                .map(|p| StateUpdate::AttackResultState(p));
-
-            let mob_state_updates = mobs_summary.drain(..)
-                .map(|p| StateUpdate::MobUpdate(p));
-
-
-            filtered_summary.clear();
-            filtered_summary.extend(player_state_updates);
-            filtered_summary.extend(tiles_state_update);
-            filtered_summary.extend(tower_state_update);
-            filtered_summary.extend(player_presentation_state_update);
-            filtered_summary.extend(player_rewards_state_update);
-            filtered_summary.extend(attack_state_updates);
-            filtered_summary.extend(attack_details_state_updates);
-            filtered_summary.extend(mob_state_updates);
-
-            if server_status_deliver_count > 50
+            tiles_summary.drain(..)
+            .for_each(|d| 
             {
-                server_status_deliver_count = 0;
-                filtered_summary.push(StateUpdate::ServerStatus(server_state.get_stats()))
+                let chunk = d.to_bytes();
+                let chunk_size = MapEntity::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            towers_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = TowerEntity::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            players_presentation_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = CharacterPresentation::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            players_rewards_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = CharacterReward::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            players_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = CharacterEntity::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            attacks_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = Attack::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            attack_details_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = AttackResult::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            mobs_summary.drain(..)
+            .for_each(|d| 
+            {
+                let chunk = d.to_bytes();
+                let chunk_size = MobEntity::get_size();
+                data_packer::build_data_packet(
+                    &mut packet_number,
+                    &mut buffer,
+                    &mut packets,
+                    &mut offset,
+                    &chunk,
+                    chunk_size);
+                // send result if not none
+            });
+
+            if offset > 0
+            {
+                let encoded_data = data_packer::encode_packet(&mut buffer, offset);
+                packets.push((packet_number, 0, encoded_data));
             }
+            // if server_status_deliver_count > 50
+            // {
+            //     server_status_deliver_count = 0;
+            //     filtered_summary.push(StateUpdate::ServerStatus(server_state.get_stats()))
+            // }
             // filtered_summary.extend(chat_updates);
             // println!("filtered summarny total {}" , filtered_summary.len());
-            if filtered_summary.len() > 0 
+            if packets.len() > 0 
             {
-                let packages = data_packer::create_data_packets(&filtered_summary, &mut packet_number);
+                // let packages = data_packer::create_data_packets(&filtered_summary, &mut packet_number);
                 // the data that will be sent to each client is not copied.
                 let capacity = tx_bytes_game_socket.capacity();
                 server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-                tx_bytes_game_socket.send(packages).await.unwrap();
+                tx_bytes_game_socket.send(packets).await.unwrap();
             }
         }
     });
