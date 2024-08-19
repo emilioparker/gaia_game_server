@@ -84,7 +84,18 @@ impl TetrahedronId {
         }
     }
 
-    pub fn from_string(data: &str) -> Self {
+    pub fn default() -> Self
+    {
+        TetrahedronId
+        {
+            area:0,
+            id :0,
+            lod : 0
+        }
+    }
+
+    pub fn from_string(data: &str) -> Self 
+    {
         let char_vec: Vec<char> = data.chars().collect();
         let mut area : u8 = 0;
         let mut sub_id : u32 = 0;
@@ -117,7 +128,8 @@ impl TetrahedronId {
             }
         }
 
-        TetrahedronId{
+        TetrahedronId
+        {
             area,
             id :sub_id,
             lod : (data.len() - 1) as u8
