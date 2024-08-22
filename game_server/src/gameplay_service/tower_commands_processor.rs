@@ -53,18 +53,18 @@ pub async fn process_tower_commands (
 
                         if tower.cooldown < current_time_in_seconds
                         {
-                            let attack = Attack
-                            {
-                                id : (current_time_in_milliseconds % 10000) as u16,
-                                character_id: *player_id,
-                                target_character_id: 0,
-                                card_id: 0,
-                                target_mob_tile_id: tower_command.id.clone(),
-                                required_time : 0,
-                                active_effect:1,
-                                battle_type: BATTLE_MOB_MOB
-                            };
-                            player_attacks_summary.push(attack);
+                            // let attack = Attack
+                            // {
+                            //     id : (current_time_in_milliseconds % 10000) as u16,
+                            //     character_id: *player_id,
+                            //     target_character_id: 0,
+                            //     card_id: 0,
+                            //     target_mob_tile_id: tower_command.id.clone(),
+                            //     required_time : 0,
+                            //     active_effect:1,
+                            //     battle_type: BATTLE_MOB_MOB
+                            // };
+                            // player_attacks_summary.push(attack);
 
                             let mut lock = delayed_tower_commands_lock.lock().await;
                             let info = TowerCommandInfo::AttackTower(*player_id, *damage, *required_time);

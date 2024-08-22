@@ -50,7 +50,7 @@ pub enum Protocol
     InventoryRequest = 5,
     LayFoundation = 6,
     Build = 7,
-    TileAttacksWalker = 8,
+    MobAttacksWalker = 8,
     SpawnMob = 9,
     MobMoves = 10,
     ControlMob = 11,
@@ -130,7 +130,7 @@ pub async fn route_packet(
             server_state.tx_mc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             build_protocol::process(socket, data, channel_map_tx).await;
         },
-        Some(protocol) if *protocol == Protocol::TileAttacksWalker as u8 => { // used by mobs and towers.
+        Some(protocol) if *protocol == Protocol::MobAttacksWalker as u8 => { // used by mobs and towers.
             let capacity = channel_mob_tx.capacity();
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             mob_attacks_character_protocol::process(socket, data, channel_mob_tx).await;

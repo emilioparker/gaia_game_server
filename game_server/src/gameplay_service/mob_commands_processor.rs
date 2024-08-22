@@ -65,13 +65,14 @@ pub async fn process_mob_commands (
                         let attack = Attack
                         {
                             id: (current_time % 10000) as u16,
-                            character_id: *character_id,
+                            attacker_character_id: *character_id,
                             target_character_id: 0,
-                            card_id: *card_id,
+                            attacker_mob_tile_id: TetrahedronId::default(),
                             target_mob_tile_id: mobs_command.tile_id.clone(),
+                            card_id: *card_id,
                             required_time: *required_time,
                             active_effect: *active_effect,
-                            battle_type : BATTLE_CHAR_MOB
+                            battle_type : BATTLE_CHAR_MOB,
                         };
 
                         println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
@@ -92,7 +93,7 @@ pub async fn process_mob_commands (
                     let end_time = current_time + *required_time as u64;
                     if *required_time == 0
                     {
-                        attack_mob(
+                        attack_character_from_mob(
                             &map,
                             current_time,
                             &server_state,
@@ -101,12 +102,37 @@ pub async fn process_mob_commands (
                             mobs_summary,
                             characters_summary,
                             attack_details_summary,
-                            rewards_summary,
                             *card_id,
                             *character_id,
                             mobs_command.tile_id.clone(),
                             *missed,
                         ).await;
+                    }
+                    else 
+                    {
+                        println!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
+                        let mut lock = delayed_mob_commands_lock.lock().await;
+                        let info = mob_command::MobCommandInfo::Attack(*character_id, *card_id, *required_time, *active_effect, *missed);
+                        let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
+                        lock.push((end_time, mob_action));
+                        drop(lock);
+
+                        // we only send attack messages if attack is delayed, for projectiles and other instances.
+                        let attack = Attack
+                        {
+                            id: (current_time % 10000) as u16,
+                            attacker_character_id: 0,
+                            target_character_id: *character_id,
+                            attacker_mob_tile_id: mobs_command.tile_id.clone(),
+                            target_mob_tile_id: TetrahedronId::default(),
+                            card_id: *card_id,
+                            required_time: *required_time,
+                            active_effect: *active_effect,
+                            battle_type : BATTLE_MOB_CHAR,
+                        };
+
+                        println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        player_attacks_summary.push(attack);
                     }
                 },
             }
@@ -155,7 +181,20 @@ pub async fn process_delayed_mob_commands (
             },
             mob_command::MobCommandInfo::AttackWalker(character_id, card_id, _requirec_time, _active_effect, missed) => 
             {
-
+                attack_character_from_mob(
+                    &map,
+                    current_time,
+                    &server_state,
+                    tx_moe_gameplay_webservice,
+                    tx_pe_gameplay_longterm,
+                    mobs_summary,
+                    characters_summary,
+                    attack_details_summary,
+                    *card_id,
+                    *character_id,
+                    mobs_command.tile_id.clone(),
+                    *missed,
+                ).await;
             },
         }
     }
@@ -377,7 +416,6 @@ pub async fn attack_character_from_mob(
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
-    characters_rewards_summary : &mut Vec<CharacterReward>,
     card_id: u32,
     character_id:u16,
     mob_id: TetrahedronId,

@@ -331,6 +331,11 @@ pub fn start_service(
             let mut offset : usize;
             offset = data_packer::init_data_packet(&mut buffer, &mut packet_number);
 
+            let len = tiles_summary.len();
+            if len > 0
+            {
+                println!("--tiles {len}");
+            }
             tiles_summary.drain(..)
             .for_each(|d| 
             {
@@ -391,6 +396,11 @@ pub fn start_service(
                     chunk_size);
             });
 
+            let len = players_summary.len();
+            if len > 0
+            {
+                println!("--players {len}");
+            }
             players_summary.drain(..)
             .for_each(|d| 
             {
@@ -406,9 +416,16 @@ pub fn start_service(
                     chunk_size);
             });
 
+            let len = attacks_summary.len();
+            if len > 0
+            {
+                println!("--attacks {len}");
+            }
             attacks_summary.drain(..)
             .for_each(|d| 
             {
+                let a = d.battle_type;
+                println!("--- sending an attack summary {a}");
                 let chunk = d.to_bytes();
                 let chunk_size = Attack::get_size();
                 data_packer::build_data_packet(
@@ -421,6 +438,11 @@ pub fn start_service(
                     chunk_size);
             });
 
+            let len = attack_details_summary.len();
+            if len > 0
+            {
+                println!("--results {len}");
+            }
             attack_details_summary.drain(..)
             .for_each(|d| 
             {
@@ -436,6 +458,11 @@ pub fn start_service(
                     chunk_size);
             });
 
+            let len = mobs_summary.len();
+            if len > 0
+            {
+                println!("--mobs {len}");
+            }
             mobs_summary.drain(..)
             .for_each(|d| 
             {

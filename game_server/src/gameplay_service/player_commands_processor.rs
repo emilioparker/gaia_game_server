@@ -112,10 +112,11 @@ pub async fn process_player_commands (
                     let attack = Attack
                     {
                         id: (current_time % 10000) as u16,
-                        character_id: cloned_data.player_id,
+                        attacker_character_id: cloned_data.player_id,
                         target_character_id: *other_player_id,
-                        card_id: *card_id,
                         target_mob_tile_id: TetrahedronId::default(),
+                        attacker_mob_tile_id: TetrahedronId::default(),
+                        card_id: *card_id,
                         required_time: *required_time,
                         active_effect: *active_effect,
                         battle_type: BATTLE_CHAR_CHAR,
