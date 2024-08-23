@@ -112,7 +112,7 @@ pub async fn process_mob_commands (
                     {
                         println!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::Attack(*character_id, *card_id, *required_time, *active_effect, *missed);
+                        let info = mob_command::MobCommandInfo::AttackWalker(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
                         lock.push((end_time, mob_action));
                         drop(lock);
@@ -338,18 +338,18 @@ pub async fn attack_mob(
 {
     println!("----- attack mob ");
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    let character_defender_option = character_entities.get(&character_id);
+    let character_attacker_option = character_entities.get(&character_id);
 
     let mob_region = map.get_mob_region_from_child(&mob_id);
     let mut mobs = mob_region.lock().await;
 
-    let mob_attacker_option = mobs.get(&mob_id);
+    let mob_defender_option = mobs.get(&mob_id);
     
-    if let (Some(attacker), Some(defender)) = (mob_attacker_option, character_defender_option)
+    if let (Some(attacker), Some(defender)) = (character_attacker_option, mob_defender_option)
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<MobEntity, CharacterEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;
@@ -362,6 +362,31 @@ pub async fn attack_mob(
             let xp = base_xp as f32 * factor;
 
             println!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
+
+            attacker.add_xp_from_battle(xp.ceil() as u32, &map.definitions);
+            let reward = InventoryItem 
+            {
+                item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                equipped:0,
+                amount: 1,
+            };
+            attacker.add_inventory_item(reward);
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 2,
+                amount: 1,
+                inventory_hash: attacker.inventory_version,
+            });
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 5,
+                amount: xp as u16,
+                inventory_hash: attacker.inventory_version,
+            });
         }
 
         let attacker_stored = attacker.clone();
@@ -369,11 +394,11 @@ pub async fn attack_mob(
 
         if let Some(character) = character_entities.get_mut(&character_id)
         {
-            *character = defender;
+            *character = attacker;
         }
         if let Some(mob) = mobs.get_mut(&mob_id)
         {
-            *mob = attacker;
+            *mob = defender;
         }
         drop(character_entities);
         drop(mobs);
@@ -382,20 +407,20 @@ pub async fn attack_mob(
         {
             id: (current_time % 10000) as u16,
             card_id,
-            attacker_mob_tile_id: mob_id,
-            attacker_character_id: 0,
-            target_character_id: character_id,
-            target_mob_tile_id: TetrahedronId::default(),
-            battle_type: BATTLE_MOB_CHAR,
+            attacker_mob_tile_id: TetrahedronId::default(),
+            attacker_character_id: character_id,
+            target_character_id: 0,
+            target_mob_tile_id: mob_id,
+            battle_type: BATTLE_CHAR_MOB,
             result,
         });
 
 
-        characters_summary.push(defender_stored.clone());
-        mobs_summary.push(attacker_stored.clone());
+        mobs_summary.push(defender_stored.clone());
+        characters_summary.push(attacker_stored.clone());
 
-        tx_pe_gameplay_longterm.send(defender_stored).await.unwrap();
-        tx_moe_gameplay_webservice.send(attacker_stored).await.unwrap();
+        tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
+        tx_moe_gameplay_webservice.send(defender_stored).await.unwrap();
 
         // metrics
         let capacity = tx_moe_gameplay_webservice.capacity();

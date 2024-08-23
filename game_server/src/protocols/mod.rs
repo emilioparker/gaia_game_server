@@ -84,6 +84,8 @@ pub async fn route_packet(
     channel_tower_tx : &Sender<TowerCommand>,
     channel_chat_tx : &Sender<ChatCommand>
 ){
+    let prot = data.get(0).unwrap();
+    println!("---- route packet with protocol {prot}");
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
