@@ -41,7 +41,5 @@ pub async fn process(
             info: MobCommandInfo::Spawn(player_id, mob_id, level),
         };
 
-        println!("got a spawn mob protocol {:?}", map_action);
-
         channel_map_tx.send(map_action).await.unwrap();
 }

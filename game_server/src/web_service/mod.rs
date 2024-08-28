@@ -421,7 +421,6 @@ pub fn start_server(
             let mob_region_map = mob_regions_adder_reference.get(&region_id).unwrap();
             let mut mob_region_map_lock = mob_region_map.lock().await;
 
-            println!("saving temp mob");
             
             if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
             {
@@ -429,21 +428,30 @@ pub fn start_server(
                 {
                     // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
 
+                    let current_index = mob_region_map_lock.index;
                     // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
-                    let last_index = mob_region_map_lock.index - MobEntity::get_size();
-                    let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
+                    if current_index == 0
+                    {
+                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+                    }
+                    else
+                    {
+                        let last_index = current_index - MobEntity::get_size();
+                        let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
 
-                    let mut buffer = [0u8;6];
-                    buffer.copy_from_slice(&last_entry[0..6]);
-                    let tile_id = TetrahedronId::from_bytes(&buffer);
+                        let mut buffer = [0u8;6];
+                        buffer.copy_from_slice(&last_entry[0..6]);
+                        let tile_id = TetrahedronId::from_bytes(&buffer);
 
-                    let mut buffer = [0u8;MOB_ENTITY_SIZE];
-                    buffer.copy_from_slice(last_entry);
+                        let mut buffer = [0u8;MOB_ENTITY_SIZE];
+                        buffer.copy_from_slice(last_entry);
 
-                    mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
-                    mob_region_map_lock.tile_to_index.remove(&tile_id);
-                    mob_region_map_lock.tile_to_index.insert(tile_id, index);
-                    mob_region_map_lock.index = last_index;
+                        mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
+                        mob_region_map_lock.tile_to_index.remove(&tile_id);
+                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+                        mob_region_map_lock.tile_to_index.insert(tile_id, index);
+                        mob_region_map_lock.index = last_index;
+                    }
                 }
                 else
                 {
@@ -454,19 +462,19 @@ pub fn start_server(
             }
             else 
             {
-                let index = mob_region_map_lock.index;
-                if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
+                if message.health > 0
                 {
-                    println!("temp mob in index {}, size {}", index, MobEntity::get_size());
-                    
-                    mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
-                    mob_region_map_lock.index = index + MobEntity::get_size();
-
-                    mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
-                }
-                else 
-                {
-                    println!("webservice - mob temp buffer at capacity {}", region_id);
+                    let index = mob_region_map_lock.index;
+                    if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
+                    {
+                        mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
+                        mob_region_map_lock.index = index + MobEntity::get_size();
+                        mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
+                    }
+                    else 
+                    {
+                        println!("webservice - mob temp buffer at capacity {}", region_id);
+                    }
                 }
             }
         }

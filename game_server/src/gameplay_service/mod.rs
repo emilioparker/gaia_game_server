@@ -108,7 +108,7 @@ pub fn start_service(
     let delayed_mob_commands_mutex = Arc::new(Mutex::new(delayed_mob_commands));
     let delayed_mob_commands_lock = delayed_mob_commands_mutex.clone();
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(1000));
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
 
     //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
@@ -158,7 +158,6 @@ pub fn start_service(
         loop
         {
             let message = rx_moc_client_game.recv().await.unwrap();
-            println!("got a mob command data {}", message.tile_id);
             let mut data = mob_commands_agregator_from_client_lock.lock().await;
             data.push(message);
         }
@@ -185,8 +184,6 @@ pub fn start_service(
         {
             let mut packets = Vec::new();
             interval.tick().await;
-
-            println!("---- tick");
 
             server_status_deliver_count += 1;
 
