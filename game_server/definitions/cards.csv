@@ -8,3 +8,4 @@ id,name,card_type,icon,asset,rank,strength_factor,defense_factor,equip_slot,stor
 10006,lighting_storm,target,SkillsIcons/SkillIcons1/Skill_standart/Shamanskill_27_lightning,a,0,1.7,0,1,cards_knight,2,0,5,7,2,2
 10007,fire_tornado,invocation,SkillsIcons/SkillIcons3/SkillVol3/Skill_PillarOfFire,a,0,1.2,0,1,cards_knight,2,5,10,10,1,1
 10008,fire_ball,projectile,SkillsIcons/SkillIcons3/SkillVol3/Skill_FireBall,a,0,1.1,0,1,cards_knight,2,0,1,4,2,2
+10009,basic_arrow,projectile,SkillsIcons/SkillIcons1/Skill_standart/Archerskill_02_arrows,a,0,1.1,0,1,cards_knight,2,0,1,4,2,2
