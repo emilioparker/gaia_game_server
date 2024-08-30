@@ -4,7 +4,6 @@ use crate::character::character_command::{CharacterCommand, CharacterCommandInfo
 
 
 pub async fn process(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_tx : &Sender<CharacterCommand>)
 {

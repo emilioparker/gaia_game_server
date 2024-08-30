@@ -28,6 +28,7 @@ pub mod tile_commands_processor;
 pub mod tower_commands_processor;
 pub mod chat_commands_processor;
 pub mod mob_commands_processor;
+pub mod generic_command;
 
 
 pub fn start_service(

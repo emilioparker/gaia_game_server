@@ -4,7 +4,7 @@ use tokio::sync::mpsc::Sender;
 use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
 
 
-pub async fn process(_socket:&UdpSocket, data : &[u8; 508],  channel_character_tx : &Sender<CharacterCommand>)
+pub async fn process(data : &[u8; 508],  channel_character_tx : &Sender<CharacterCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;

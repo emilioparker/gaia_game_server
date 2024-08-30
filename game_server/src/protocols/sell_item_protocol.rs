@@ -6,7 +6,6 @@ use crate::character::character_command::{CharacterCommand, CharacterCommandInfo
 // we cant do the same is inventory request, because selling modifies the faction inventory and we need to propagate those changes.
 
 pub async fn process(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_player_tx : &Sender<CharacterCommand>)
 {

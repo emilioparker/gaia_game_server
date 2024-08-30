@@ -4,7 +4,6 @@ use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::Tetra
 
 
 pub async fn process_construction(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_map_tx : &Sender<MapCommand>)
 {

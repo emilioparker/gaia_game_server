@@ -4,7 +4,6 @@ use crate::{tower::{TowerCommand, TowerCommandInfo}, map::tetrahedron_id::Tetrah
 
 
 pub async fn process(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_tower_tx : &Sender<TowerCommand>)
 {

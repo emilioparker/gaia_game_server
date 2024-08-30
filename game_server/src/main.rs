@@ -160,7 +160,7 @@ async fn main() {
                 rx_pc_client_gameplay, 
                 rx_tc_client_gameplay ,
                 rx_cc_client_gameplay ,
-                tx_bytes_gameplay_socket 
+                tx_bytes_gameplay_socket,
             ) =  real_time_service::start_server(
                 working_game_map_reference.clone(), 
                 server_state.clone());

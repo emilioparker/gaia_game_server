@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::collections::HashMap;
+use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::ServerState;
 use crate::chat::ChatCommand;
@@ -39,8 +40,10 @@ pub fn start_server(
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    Sender<Vec<(u64,u8,Vec<u8>)>>) // packet number, faction, data
+    Sender<Vec<(u64,u8,Vec<u8>)>>
+) // packet number, faction, data
 {
+    let (tx_bytes_client_socket, mut rx_bytes_client_socket) = tokio::sync::mpsc::channel::<GenericCommand>(1000);
     let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
     let (tx_moc_client_statesys, rx_moc_client_statesys) = tokio::sync::mpsc::channel::<MobCommand>(1000);
     let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(1000);
@@ -95,6 +98,23 @@ pub fn start_server(
     {
         loop 
         {
+            if let Some(command) = rx_bytes_client_socket.recv().await 
+            {
+                let result = send_udp_socket.try_send_to(&command.data, command.player_address);
+                match result 
+                {
+                    Ok(_) => 
+                    {
+                        // println!("data sent to client {}", packet.len());
+                    },
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
+                    {
+                        println!("error sending specific data to {} would block", command.player_address);
+                    },
+                    Err(_) => println!("error sending specific data through socket"),
+                }
+            }
+
             // there are two sources of packets, chat and game. Each one has a differente packet id.
             if let Some(packet_list) = rx_bytes_state_socket.recv().await 
             {
@@ -121,6 +141,10 @@ pub fn start_server(
                                 {
                                     // println!("data sent to client {}", packet.len());
                                 },
+                                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
+                                {
+                                    println!("error sending data would block");
+                                },
                                 Err(_) => println!("error sending data through socket"),
                             }
                         }
@@ -143,6 +167,10 @@ pub fn start_server(
                                         match result {
                                             Ok(_) => {
                                                 // println!("data sent to client {}", packet.len());
+                                            },
+                                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
+                                            {
+                                                println!("error sending old data would block {}", old_id);
                                             },
                                             Err(_) => println!("error sending old data through socket {} ", old_id),
                                         }
@@ -172,6 +200,7 @@ pub fn start_server(
 
     tokio::spawn(async move {
 
+        // let client_send_udp_socket = clients_send_udp_socket.clone();
         //use to communicate that the client disconnected
         let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<(std::net::SocketAddr, u64)>(100);
 
@@ -227,6 +256,7 @@ pub fn start_server(
                                     from_address, 
                                     map.clone(),
                                     server_state.clone(),
+                                    tx_bytes_client_socket.clone(),
                                     tx_addr_client_realtime.clone(), 
                                     tx_mc_client_statesys.clone(), 
                                     tx_moc_client_statesys.clone(), 

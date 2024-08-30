@@ -4,7 +4,6 @@ use crate::{map::tetrahedron_id::TetrahedronId, chat::ChatCommand};
 
 
 pub async fn process(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_tower_tx : &Sender<ChatCommand>)
 {

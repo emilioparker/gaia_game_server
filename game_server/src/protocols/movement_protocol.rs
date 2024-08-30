@@ -4,7 +4,6 @@ use crate::{character::character_command::{CharacterCommand, CharacterCommandInf
 
 
 pub async fn process_movement(
-    _socket:&UdpSocket,
      data : &[u8; 508],
     channel_tx : &Sender<CharacterCommand>)
 {

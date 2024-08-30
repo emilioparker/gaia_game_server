@@ -10,6 +10,7 @@ use tokio::sync::{mpsc};
 
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
+use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -48,6 +49,7 @@ pub async fn spawn_client_process(
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
+    channel_generic_tx : mpsc::Sender<GenericCommand>,
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     channel_map_action_tx : mpsc::Sender<MapCommand>,
     channel_mob_action_tx : mpsc::Sender<MobCommand>,
@@ -57,11 +59,14 @@ pub async fn spawn_client_process(
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508])
 {
+    println!("------ create reusable socket {} from {}", address, from_address);
+
+    // let socket_sender : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
+
     let child_socket : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
     child_socket.connect(from_address).await.unwrap();
+    let socket_receiver = Arc::new(child_socket);
 
-    let shareable_socket = Arc::new(child_socket);
-    let socket_local_instance = shareable_socket.clone();
 
     //messages from the client to the server, like an updated position
     tokio::spawn(async move {
@@ -70,11 +75,12 @@ pub async fn spawn_client_process(
         //handle the first package
         protocols::route_packet(
             player_id,
-            &socket_local_instance, 
+            from_address,
             &initial_data, 
             map.clone(),
             &server_state,
             missing_packets.clone(),
+            &channel_generic_tx,
             &channel_action_tx, 
             &channel_map_action_tx,
             &channel_mob_action_tx,
@@ -85,7 +91,7 @@ pub async fn spawn_client_process(
         let mut child_buff = [0u8; 508];
         'main_loop : loop 
         {
-            let socket_receive = socket_local_instance.recv(&mut child_buff);
+            let socket_receive = socket_receiver.recv(&mut child_buff);
             let time_out = time::sleep(Duration::from_secs_f32(5.0)); 
             tokio::select! {
                 result = socket_receive => 
@@ -99,11 +105,12 @@ pub async fn spawn_client_process(
                             // println!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(
                                 player_id,
-                                &socket_local_instance, 
+                                from_address,
                                 &child_buff, 
                                 map.clone(),
                                 &server_state,
                                 missing_packets.clone(),
+                                &channel_generic_tx,
                                 &channel_action_tx, 
                                 &channel_map_action_tx,
                                 &channel_mob_action_tx,

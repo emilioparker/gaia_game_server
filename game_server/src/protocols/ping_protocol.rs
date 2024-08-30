@@ -1,11 +1,11 @@
-use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use crate::character::character_command::CharacterMovement;
+use crate::gameplay_service::generic_command::GenericCommand;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 pub async fn process_ping(
-    socket:&UdpSocket, 
+    player_address : std::net::SocketAddr, 
+    generic_channel_tx : &Sender<GenericCommand>,
     data : &[u8; 508])
 {
     let start = 1;
@@ -48,5 +48,5 @@ pub async fn process_ping(
     std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
 
-    let _len = socket.send(&compressed_bytes).await.unwrap();
+    generic_channel_tx.send(GenericCommand { player_address, data: compressed_bytes}).await.unwrap();
 }

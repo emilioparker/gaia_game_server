@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
+use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use flate2::Compression;
@@ -10,7 +11,8 @@ use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
     _player_id: u16,
-    socket:&UdpSocket,
+    player_address : std::net::SocketAddr, 
+    generic_channel_tx : &Sender<GenericCommand>,
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
@@ -61,6 +63,5 @@ pub async fn process_request(
     }
 
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    let _len = socket.send(&compressed_bytes).await.unwrap();
-    println!("Inventory - {:?} bytes sent, original {:?}", _len, offset);
+    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
 }
