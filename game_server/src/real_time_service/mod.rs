@@ -65,6 +65,7 @@ pub fn start_server(
     let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
     let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
     let send_udp_socket = udp_socket.clone();
+    let send_directly_udp_socket = udp_socket.clone();
 
     let mut previous_packages : VecDeque<(u64, u8, Vec<u8>)> = VecDeque::new();
 
@@ -100,12 +101,12 @@ pub fn start_server(
         {
             if let Some(command) = rx_bytes_client_socket.recv().await 
             {
-                let result = send_udp_socket.try_send_to(&command.data, command.player_address);
+                let result = send_directly_udp_socket.try_send_to(&command.data, command.player_address);
                 match result 
                 {
                     Ok(_) => 
                     {
-                        // println!("data sent to client {}", packet.len());
+                        println!("ping sent to client ");
                     },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
                     {
@@ -114,7 +115,13 @@ pub fn start_server(
                     Err(_) => println!("error sending specific data through socket"),
                 }
             }
+        }
+    });
 
+    tokio::spawn(async move 
+    {
+        loop 
+        {
             // there are two sources of packets, chat and game. Each one has a differente packet id.
             if let Some(packet_list) = rx_bytes_state_socket.recv().await 
             {
@@ -151,33 +158,34 @@ pub fn start_server(
 
                         // we will try to send missing packages.
 
-                        if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(&client.1.0) 
-                        {
-                            // this should never fail
-                            for missing_packet in missing_packages_for_player
-                            {
-                                let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
-                                if packet_id != 0 
-                                {
-                                    if let Some((old_id, _faction, old_data)) = previous_packages.iter().find(|(id, _faction, _data)| packet_id == *id)
-                                    {
-                                        // sending missing data if found
-                                        // println!("sending missing packet with id {packet_id}");
-                                        let result = send_udp_socket.try_send_to(old_data, client.0.clone());
-                                        match result {
-                                            Ok(_) => {
-                                                // println!("data sent to client {}", packet.len());
-                                            },
-                                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
-                                            {
-                                                println!("error sending old data would block {}", old_id);
-                                            },
-                                            Err(_) => println!("error sending old data through socket {} ", old_id),
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // println!("sending missing packets for {}", client.1.0);
+                        // if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(&client.1.0) 
+                        // {
+                        //     // this should never fail
+                        //     for missing_packet in missing_packages_for_player
+                        //     {
+                        //         let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
+                        //         if packet_id != 0 
+                        //         {
+                        //             if let Some((old_id, _faction, old_data)) = previous_packages.iter().find(|(id, _faction, _data)| packet_id == *id)
+                        //             {
+                        //                 // sending missing data if found
+                        //                 println!("sending missing packet with id {packet_id}");
+                        //                 let result = send_udp_socket.try_send_to(old_data, client.0.clone());
+                        //                 match result {
+                        //                     Ok(_) => {
+                        //                         // println!("data sent to client {}", packet.len());
+                        //                     },
+                        //                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
+                        //                     {
+                        //                         println!("error sending old data would block {}", old_id);
+                        //                     },
+                        //                     Err(_) => println!("error sending old data through socket {} ", old_id),
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        // }
                     }
                 }
 
