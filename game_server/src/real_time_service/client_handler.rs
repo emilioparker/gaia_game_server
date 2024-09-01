@@ -92,7 +92,7 @@ pub async fn spawn_client_process(
         'main_loop : loop 
         {
             let socket_receive = socket_receiver.recv(&mut child_buff);
-            let time_out = time::sleep(Duration::from_secs_f32(5.0)); 
+            let time_out = time::sleep(Duration::from_secs_f32(10.0)); 
             tokio::select! {
                 result = socket_receive => 
                 {
