@@ -1,7 +1,7 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
-use crate::buffs::buff::{Buff, Stat};
+use crate::buffs::buff::{Buff, BuffUser};
 use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
@@ -47,31 +47,12 @@ pub async fn get_characters_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
-                let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| Buff
-                {
-                    card_id:stored_buff.card_id,
-                    stat: Stat::from_byte(stored_buff.stat),
-                    buff_amount: stored_buff.buff_amount,
-                    hits: stored_buff.hits,
-                    expiration_time: stored_buff.expiration_time,
-                }).collect();
-
-                let mut buffs_summary : [(u8,u8);5]= [(0, 0),(0, 0), (0, 0), (0, 0), (0, 0)];
-                let mut index = 0;
-                for value in buffs_summary.iter_mut()
-                {
-                    if let Some(buff) = buffs.get(index)
-                    {
-                        *value = ((buff.card_id - 10000) as u8, buff.hits);//(buff.card_id, buff.hits);
-                    }
-                    index += 1;
-                }
-
-                // let buffs_summary : Vec<(u8,u8)> = buffs.iter().map(|b| ((b.card_id - 10000) as u8, b.hits)).collect();
+                let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
+                let mut buffs_summary : [u8;5]= [0,0,0,0,0];
 
                 println!("----- faction {}", doc.faction);
                 let pos = TetrahedronId::from_string(&doc.position);
-                let player =  CharacterEntity
+                let mut player =  CharacterEntity
                 {
                     character_id: doc.character_id,
                     player_id: doc.player_id,
@@ -103,6 +84,8 @@ pub async fn get_characters_from_db_by_world(
                     buffs,
                     buffs_summary,
                 };
+                player.summarize_buffs();
+
                 count += 1;
                 data.insert(doc.character_id, player);
             },

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR}}, buffs::buff::{BuffUser, Stat}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR}}, buffs::buff::{BuffUser}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
@@ -228,7 +228,7 @@ pub async fn spawn_mob(
         time: 0,
         health: 0,
         buffs: Vec::new(),
-        buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)],
+        buffs_summary: [0,0,0,0,0],
     };
 
 

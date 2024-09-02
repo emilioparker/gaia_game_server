@@ -2,9 +2,9 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
+use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 56;
+pub const CHARACTER_ENTITY_SIZE: usize = 51;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const DASH_FLAG : u8 = 0b00000001;
@@ -63,7 +63,7 @@ pub struct CharacterEntity
     // stats
     pub health: i32, // 4 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
-    pub buffs_summary : [(u8,u8);5] // this one is serialized but not saved 10 bytes
+    pub buffs_summary : [u8;5] // this one is serialized but not saved 5 bytes
 
     // 14 bytes 
 
@@ -219,14 +219,10 @@ impl CharacterEntity
         offset = end;
 
         // 5 pairs of 1 bytes, 10 bytes
-        for pair in self.buffs_summary
+        for buff_id in self.buffs_summary
         {
             end = offset + 1;
-            buffer[offset] = pair.0;
-            offset = end;
-            
-            end = offset + 1;
-            buffer[offset] = pair.1;
+            buffer[offset] = buff_id;
             offset = end;
         }
 
@@ -410,7 +406,7 @@ impl BuffUser for CharacterEntity
         self.buffs = new_buffs;
     }
 
-    fn get_buff_summary(&mut self) -> &mut [(u8,u8);5] 
+    fn get_buff_summary(&mut self) -> &mut [u8;5] 
     {
         &mut self.buffs_summary
     }
@@ -432,7 +428,19 @@ impl AbilityUser for CharacterEntity
     {
         let card_attack = definition.get_card(card_id as usize).map_or(0f32, |d| d.strength_factor);
         let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
-        let added_strength : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Strength).map(|b| b.buff_amount).sum();
+        let added_strength : f32 = self.buffs.iter().map(|b| 
+            {
+                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_STRENGTH
+                    {
+                        return def.base_value;
+                    }
+                }
+
+                return 0f32;
+            })
+            .sum();
 
         let base = self.base_strength;
         let points = self.strength_points;
@@ -443,7 +451,19 @@ impl AbilityUser for CharacterEntity
     fn get_total_defense(&self, definition: &Definitions) -> u16 
     {
         let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
-        let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
+        let added_defense : f32 = self.buffs.iter().map(|b| 
+            {
+                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_DEFENSE
+                    {
+                        return def.base_value;
+                    }
+                }
+                return 0f32;
+            })
+            .sum();
+
         stat + added_defense.round() as u16
     }
 }
@@ -534,7 +554,7 @@ mod tests
             intelligence_points: 0,
             mana_points: 0,
             buffs: Vec::new(),
-            buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)],
+            buffs_summary: [0,0,0,0,0],
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -592,7 +612,7 @@ mod tests
             base_mana: 3,
             health: 10,
             buffs: Vec::new(),
-            buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)],
+            buffs_summary: [0,0,0,0,0],
         };
         let buffer = char.to_bytes();
         println!("{:?}", buffer);

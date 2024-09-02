@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, buffs::buff::Stat, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, InventoryItem, DASH_FLAG}, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -517,26 +517,26 @@ pub async fn activate_buff(
     let player_option = player_entities.get_mut(&player_id);
 
     println!("--- activate buff");
-    match player_option 
-    {
-        Some(player_entity) => 
-        {
-            let result = player_entity.add_buff(card_id, &map.definitions);
-            // let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
-            // println!("equip item with result {}",result);
+    // match player_option 
+    // {
+    //     Some(player_entity) => 
+    //     {
+    //         let result = player_entity.add_buff(card_id, &map.definitions);
+    //         // let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
+    //         // println!("equip item with result {}",result);
 
-            if result 
-            {
-                player_entity.version += 1;
-                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                players_summary.push(player_entity.clone());
-            }
-        },
-        _ => 
-        {
-            println!("error equipping item");
-        }
-    }
+    //         if result 
+    //         {
+    //             player_entity.version += 1;
+    //             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+    //             players_summary.push(player_entity.clone());
+    //         }
+    //     },
+    //     _ => 
+    //     {
+    //         println!("error equipping item");
+    //     }
+    // }
 }
 
 

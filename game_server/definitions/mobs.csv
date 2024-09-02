@@ -5,3 +5,4 @@ id,name,mob_type,item,skills
 3,enemy_3,normal,none,10008
 4,enemy_4,normal,none,10001
 5,enemy_5,normal,none,10002
+6,enemy_6,normal,none,10010

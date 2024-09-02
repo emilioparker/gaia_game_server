@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc::Sender;
 
-use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, Stat}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
+use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
 
 
 pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
@@ -13,7 +13,7 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     target : &mut S) -> u8
 {
     let attack = attacker.get_total_attack(card_id, definitions);
-    attacker.use_buffs(vec![Stat::Strength]);
+    attacker.use_buffs(vec![BUFF_STRENGTH], definitions);
 
     if missed == 1
     {
@@ -21,7 +21,7 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     }
 
     let defense = target.get_total_defense( definitions);
-    target.use_buffs(vec![Stat::Defense]);
+    target.use_buffs(vec![BUFF_DEFENSE], definitions);
 
     let damage = attack.saturating_sub(defense);
     println!("--- attack {attack} def {defense} damage {damage}");

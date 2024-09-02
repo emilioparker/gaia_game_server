@@ -1,6 +1,6 @@
-use crate::{ability_user::AbilityUser, buffs::buff::{self, Buff, BuffUser, Stat}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
+use crate::{ability_user::AbilityUser, buffs::buff::{self, Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
 
-pub const MOB_ENTITY_SIZE: usize = 46;
+pub const MOB_ENTITY_SIZE: usize = 41;
 
 #[derive(Debug, Clone)]
 pub struct MobEntity
@@ -28,11 +28,11 @@ pub struct MobEntity
 
     pub health: i32, // 4 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
-    pub buffs_summary : [(u8,u8);5], // this one is serialized but not saved 10 bytes
+    pub buffs_summary : [u8;5], // this one is serialized but not saved 10 bytes
 
-    // 14 bytes
+    // 9 bytes
 
-    //total 10 + 6 + 16 +14 = 46
+    //total 10 + 6 + 16 + 9 = 41
 
 }
 
@@ -96,14 +96,10 @@ impl MobEntity
         start = end;
 
         // 5 pairs of 1 bytes, 10 bytes
-        for pair in self.buffs_summary
+        for buff_id in self.buffs_summary
         {
             end = start + 1;
-            buffer[start] = pair.0;
-            start = end;
-            
-            end = start + 1;
-            buffer[start] = pair.1;
+            buffer[start] = buff_id;
             start = end;
         }
 
@@ -133,7 +129,7 @@ impl BuffUser for MobEntity
         self.buffs = new_buffs;
     }
 
-    fn get_buff_summary(&mut self) -> &mut [(u8,u8);5] 
+    fn get_buff_summary(&mut self) -> &mut [u8;5] 
     {
         &mut self.buffs_summary
     }
@@ -156,7 +152,19 @@ impl AbilityUser for MobEntity
         let card_attack = definition.get_card(card_id as usize).map_or(0f32, |d| d.strength_factor);
 
         let (base_strength, strength_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_strength, d.strength_points));
-        let added_strength : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Strength).map(|b| b.buff_amount).sum();
+        let added_strength : f32 = self.buffs.iter().map(|b| 
+            {
+                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_STRENGTH
+                    {
+                        return def.base_value;
+                    }
+                }
+                return 0f32;
+            })
+            .sum();
+
         let stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
         (stat as f32 * card_attack).round() as u16  + added_strength.round() as u16
     }
@@ -164,7 +172,19 @@ impl AbilityUser for MobEntity
     fn get_total_defense(&self, definition:&Definitions) -> u16
     {
         let (base_defense, defense_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_defense, d.defense_points));
-        let added_defense : f32 = self.buffs.iter().filter(|b| b.stat == Stat::Defense).map(|b| b.buff_amount).sum();
+        let added_defense : f32 = self.buffs.iter().map(|b| 
+            {
+                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_DEFENSE
+                    {
+                        return def.base_value;
+                    }
+                }
+                return 0f32;
+            })
+            .sum();
+
         let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
         let level = self.level;
         println!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");

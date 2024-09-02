@@ -8,6 +8,7 @@ use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
 use game_server::definitions;
+use game_server::definitions::buffs_data::BuffData;
 use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
 use game_server::definitions::definition_versions::DefinitionVersion;
@@ -291,6 +292,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("mobs.csv");
     let mobs_result = load_definition_by_name::<MobData>(file_name).await;
 
+    let file_name = format!("buffs.csv");
+    let buffs_result = load_definition_by_name::<BuffData>(file_name).await;
+
     let definitions = Definitions 
     {
         character_progression : character_result.0,
@@ -300,6 +304,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         items: items_result.0,
         cards :cards_result.0,
         mobs: mobs_result.0,
+        buffs: buffs_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -312,8 +317,10 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         main_paths_data : paths_result.1,
         items_data :items_result.1,
         cards_data: cards_result.1,
-        mobs_data: mobs_result.1 
+        mobs_data: mobs_result.1,
+        buffs_data: buffs_result.1
     };
+
     (definitions, definitions_data)
 }
 

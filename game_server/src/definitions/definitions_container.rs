@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::{card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData};
+use crate::buffs::buff;
+
+use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData};
 
 
 #[derive(Debug, Clone)]
@@ -13,6 +15,7 @@ pub struct Definitions
     pub items : Vec<Item>,
     pub cards : Vec<Card>,
     pub mobs : Vec<MobData>,
+    pub buffs : Vec<BuffData>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +30,7 @@ pub struct DefinitionsData
     pub items_data : Vec<u8>,
     pub cards_data : Vec<u8>,
     pub mobs_data : Vec<u8>,
+    pub buffs_data : Vec<u8>,
 }
 
 impl Definitions {
@@ -34,5 +38,10 @@ impl Definitions {
     pub fn get_card(&self, index : usize) -> Option<&Card>
     {
         self.cards.get(index - 10000)
+    }
+
+    pub fn get_buff(&self, index : usize) -> Option<&BuffData>
+    {
+        self.buffs.get(index)
     }
 }

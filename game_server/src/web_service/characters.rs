@@ -360,7 +360,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         base_mana: 5,
         health: 1,
         buffs : Vec::new(),
-        buffs_summary: [(0,0),(0,0),(0,0),(0,0),(0,0)]
+        buffs_summary: [0,0,0,0,0]
     };
 
     let mut players = context.working_game_map.character.lock().await;
