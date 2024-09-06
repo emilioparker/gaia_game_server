@@ -72,7 +72,7 @@ pub async fn process_player_commands (
             },
             character_command::CharacterCommandInfo::Action(action) => 
             {
-                set_action(&map, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, *action).await;
+                set_action(&map, current_time, tx_pe_gameplay_longterm, players_summary, cloned_data.player_id, *action).await;
             },
             character_command::CharacterCommandInfo::Greet() => 
             {
@@ -80,7 +80,7 @@ pub async fn process_player_commands (
             },
             character_command::CharacterCommandInfo::ActivateBuff(card_id) => 
             {
-                activate_buff(&map, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id).await;
+                activate_buff(&map, current_time, tx_pe_gameplay_longterm, players_summary, *card_id, cloned_data.player_id).await;
             },
             character_command::CharacterCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
             {
@@ -451,6 +451,7 @@ pub async fn move_character(
 
 pub async fn set_action(
     map : &Arc<GameMap>,
+    current_time : u64,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
@@ -469,14 +470,12 @@ pub async fn set_action(
             action = player_entity.action;
         }
 
-        let updated_player_entity = CharacterEntity 
-        {
-            action,
-            version: player_entity.version + 1,
-            ..player_entity.clone()
-        };
+        player_entity.action = action;
+        player_entity.version += 1;
 
-        *player_entity = updated_player_entity;
+        let current_time_in_seconds = (current_time / 1000) as u32;
+        player_entity.removed_expired_buffs(current_time_in_seconds);
+
         tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
         players_summary.push(player_entity.clone());
     }
@@ -508,14 +507,20 @@ pub async fn greet(
 
 pub async fn activate_buff(
     map : &Arc<GameMap>,
+    current_time : u64,
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     card_id : u32,
     player_id: u16)
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    let player_option = player_entities.get_mut(&player_id);
+    if let Some(player) = player_entities.get_mut(&player_id)
+    {
+        let current_time_in_seconds = (current_time / 1000) as u32;
+        player.removed_expired_buffs(current_time_in_seconds)
+    }
 
+    
     println!("--- activate buff");
     // match player_option 
     // {
@@ -557,12 +562,13 @@ pub async fn attack_character(
     let attacker_option= character_entities.get(&character_id);
     let defender_option= character_entities.get(&other_character_id);
 
+    let current_time_in_seconds = (current_time / 1000) as u32;
     if let (Some(attacker), Some(defender)) = (attacker_option, defender_option)
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
 
-        let result = super::utils::attack::<CharacterEntity, CharacterEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<CharacterEntity, CharacterEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;

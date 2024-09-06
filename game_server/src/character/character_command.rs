@@ -1,12 +1,15 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const IDLE_ACTION: u8 = 0;
-pub const WALK_ACTION: u8 = 1;
-pub const ATTACK_TILE_ACTION: u8 = 2;
-pub const ATTACK_ACTION: u8 = 3;
-pub const COLLECT_ACTION: u8 = 4;
-pub const BUILD_ACTION: u8 = 5;
-pub const TOUCH: u8 = 6;
+pub const NOT_CONNECTED: u8 = 0;
+pub const IDLE_ACTION: u8 = 1;
+pub const WALK_ACTION: u8 = 2;
+pub const ATTACK_TILE_ACTION: u8 = 3;
+pub const ATTACK_ACTION: u8 = 4;
+pub const COLLECT_ACTION: u8 = 5;
+pub const BUILD_ACTION: u8 = 6;
+pub const TOUCH: u8 = 7;
+pub const CAST: u8 = 8;
+pub const STRUGGLE: u8 = 9;
 
 //    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
 #[derive(Debug, Clone)]

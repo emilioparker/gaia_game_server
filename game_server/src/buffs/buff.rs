@@ -47,6 +47,7 @@ pub trait BuffUser
 
     fn add_buff(&mut self, buff_id:u8, current_time_in_seconds : u32, definitions: &Definitions) -> bool
     {
+        println!("---- add buff {buff_id}");
         if self.has_buff(buff_id) 
         {
             return false;
@@ -105,6 +106,18 @@ pub trait BuffUser
         .for_each(|b| b.hits = b.hits.saturating_sub(1));
         let updated_buffs : Vec<Buff> = self.get_buffs().iter().filter(|b| b.hits > 0).map(|b| b.clone()).collect();
         self.set_buffs(updated_buffs);
+        self.summarize_buffs();
+    }
+
+    fn removed_expired_buffs(&mut self, current_time_in_seconds:u32)
+    {
+        println!("--- removing expired buff");
+        self.get_buffs_mut()
+        .retain(|b| 
+            {
+                return current_time_in_seconds <  b.expiration_time;
+            });
+
         self.summarize_buffs();
     }
 

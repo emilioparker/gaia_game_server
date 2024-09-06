@@ -345,11 +345,12 @@ pub async fn attack_mob(
 
     let mob_defender_option = mobs.get(&mob_id);
     
+    let current_time_in_seconds = (current_time / 1000) as u32;
     if let (Some(attacker), Some(defender)) = (character_attacker_option, mob_defender_option)
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;
@@ -456,11 +457,12 @@ pub async fn attack_character_from_mob(
 
     let mob_attacker_option = mobs.get(&mob_id);
     
+    let current_time_in_seconds = (current_time / 1000) as u32;
     if let (Some(attacker), Some(defender)) = (mob_attacker_option, character_defender_option)
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<MobEntity, CharacterEntity>(&map.definitions, card_id, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<MobEntity, CharacterEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;

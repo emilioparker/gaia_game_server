@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
+use rand::rngs::StdRng;
 use tokio::sync::mpsc::Sender;
 
-use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, ServerState};
+use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity, InventoryItem}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, web_service::characters::PlayerCreationRequest, ServerState};
 
 
 pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     definitions : &Definitions,
     card_id:u32,
+    current_time_in_seconds: u32,
     missed:u8,
     attacker: &mut T,
     target : &mut S) -> u8
@@ -36,7 +38,19 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     {
         return BLOCKED_ATTACK_RESULT;
     }
-    else {
+    else 
+    {
+        if let Some(skill) = definitions.get_card(card_id as usize)
+        {
+            let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+            let x =  rand::Rng::gen::<f32>(&mut random_generator);
+            println!("---{} rand {} p:{}",skill.status_effect, x, skill.effect_probability);
+            if x <= skill.effect_probability 
+            {
+                target.add_buff(1, current_time_in_seconds + 10, definitions);
+            }
+        } 
+
         return NORMAL_ATTACK_RESULT;
     }
 }
