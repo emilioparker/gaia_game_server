@@ -419,9 +419,15 @@ impl AbilityUser for CharacterEntity
         self.health
     }
 
-    fn update_health(&mut self, new_health : i32) 
+    fn update_health(&mut self, new_health : i32, definition: &Definitions) 
     {
         self.health = new_health;
+    }
+
+    fn get_constitution(&self, definition: &Definitions) -> i32 
+    {
+        let character_definition = definition.character_progression.get(self.level as usize).unwrap();
+        character_definition.constitution as i32
     }
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 

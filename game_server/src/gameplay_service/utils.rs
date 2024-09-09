@@ -32,7 +32,7 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     let updated_health = health - damage as i32;
 
     println!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
-    target.update_health(updated_health);
+    target.update_health(updated_health, definitions);
 
     if health == updated_health
     {
@@ -44,7 +44,6 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
         {
             let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
             let x =  rand::Rng::gen::<f32>(&mut random_generator);
-            println!("---{} rand {} p:{}",skill.status_effect, x, skill.effect_probability);
             if x <= skill.effect_probability 
             {
                 target.add_buff(1, current_time_in_seconds + 10, definitions);
@@ -53,6 +52,17 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
 
         return NORMAL_ATTACK_RESULT;
     }
+}
+
+pub fn heal<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
+    definitions : &Definitions,
+    card_id:u32,
+    current_time_in_seconds: u32,
+    caster: &mut T,
+    target : &mut S) -> u8
+{
+    target.update_health(100, definitions);
+    return NORMAL_ATTACK_RESULT;
 }
 
 // pub fn add_rewards_to_character_entity(

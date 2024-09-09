@@ -24,6 +24,7 @@ pub mod greet_protocol;
 pub mod activate_buff_protocol;
 pub mod character_attacks_character_protocol;
 pub mod disconnect_protocol;
+pub mod touch_mob_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -70,6 +71,8 @@ pub enum Protocol
     Greet = 24,
     ActivateBuff = 25,
     CharacterAttacksCharacter = 26,
+    AttackStructure = 27,
+    TouchMob = 28,
 }
     
 pub async fn route_packet(
@@ -221,6 +224,13 @@ pub async fn route_packet(
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             character_attacks_character_protocol::process(data, channel_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::TouchMob as u8 => 
+        {
+            println!("--------------------- process touch mob");
+            let capacity = channel_mob_tx.capacity();
+            server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            touch_mob_protocol::process(data, channel_mob_tx).await;
         },
         unknown_protocol => {
             println!("unknown protocol {:?}", unknown_protocol);

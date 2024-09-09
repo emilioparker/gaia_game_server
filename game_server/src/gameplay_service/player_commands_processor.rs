@@ -286,7 +286,7 @@ pub async fn buy_item(
     else if item_id >= 10000
     {
         is_card = true;
-        map.definitions.get_card(item_id as usize).map(|d| d.cost)
+        map.definitions.get_card(item_id as usize).map(|d| d.store_cost)
     }
     else
     {
@@ -513,12 +513,12 @@ pub async fn activate_buff(
     card_id : u32,
     player_id: u16)
 {
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    if let Some(player) = player_entities.get_mut(&player_id)
-    {
-        let current_time_in_seconds = (current_time / 1000) as u32;
-        player.removed_expired_buffs(current_time_in_seconds)
-    }
+    // let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    // if let Some(player) = player_entities.get_mut(&player_id)
+    // {
+    //     let current_time_in_seconds = (current_time / 1000) as u32;
+    //     player.removed_expired_buffs(current_time_in_seconds)
+    // }
 
     
     println!("--- activate buff");

@@ -142,9 +142,16 @@ impl AbilityUser for MobEntity
         self.health
     }
 
-    fn update_health(&mut self, new_health : i32) 
+    fn get_constitution(&self, definition: &Definitions) -> i32 
     {
-        self.health = new_health;
+        let constitution = definition.mob_progression.get(self.level as usize).map_or(0, |d| d.constitution) as u32;
+        constitution as i32
+    }
+
+    fn update_health(&mut self, new_health : i32, definition: &Definitions) 
+    {
+        let constitution = self.get_constitution(definition);
+        self.health =  new_health.min(constitution);
     }
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> u16 

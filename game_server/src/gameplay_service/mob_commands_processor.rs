@@ -29,7 +29,13 @@ pub async fn process_mob_commands (
             {
                 mob_command::MobCommandInfo::Touch() => 
                 {
-
+                    check_buffs(
+                        &map,
+                        current_time,
+                        &server_state,
+                        tx_moe_gameplay_webservice,
+                        mobs_summary, 
+                        mobs_command.tile_id.clone()).await;
                 },
                 mob_command::MobCommandInfo::Attack(character_id, card_id, required_time, active_effect, missed) => 
                 {
@@ -513,5 +519,44 @@ pub async fn attack_character_from_mob(
 
         let capacity = tx_pe_gameplay_longterm.capacity();
         server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+pub async fn check_buffs(
+    map : &Arc<GameMap>,
+    current_time : u64,
+    server_state: &Arc<ServerState>,
+    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    mobs_summary : &mut Vec<MobEntity>,
+    mob_id: TetrahedronId,
+)
+{
+    let mob_region = map.get_mob_region_from_child(&mob_id);
+    let mut mobs = mob_region.lock().await;
+
+    let mob_attacker_option = mobs.get_mut(&mob_id);
+    
+    let current_time_in_seconds = (current_time / 1000) as u32;
+    if let Some(mob) = mob_attacker_option
+    {
+        println!("-----  check buffs for {} {:?}", mob_id, mob.buffs_summary );
+
+        if mob.has_expired_buffs(current_time_in_seconds)
+        {
+            println!("------- check removing expired buffs");
+            mob.removed_expired_buffs(current_time_in_seconds);
+        }
+
+        mob.version += 1;
+        let mob_copy = mob.clone();
+        drop(mobs);
+
+        mobs_summary.push(mob_copy.clone());
+
+        // metrics
+        let capacity = tx_moe_gameplay_webservice.capacity();
+        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+
+        tx_moe_gameplay_webservice.send(mob_copy).await.unwrap();
     }
 }

@@ -121,6 +121,15 @@ pub trait BuffUser
         self.summarize_buffs();
     }
 
+    fn has_expired_buffs(&mut self, current_time_in_seconds:u32) -> bool
+    {
+        let active_buffs = self.get_buffs()
+        .iter().filter(|x| {
+            x.buff_id != 0 && x.expiration_time < current_time_in_seconds
+        }).count();
+
+        return active_buffs > 0;
+    }
 }
 
 // impl Stat
