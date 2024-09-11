@@ -109,7 +109,7 @@ pub fn start_service(
     let delayed_mob_commands_mutex = Arc::new(Mutex::new(delayed_mob_commands));
     let delayed_mob_commands_lock = delayed_mob_commands_mutex.clone();
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
 
     //task that will handle receiving state changes from clients and updating the global statestate.
     tokio::spawn(async move {
@@ -180,6 +180,8 @@ pub fn start_service(
         let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
         let mut towers_summary : Vec<TowerEntity>= Vec::new();
         let mut mobs_summary : Vec<MobEntity>= Vec::new();
+
+        let mut previous_time : u64 = 0;
 
         loop 
         {
@@ -327,6 +329,28 @@ pub fn start_service(
                 &mut players_rewards_summary,
                 &mut attacks_summary,
                 ).await;
+
+
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+
+            let data_package_required = 
+                tiles_summary.len() > 0 
+                || towers_summary.len() > 0
+                || players_presentation_summary.len() > 0
+                || players_rewards_summary.len() > 0
+                || players_summary.len() > 0
+                || attacks_summary.len() > 0
+                || attack_details_summary.len() > 0
+                || mobs_summary.len() > 0;
+
+            if !data_package_required && (current_time_in_millis - previous_time) < 1000
+            {
+                // println!("--- skipping");
+                continue;
+            }
+
+            previous_time = current_time_in_millis;
 
             let mut offset : usize;
             offset = data_packer::init_data_packet(&mut buffer, &mut packet_number);

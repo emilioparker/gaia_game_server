@@ -12,7 +12,7 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
     start = end;
 
     end = start + 2;
-    let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+    let _player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     end = start + 1;
@@ -22,7 +22,13 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
     end = start + 6;
     let mut buffer = [0u8;6];
     buffer.copy_from_slice(&data[start..end]);
-    let tile_id = TetrahedronId::from_bytes(&buffer);
+    let caster_tile_id = TetrahedronId::from_bytes(&buffer);
+    start = end;
+
+    end = start + 6;
+    let mut buffer = [0u8;6];
+    buffer.copy_from_slice(&data[start..end]);
+    let target_tile_id = TetrahedronId::from_bytes(&buffer);
     start = end;
 
     end = start + 4;
@@ -43,8 +49,8 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
 
     println!("active effect {active_effect}");
 
-    let info = MobCommandInfo::Attack(player_id, card_id, required_time, active_effect, missed);
-    let mob_action = MobCommand { tile_id, info };
+    let info = MobCommandInfo::CastFromMobToMob(caster_tile_id, card_id, required_time, active_effect, missed);
+    let mob_action = MobCommand { tile_id: target_tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);
     channel_mob_tx.send(mob_action).await.unwrap();

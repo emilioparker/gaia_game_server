@@ -213,7 +213,7 @@ pub async fn use_item(
                 {
                     (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
                     {
-                        player_entity.health = i32::min(character_definition.constitution as i32, player_entity.health + 5);
+                        player_entity.health = u32::min(character_definition.constitution as u32, player_entity.health as u32 + 5) as u16;
                         player_entity.version += 1;
                     },
                     (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal
@@ -397,7 +397,7 @@ pub async fn respawn(
         {
             action: 0,
             time:0,
-            health: character_definition.constitution as i32,
+            health: character_definition.constitution,
             version: player_entity.version + 1,
             position: respawn_tile_id,
             path:[0,0,0,0,0,0],

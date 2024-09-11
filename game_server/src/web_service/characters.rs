@@ -76,7 +76,7 @@ pub struct JoinWithCharacterResponse
     pub level:u8,
     pub experience:u32,
     pub available_points:u8,
-    pub health:i32,
+    pub health:u16,
     pub strength:u16,
     pub defense:u16,
     pub intelligence:u16,

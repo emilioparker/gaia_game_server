@@ -29,7 +29,7 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     println!("--- attack {attack} def {defense} damage {damage}");
 
     let health = target.get_health();
-    let updated_health = health - damage as i32;
+    let updated_health = health.saturating_sub(damage);
 
     println!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
     target.update_health(updated_health, definitions);

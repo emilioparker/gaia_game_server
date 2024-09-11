@@ -6,9 +6,10 @@ pub enum MobCommandInfo
 {
     Touch(),
     Spawn(u16, u32, u8), // character id, definition id
-    ControlMapEntity(u16),
-    Attack(u16, u32, u32, u8, u8), // character id, card id, time, active_effect, missed
-    AttackWalker(u16, u32, u32, u8, u8), // character id, card id, time, active_effect
+    ControlMob(u16),
+    CastFromCharacterToMob(u16, u32, u32, u8, u8), // character id, card id, time, active_effect, missed
+    CastFromMobToMob(TetrahedronId, u32, u32, u8, u8), // caster_mob_id, card id, time, active_effect, missed
+    AttackFromMobToWalker(u16, u32, u32, u8, u8), // character id, card id, time, active_effect
 }
 
 #[derive(Debug, Clone)]

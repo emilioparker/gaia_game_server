@@ -1,6 +1,6 @@
 use crate::{ability_user::AbilityUser, buffs::buff::{self, Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
 
-pub const MOB_ENTITY_SIZE: usize = 41;
+pub const MOB_ENTITY_SIZE: usize = 39;
 
 #[derive(Debug, Clone)]
 pub struct MobEntity
@@ -26,13 +26,13 @@ pub struct MobEntity
 
     // 16 bytes
 
-    pub health: i32, // 4 bytes
+    pub health: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5], // this one is serialized but not saved 10 bytes
 
     // 9 bytes
 
-    //total 10 + 6 + 16 + 9 = 41
+    //total 10 + 6 + 16 + 7 = 39 
 
 }
 
@@ -90,8 +90,8 @@ impl MobEntity
         buffer[start..end].copy_from_slice(&time_bytes);
         start = end;
 
-        end = start + 4;
-        let health_bytes = i32::to_le_bytes(self.health); // 4 bytes
+        end = start + 2;
+        let health_bytes = u16::to_le_bytes(self.health); // 2 bytes
         buffer[start..end].copy_from_slice(&health_bytes);
         start = end;
 
@@ -137,18 +137,18 @@ impl BuffUser for MobEntity
 
 impl AbilityUser for MobEntity
 {
-    fn get_health(&self) -> i32 
+    fn get_health(&self) -> u16 
     {
         self.health
     }
 
-    fn get_constitution(&self, definition: &Definitions) -> i32 
+    fn get_constitution(&self, definition: &Definitions) -> u16 
     {
-        let constitution = definition.mob_progression.get(self.level as usize).map_or(0, |d| d.constitution) as u32;
-        constitution as i32
+        let constitution = definition.mob_progression.get(self.level as usize).map_or(0, |d| d.constitution);
+        constitution
     }
 
-    fn update_health(&mut self, new_health : i32, definition: &Definitions) 
+    fn update_health(&mut self, new_health : u16, definition: &Definitions) 
     {
         let constitution = self.get_constitution(definition);
         self.health =  new_health.min(constitution);

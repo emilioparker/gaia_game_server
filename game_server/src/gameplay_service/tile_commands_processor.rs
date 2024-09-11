@@ -398,6 +398,7 @@ pub async fn build_structure(
 }
 
 
+// deprecated
 pub async fn attack_walker(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
@@ -416,7 +417,7 @@ pub async fn attack_walker(
             // && updated_tile.faction != 0 
             // && updated_tile.faction != player_entity.faction 
         {
-            let result = player_entity.health - damage as i32;
+            let result = player_entity.health - damage;
             let updated_player_entity = CharacterEntity 
             {
                 action: player_entity.action,

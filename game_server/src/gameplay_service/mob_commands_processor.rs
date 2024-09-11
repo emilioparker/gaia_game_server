@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR}}, buffs::buff::{BuffUser}, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
@@ -15,7 +15,7 @@ pub async fn process_mob_commands (
     characters_summary : &mut  Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     rewards_summary : &mut  Vec<CharacterReward>,
-    player_attacks_summary : &mut  Vec<Attack>,
+    attacks_summary : &mut  Vec<Attack>,
 )
 {
     let mut mobs_commands_data = mobs_commands_processor_lock.lock().await;
@@ -37,12 +37,58 @@ pub async fn process_mob_commands (
                         mobs_summary, 
                         mobs_command.tile_id.clone()).await;
                 },
-                mob_command::MobCommandInfo::Attack(character_id, card_id, required_time, active_effect, missed) => 
+                mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id,card_id,required_time,active_effect,missed) => 
                 {
                     let end_time = current_time + *required_time as u64;
                     if *required_time == 0
                     {
-                        attack_mob(
+                        cast_mob_from_mob(
+                            &map,
+                            current_time,
+                            &server_state,
+                            tx_moe_gameplay_webservice,
+                            mobs_summary,
+                            attack_details_summary,
+                            *card_id,
+                            caster_mob_tile_id.clone(),
+                            mobs_command.tile_id.clone(),
+                            *missed,
+                        ).await;
+                    }
+                    else
+                    {
+                        println!("------------ required time for cast to mob {required_time} current time: {current_time} {card_id}");
+                        let mut lock = delayed_mob_commands_lock.lock().await;
+                        let info = mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id.clone(), *card_id, *required_time, *active_effect, *missed);
+                        let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
+                        lock.push((end_time, mob_action));
+                        drop(lock);
+
+                        // we only send attack messages if attack is delayed, for projectiles and other instances.
+                        let attack = Attack
+                        {
+                            id: (current_time % 10000) as u16,
+                            attacker_character_id: 0,
+                            target_character_id: 0,
+                            attacker_mob_tile_id: caster_mob_tile_id.clone(),
+                            target_mob_tile_id: mobs_command.tile_id.clone(),
+                            card_id: *card_id,
+                            required_time: *required_time,
+                            active_effect: *active_effect,
+                            battle_type : BATTLE_MOB_MOB,
+                        };
+
+                        println!("--- cast {} effect {}", attack.required_time, attack.active_effect);
+                        attacks_summary.push(attack);
+                    }
+
+                },
+                mob_command::MobCommandInfo::CastFromCharacterToMob(character_id, card_id, required_time, active_effect, missed) => 
+                {
+                    let end_time = current_time + *required_time as u64;
+                    if *required_time == 0
+                    {
+                        cast_mob_from_character(
                             &map,
                             current_time,
                             &server_state,
@@ -62,7 +108,7 @@ pub async fn process_mob_commands (
                     {
                         println!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::Attack(*character_id, *card_id, *required_time, *active_effect, *missed);
+                        let info = mob_command::MobCommandInfo::CastFromCharacterToMob(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
                         lock.push((end_time, mob_action));
                         drop(lock);
@@ -82,7 +128,7 @@ pub async fn process_mob_commands (
                         };
 
                         println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
-                        player_attacks_summary.push(attack);
+                        attacks_summary.push(attack);
                     }
 
                 },
@@ -90,16 +136,16 @@ pub async fn process_mob_commands (
                 {
                     spawn_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id, *mob_id, *level).await;
                 },
-                mob_command::MobCommandInfo::ControlMapEntity(character_id) => 
+                mob_command::MobCommandInfo::ControlMob(character_id) => 
                 {
                     control_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id).await;
                 },
-                mob_command::MobCommandInfo::AttackWalker(character_id, card_id, required_time, active_effect, missed) => 
+                mob_command::MobCommandInfo::AttackFromMobToWalker(character_id, card_id, required_time, active_effect, missed) => 
                 {
                     let end_time = current_time + *required_time as u64;
                     if *required_time == 0
                     {
-                        attack_character_from_mob(
+                        cast_character_from_mob(
                             &map,
                             current_time,
                             &server_state,
@@ -118,7 +164,7 @@ pub async fn process_mob_commands (
                     {
                         println!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::AttackWalker(*character_id, *card_id, *required_time, *active_effect, *missed);
+                        let info = mob_command::MobCommandInfo::AttackFromMobToWalker(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
                         lock.push((end_time, mob_action));
                         drop(lock);
@@ -138,7 +184,7 @@ pub async fn process_mob_commands (
                         };
 
                         println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
-                        player_attacks_summary.push(attack);
+                        attacks_summary.push(attack);
                     }
                 },
             }
@@ -166,10 +212,11 @@ pub async fn process_delayed_mob_commands (
         {
             mob_command::MobCommandInfo::Touch() => todo!(),
             mob_command::MobCommandInfo::Spawn(_, _, _) => todo!(),
-            mob_command::MobCommandInfo::ControlMapEntity(_) => todo!(),
-            mob_command::MobCommandInfo::Attack(character_id, card_id, _required_time, _active_effect, missed) => 
+            mob_command::MobCommandInfo::ControlMob(_) => todo!(),
+            mob_command::MobCommandInfo::CastFromMobToMob(_,_,_,_,_) => todo!(),
+            mob_command::MobCommandInfo::CastFromCharacterToMob(character_id, card_id, _required_time, _active_effect, missed) => 
             {
-                attack_mob(
+                cast_mob_from_character(
                     &map,
                     current_time,
                     &server_state,
@@ -185,9 +232,9 @@ pub async fn process_delayed_mob_commands (
                     *missed,
                 ).await;
             },
-            mob_command::MobCommandInfo::AttackWalker(character_id, card_id, _requirec_time, _active_effect, missed) => 
+            mob_command::MobCommandInfo::AttackFromMobToWalker(character_id, card_id, _requirec_time, _active_effect, missed) => 
             {
-                attack_character_from_mob(
+                cast_character_from_mob(
                     &map,
                     current_time,
                     &server_state,
@@ -241,7 +288,7 @@ pub async fn spawn_mob(
     if let Some(entry) = map.definitions.mob_progression.get(level as usize) 
     {
         // let attribute = (entry.skill_points / 4) as u16;
-        new_mob.health =  entry.constitution as i32;
+        new_mob.health =  entry.constitution;
         // updated_mob.strength = attribute; // attack
         // updated_mob.dexterity = attribute; // attack
     }
@@ -325,8 +372,28 @@ pub async fn control_mob(
         tx_moe_gameplay_webservice.send(updated_mob.clone()).await.unwrap();
     }
 }
+pub async fn cast_mob_from_mob(
+    map : &Arc<GameMap>,
+    current_time : u64,
+    server_state: &Arc<ServerState>,
+    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    mobs_summary : &mut Vec<MobEntity>,
+    attack_details_summary : &mut Vec<AttackResult>,
+    card_id: u32,
+    caster_mob_id: TetrahedronId,
+    target_mob_id: TetrahedronId,
+    missed: u8,
+)
+{
+    println!("----- cast to mob from mob ");
 
-pub async fn attack_mob(
+    // let mob_region = map.get_mob_region_from_child(&caster_mob_id);
+    // let mut mobs = mob_region.lock().await;
+
+    // let mob_defender_option = mobs.get(&mob_id);
+}
+
+pub async fn cast_mob_from_character(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
@@ -439,7 +506,7 @@ pub async fn attack_mob(
 }
 
 
-pub async fn attack_character_from_mob(
+pub async fn cast_character_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,

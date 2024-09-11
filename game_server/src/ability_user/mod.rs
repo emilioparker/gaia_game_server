@@ -6,10 +6,10 @@ pub mod attack_result;
 
 pub trait AbilityUser
 {
-    fn get_health(&self) -> i32;
-    fn get_constitution(&self, definition: &Definitions) -> i32;
+    fn get_health(&self) -> u16;
+    fn get_constitution(&self, definition: &Definitions) -> u16;
 
-    fn update_health(&mut self, new_health : i32, definition: &Definitions);
+    fn update_health(&mut self, new_health : u16, definition: &Definitions);
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16;
     fn get_total_defense(&self, definition: &Definitions) -> u16;
 

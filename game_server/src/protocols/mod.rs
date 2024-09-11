@@ -9,7 +9,7 @@ pub mod mob_attacks_character_protocol;
 pub mod spawn_mob_protocol;
 pub mod mob_moves_protocol;
 pub mod claim_mob_ownership;
-pub mod attack_mob_protocol;
+pub mod cast_mob_from_character_protocol;
 pub mod missing_packages_protocol;
 pub mod attack_tower_protocol;
 pub mod repair_tower_protocol;
@@ -25,6 +25,7 @@ pub mod activate_buff_protocol;
 pub mod character_attacks_character_protocol;
 pub mod disconnect_protocol;
 pub mod touch_mob_protocol;
+pub mod cast_mob_from_mob_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -73,6 +74,7 @@ pub enum Protocol
     CharacterAttacksCharacter = 26,
     AttackStructure = 27,
     TouchMob = 28,
+    CastMobFromMob = 29,
 }
     
 pub async fn route_packet(
@@ -160,7 +162,7 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::AttackMob as u8 => {
             let capacity = channel_mob_tx.capacity();
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-            attack_mob_protocol::process(data, channel_mob_tx).await;
+            cast_mob_from_character_protocol::process(data, channel_mob_tx).await;
         },
         Some(protocol) if *protocol == Protocol::MissingPackets as u8 => {
             let capacity = channel_map_tx.capacity();
@@ -232,7 +234,15 @@ pub async fn route_packet(
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             touch_mob_protocol::process(data, channel_mob_tx).await;
         },
-        unknown_protocol => {
+        Some(protocol) if *protocol == Protocol::CastMobFromMob as u8 => 
+        {
+            println!("--------------------- process touch mob");
+            let capacity = channel_mob_tx.capacity();
+            server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+            cast_mob_from_mob_protocol::process(data, channel_mob_tx).await;
+        },
+        unknown_protocol => 
+        {
             println!("unknown protocol {:?}", unknown_protocol);
         }
     }

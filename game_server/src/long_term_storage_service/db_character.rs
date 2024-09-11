@@ -40,7 +40,7 @@ pub struct StoredCharacter
     pub mana: u16,
 
     // stats
-    pub health: i32,
+    pub health: u16,
     pub buffs: Vec<StoredBuff>,
 }
 

@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 51;
+pub const CHARACTER_ENTITY_SIZE: usize = 49;
 pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const DASH_FLAG : u8 = 0b00000001;
@@ -32,7 +32,7 @@ pub struct CharacterEntity
 
     pub flags:u8,
 
-    // 11 bytes
+    // 12 bytes
     
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
@@ -61,13 +61,13 @@ pub struct CharacterEntity
     // 8 bytes
 
     // stats
-    pub health: i32, // 4 bytes
+    pub health: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5] // this one is serialized but not saved 5 bytes
 
-    // 14 bytes 
+    // 7 bytes 
 
-    // 11 + 11 + 1 + 6 + 4 + 8 + 14 = 55
+    // 11 + 12 + 1 + 6 + 4 + 8 + 7 = 49
 }
 
 pub enum ItemType
@@ -213,8 +213,8 @@ impl CharacterEntity
         buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
 
-        let health_bytes = i32::to_le_bytes(self.health); // 4 bytes
-        end = offset + 4;
+        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
+        end = offset + 2;
         buffer[offset..end].copy_from_slice(&health_bytes);
         offset = end;
 
@@ -414,20 +414,20 @@ impl BuffUser for CharacterEntity
 
 impl AbilityUser for CharacterEntity
 {
-    fn get_health(&self) -> i32 
+    fn get_health(&self) -> u16 
     {
         self.health
     }
 
-    fn update_health(&mut self, new_health : i32, definition: &Definitions) 
+    fn update_health(&mut self, new_health : u16, definition: &Definitions) 
     {
         self.health = new_health;
     }
 
-    fn get_constitution(&self, definition: &Definitions) -> i32 
+    fn get_constitution(&self, definition: &Definitions) -> u16 
     {
         let character_definition = definition.character_progression.get(self.level as usize).unwrap();
-        character_definition.constitution as i32
+        character_definition.constitution
     }
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 

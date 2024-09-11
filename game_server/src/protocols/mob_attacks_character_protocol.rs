@@ -45,7 +45,7 @@ pub async fn process(
         let mob_action = MobCommand
         {
             tile_id,
-            info: MobCommandInfo::AttackWalker(player_id, card_id, required_time, active_effect, missed)
+            info: MobCommandInfo::AttackFromMobToWalker(player_id, card_id, required_time, active_effect, missed)
         };
 
         println!("got a {:?}", mob_action);
