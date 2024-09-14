@@ -15,7 +15,8 @@ pub struct Definitions
     pub items : Vec<Item>,
     pub cards : Vec<Card>,
     pub mobs : Vec<MobData>,
-    pub buffs : Vec<BuffData>,
+    pub buffs : HashMap<String, BuffData>,
+    pub buffs_by_code : Vec<BuffData>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,8 +41,13 @@ impl Definitions {
         self.cards.get(index - 10000)
     }
 
-    pub fn get_buff(&self, index : usize) -> Option<&BuffData>
+    pub fn get_buff(&self, id : String) -> Option<&BuffData>
     {
-        self.buffs.get(index)
+        self.buffs.get(&id)
+    }
+
+    pub fn get_buff_by_code(&self, id : u8) -> Option<&BuffData>
+    {
+        self.buffs_by_code.get(id as usize)
     }
 }

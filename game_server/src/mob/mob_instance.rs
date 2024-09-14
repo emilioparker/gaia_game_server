@@ -152,6 +152,7 @@ impl AbilityUser for MobEntity
     {
         let constitution = self.get_constitution(definition);
         self.health =  new_health.min(constitution);
+        println!("---- updated health {}" ,self.health)
     }
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> u16 
@@ -161,7 +162,7 @@ impl AbilityUser for MobEntity
         let (base_strength, strength_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_strength, d.strength_points));
         let added_strength : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
                     if def.buff_type == BUFF_STRENGTH
                     {
@@ -181,7 +182,7 @@ impl AbilityUser for MobEntity
         let (base_defense, defense_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_defense, d.defense_points));
         let added_defense : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
                     if def.buff_type == BUFF_DEFENSE
                     {

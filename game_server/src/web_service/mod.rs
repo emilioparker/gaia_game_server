@@ -438,6 +438,11 @@ pub fn start_server(
                     {
                         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
                     }
+                    else if index == current_index - MobEntity::get_size()
+                    {
+                        mob_region_map_lock.index = index;
+                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+                    }
                     else
                     {
                         let last_index = current_index - MobEntity::get_size();
@@ -455,6 +460,7 @@ pub fn start_server(
                         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
                         mob_region_map_lock.tile_to_index.insert(tile_id, index);
                         mob_region_map_lock.index = last_index;
+                        println!("-- replacing mob index {}", mob_region_map_lock.index);
                     }
                 }
                 else
@@ -474,6 +480,7 @@ pub fn start_server(
                         mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
                         mob_region_map_lock.index = index + MobEntity::get_size();
                         mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
+                        println!("-- updated mob index {}", mob_region_map_lock.index);
                     }
                     else 
                     {

@@ -1,4 +1,4 @@
-id,name,buff_type,base_value,hits,duration
-0,none,status,0,0,0
-1,freeze,status,0,5,5
-2,burn,status,1,5,5
+id,code,buff_type,base_value,hits,duration
+none,0,status,0,0,0
+freeze,1,status,0,5,5
+burn,2,status,1,5,5

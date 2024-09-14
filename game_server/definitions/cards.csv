@@ -10,4 +10,4 @@ id,name,card_type,target_type,icon,asset,rank,strength_factor,defense_factor,equ
 10008,fire_ball,projectile,enemy,SkillsIcons/SkillIcons3/SkillVol3/Skill_FireBall,a,0,1.1,0,1,cards_knight,2,5,0,1,4,2,2,burn,0.2
 10009,basic_arrow,projectile,enemy,SkillsIcons/SkillIcons1/Skill_standart/Archerskill_02_arrows,a,0,1.1,0,1,cards_knight,2,0,0,1,4,2,2,none,0
 10010,ice_ball,projectile,enemy,SkillsIcons/SkillIcons3/SkillVol3/Skill_FrostArrow,a,0,1.1,0,1,cards_knight,2,5,0,1,4,2,2,freeze,0.2
-10011,heal,target,self,SkillsIcons/SkillIcons2/Skill_standart/skill_134_heal,a,0,1.1,0,1,cards_knight,2,5,0,1,4,2,2,none,0
+10011,heal_ball,projectile,ally,SkillsIcons/SkillIcons2/Skill_standart/skill_134_heal,a,0,1.1,0,1,cards_knight,2,5,0,1,11,2,2,none,0

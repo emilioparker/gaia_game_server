@@ -46,7 +46,10 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
             let x =  rand::Rng::gen::<f32>(&mut random_generator);
             if x <= skill.effect_probability 
             {
-                target.add_buff(1, current_time_in_seconds + 10, definitions);
+                if let Some(skill_def) = definitions.buffs.get(&skill.status_effect)
+                {
+                    target.add_buff(skill_def.code, current_time_in_seconds + 10, definitions);
+                }
             }
         } 
 

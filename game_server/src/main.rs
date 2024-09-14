@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
 use std::sync::Arc;
@@ -295,6 +296,14 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("buffs.csv");
     let buffs_result = load_definition_by_name::<BuffData>(file_name).await;
 
+
+    let mut buffs_hash = HashMap::new();
+
+    for entry in &buffs_result.0
+    {
+        buffs_hash.insert(entry.id.clone(), entry.clone());
+    }
+
     let definitions = Definitions 
     {
         character_progression : character_result.0,
@@ -304,7 +313,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         items: items_result.0,
         cards :cards_result.0,
         mobs: mobs_result.0,
-        buffs: buffs_result.0,
+        buffs_by_code: buffs_result.0,
+        buffs : buffs_hash
     };
 
     let definitions_data = DefinitionsData

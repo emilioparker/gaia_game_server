@@ -39,17 +39,9 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
     let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
     start = end;
 
-    end = start + 1;
-    let active_effect = data[start]; // 1 bytes
-    start = end;
+    println!("-------- mob from mob");
 
-    end = start + 1;
-    let missed = data[start]; // 1 bytes
-    start = end;
-
-    println!("active effect {active_effect}");
-
-    let info = MobCommandInfo::CastFromMobToMob(caster_tile_id, card_id, required_time, active_effect, missed);
+    let info = MobCommandInfo::CastFromMobToMob(caster_tile_id, card_id, required_time, 1, 0);
     let mob_action = MobCommand { tile_id: target_tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);

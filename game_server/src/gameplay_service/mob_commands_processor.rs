@@ -213,7 +213,21 @@ pub async fn process_delayed_mob_commands (
             mob_command::MobCommandInfo::Touch() => todo!(),
             mob_command::MobCommandInfo::Spawn(_, _, _) => todo!(),
             mob_command::MobCommandInfo::ControlMob(_) => todo!(),
-            mob_command::MobCommandInfo::CastFromMobToMob(_,_,_,_,_) => todo!(),
+            mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id,card_id,required_time,active_effect,missed) => 
+            {
+                cast_mob_from_mob(
+                    &map,
+                    current_time,
+                    &server_state,
+                    tx_moe_gameplay_webservice,
+                    mobs_summary,
+                    attack_details_summary,
+                    *card_id,
+                    caster_mob_tile_id.clone(),
+                    mobs_command.tile_id.clone(),
+                    *missed,
+                ).await;
+            }
             mob_command::MobCommandInfo::CastFromCharacterToMob(character_id, card_id, _required_time, _active_effect, missed) => 
             {
                 cast_mob_from_character(
@@ -387,10 +401,61 @@ pub async fn cast_mob_from_mob(
 {
     println!("----- cast to mob from mob ");
 
-    // let mob_region = map.get_mob_region_from_child(&caster_mob_id);
-    // let mut mobs = mob_region.lock().await;
+    // let key = self.get_parent(tetrahedron_id);
 
-    // let mob_defender_option = mobs.get(&mob_id);
+    let mob_region = map.get_mob_region_from_child(&caster_mob_id);
+    let mut mobs = mob_region.lock().await;
+    let mob_caster_option = mobs.get(&caster_mob_id);
+    let mob_target_option = mobs.get(&target_mob_id);
+
+    let current_time_in_seconds = (current_time / 1000) as u32;
+    if let (Some(mob_caster), Some(mob_target)) = (mob_caster_option, mob_target_option)
+    {
+        let mut caster = mob_caster.clone();
+        let mut target = mob_target.clone();
+        println!("---- calling heal {} id: {}" , mob_target.health, mob_target.tile_id);
+        let result = super::utils::heal::<MobEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, &mut caster, &mut target);
+
+        caster.version += 1;
+        target.version += 1;
+        
+        let mob_caster_stored = caster.clone();
+        let mob_target_stored = target.clone();
+
+        if let Some(mob_caster)= mobs.get_mut(&caster_mob_id)
+        {
+            *mob_caster = caster;
+        }
+
+        if let Some(mob_target)= mobs.get_mut(&target_mob_id)
+        {
+            *mob_target = target;
+        }
+
+        drop(mobs);
+
+        attack_details_summary.push(AttackResult
+        {
+            id: (current_time % 10000) as u16,
+            card_id,
+            attacker_mob_tile_id: caster_mob_id,
+            attacker_character_id: 0,
+            target_character_id: 0,
+            target_mob_tile_id: target_mob_id,
+            battle_type: BATTLE_MOB_MOB,
+            result,
+        });
+
+        mobs_summary.push(mob_target_stored.clone());
+        mobs_summary.push(mob_caster_stored.clone());
+
+        tx_moe_gameplay_webservice.send(mob_caster_stored).await.unwrap();
+        tx_moe_gameplay_webservice.send(mob_target_stored).await.unwrap();
+
+        // metrics
+        let capacity = tx_moe_gameplay_webservice.capacity();
+        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 pub async fn cast_mob_from_character(

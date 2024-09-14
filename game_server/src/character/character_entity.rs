@@ -436,7 +436,7 @@ impl AbilityUser for CharacterEntity
         let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
         let added_strength : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
                     if def.buff_type == BUFF_STRENGTH
                     {
@@ -459,7 +459,7 @@ impl AbilityUser for CharacterEntity
         let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
         let added_defense : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff(b.buff_id as usize)
+                if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
                     if def.buff_type == BUFF_DEFENSE
                     {
