@@ -305,6 +305,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         action: 0,
         flags: 0,
         inventory : Vec::new(),
+        card_inventory : Vec::new(),
         level: 0,
         experience: 0,
         available_skill_points: 5,
@@ -345,6 +346,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         path: [0,0,0,0,0,0],
         time:0,
         inventory: Vec::new(), // fill this from storedcharacter
+        card_inventory : Vec::new(),
         inventory_version : 1,
         flags:0,
         level: 0,

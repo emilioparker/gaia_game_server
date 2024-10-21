@@ -4,8 +4,9 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
+use super::{character_card_inventory::CardItem, character_inventory::InventoryItem};
+
 pub const CHARACTER_ENTITY_SIZE: usize = 49;
-pub const CHARACTER_INVENTORY_SIZE: usize = 7;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 
@@ -30,11 +31,12 @@ pub struct CharacterEntity
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
     pub action:u8, //1 bytes
 
-    pub flags:u8,
+    pub flags:u8, // 1 byte
 
     // 12 bytes
     
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
+    pub card_inventory : Vec<CardItem>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
     // 1 bytes
@@ -76,37 +78,6 @@ pub enum ItemType
     Card = 1,
     Equipment = 2
 }
-
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct InventoryItem
-{
-    pub item_id : u32, //4
-    pub equipped : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 means equipped.
-    pub amount : u16 // 2
-}
-
-impl InventoryItem 
-{
-    pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_SIZE]
-    {
-        let mut start = 0;
-        let mut buffer = [0u8;CHARACTER_INVENTORY_SIZE];
-        let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
-        let end = start + 4; 
-        buffer[start..end].copy_from_slice(&item_id_bytes);
-        start = end;
-
-        buffer[start] = self.equipped;
-        start += 1;
-
-        let end = start + 2; 
-        let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
-        buffer[start..end].copy_from_slice(&amount_bytes);
-        buffer
-    }
-}
-
 
 impl CharacterEntity 
 {
@@ -243,109 +214,6 @@ impl CharacterEntity
         println!("----- add xp:{} from battle {}", xp, self.experience);
     }
 
-    pub fn has_inventory_item(&self, id : u32) -> bool
-    {
-        let mut found = false;
-        for item in &self.inventory 
-        {
-            if item.item_id == id
-            {
-                found = true;
-            }
-        }
-        return found;
-    }
-
-    pub fn add_inventory_item(&mut self, new_item : InventoryItem)
-    {
-        let mut found = false;
-        for item in &mut self.inventory 
-        {
-            if item.item_id == new_item.item_id && item.equipped == new_item.equipped 
-            {
-                item.amount += new_item.amount;
-                found = true;
-            }
-        }
-
-        if !found 
-        {
-            self.inventory.push(new_item);
-            self.version += 1;
-        }
-
-        self.inventory_version += 1;
-    }
-
-    pub fn remove_inventory_item(&mut self, old_item : InventoryItem) -> bool
-    {
-        let mut successfuly_removed = false;
-        for (index, item) in &mut self.inventory.iter_mut().enumerate() 
-        {
-            if item.item_id == old_item.item_id && item.equipped == old_item.equipped
-            {
-                if item.amount >= old_item.amount
-                {
-                    item.amount -= old_item.amount;
-                    successfuly_removed = true;
-                }
-
-                if item.amount == 0 
-                {
-                    self.inventory.swap_remove(index);
-                }
-                break;
-            }
-        }
-
-        if successfuly_removed {
-            self.inventory_version += 1;
-            self.version += 1;
-        }
-        successfuly_removed
-    }
-
-    pub fn count_items_in_slot(&mut self, slot:u8) -> usize
-    {
-        self.inventory.iter().filter(|i| i.equipped == slot).count()
-    }
-
-    pub fn equip_inventory_item(&mut self, item_id : u32, current_slot : u8, slot: u8) -> bool
-    {
-        let count = self.count_items_in_slot(slot);
-        if slot == 1 && count >= 10
-        {
-            return false;
-        }
-
-        let mut successfuly_removed = false;
-        for (index, item) in &mut self.inventory.iter_mut().enumerate() 
-        {
-            if item.item_id == item_id && item.equipped == current_slot
-            {
-                if item.amount > 0
-                {
-                    item.amount -= 1;
-                    successfuly_removed = true;
-                }
-
-                if item.amount == 0 
-                {
-                    self.inventory.swap_remove(index);
-                }
-                break;
-            }
-        }
-
-
-        if successfuly_removed 
-        {
-            self.add_inventory_item(InventoryItem { item_id, equipped: slot, amount: 1 });
-            self.inventory_version += 1;
-            self.version += 1;
-        }
-        successfuly_removed
-    }
 
     pub fn set_flag(&mut self, flag : u8, value : bool)
     {
@@ -358,22 +226,6 @@ impl CharacterEntity
             self.flags = self.flags & !flag;
         }
     }
-
-    // pub fn calculate_inventory_hash(&self) -> u32
-    // {
-    //     let mut hash : u32 = 0;
-    //     let mut index = 1;
-    //     for item in &self.inventory 
-    //     {
-    //         let salt = ITEMS_PRIME_KEYS[index] as u32;
-    //         let key = (item.item_id + 1).wrapping_mul(salt);
-    //         let pair = key.wrapping_mul(item.amount as u32);
-    //         hash = hash.wrapping_add(pair); 
-    //         index += 1;
-    //     }
-    //     println!("hash {hash}");
-    //     hash
-    // }
 
     pub fn get_size() -> usize 
     {
@@ -389,6 +241,7 @@ impl Hash for CharacterEntity
         self.action.hash(state);
     }
 }
+
 impl BuffUser for CharacterEntity 
 {
     fn get_buffs_mut(&mut self) -> &mut Vec<crate::buffs::buff::Buff> 
@@ -432,7 +285,7 @@ impl AbilityUser for CharacterEntity
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 
     {
-        let card_attack = definition.get_card(card_id as usize).map_or(0f32, |d| d.strength_factor);
+        let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
         let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
         let added_strength : f32 = self.buffs.iter().map(|b| 
             {
@@ -481,7 +334,7 @@ mod tests
     use std::num::Wrapping;
 
 
-    use crate::{character::character_entity::CHARACTER_ENTITY_SIZE, map::tetrahedron_id::TetrahedronId};
+    use crate::{character::{character_entity::CHARACTER_ENTITY_SIZE, character_inventory::CHARACTER_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
 
     use super::CharacterEntity;
 
@@ -546,6 +399,7 @@ mod tests
             path:[0,0,0,0,0,0],
             time:0,
             inventory: Vec::new(),
+            card_inventory: Vec::new(),
             inventory_version: 1,
             health: 0,
             level: 1,
@@ -582,7 +436,7 @@ mod tests
         let item = super::InventoryItem { item_id: 1, equipped: 1, amount: 1 };
         let buffer = item.to_bytes();
 
-        assert!(buffer.len() == super::CHARACTER_INVENTORY_SIZE);
+        assert!(buffer.len() == CHARACTER_INVENTORY_ITEM_SIZE);
     }
 
     #[test]
@@ -604,6 +458,7 @@ mod tests
             action: 1,
             flags:0,
             inventory: Vec::new(),
+            card_inventory: Vec::new(),
             inventory_version: 10,
             level: 0,
             experience: 0,

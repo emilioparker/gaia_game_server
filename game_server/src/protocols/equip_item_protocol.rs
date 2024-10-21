@@ -27,6 +27,10 @@ pub async fn process(
 
         start = end;
         end = start + 1;
+        let item_type = data[start];
+
+        start = end;
+        end = start + 1;
         let current_slot = data[start];
 
         start = end;
@@ -40,6 +44,7 @@ pub async fn process(
             {
                 faction,
                 item_id,
+                item_type,
                 new_slot,
                 current_slot
             })

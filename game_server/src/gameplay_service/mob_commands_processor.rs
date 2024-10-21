@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_entity::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_inventory::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
@@ -511,6 +511,15 @@ pub async fn cast_mob_from_character(
             };
             attacker.add_inventory_item(reward);
 
+            let reward = InventoryItem 
+            {
+                item_id: 6, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                equipped:0,
+                amount: 1,
+            };
+
+            attacker.add_inventory_item(reward);
+
             characters_rewards_summary.push(CharacterReward
             {
                 player_id: character_id,
@@ -523,6 +532,14 @@ pub async fn cast_mob_from_character(
             {
                 player_id: character_id,
                 item_id: 5,
+                amount: xp as u16,
+                inventory_hash: attacker.inventory_version,
+            });
+
+            characters_rewards_summary.push(CharacterReward
+            {
+                player_id: character_id,
+                item_id: 6,
                 amount: xp as u16,
                 inventory_hash: attacker.inventory_version,
             });

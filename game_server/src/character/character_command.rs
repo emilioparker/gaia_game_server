@@ -23,7 +23,7 @@ pub enum CharacterCommandInfo
     Greet(),
     Respawn(TetrahedronId),
     SellItem(u8,u32, u16),
-    BuyItem(u8,u32, u16),
+    BuyItem(u8,u32,u8, u16),// faction, item id, item type, amount
     UseItem(u8,u32, u16),
     EquipItem(EquipItemCommandData),
     ActivateBuff(u32),
@@ -53,6 +53,7 @@ pub struct EquipItemCommandData
 {
     pub faction: u8,
     pub item_id:u32,
+    pub item_type: u8,
     pub current_slot:u8,
     pub new_slot:u8,
 }

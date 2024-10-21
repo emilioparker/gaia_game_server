@@ -13,12 +13,12 @@ use std::net::SocketAddr;
 use hyper::{Body, Response, Server, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
+use crate::character::character_inventory::InventoryItem;
 use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
 use crate::definitions::definitions_container::DefinitionsData;
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::character::character_entity::InventoryItem;
 use crate::mob::mob_instance::{MobEntity, MOB_ENTITY_SIZE};
 use crate::ServerState;
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};

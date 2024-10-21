@@ -34,13 +34,9 @@ pub struct DefinitionsData
     pub buffs_data : Vec<u8>,
 }
 
-impl Definitions {
+impl Definitions 
+{
     // used by the test_client ignores the protocol byte.
-    pub fn get_card(&self, index : usize) -> Option<&Card>
-    {
-        self.cards.get(index - 10000)
-    }
-
     pub fn get_buff(&self, id : String) -> Option<&BuffData>
     {
         self.buffs.get(&id)

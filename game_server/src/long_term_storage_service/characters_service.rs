@@ -2,10 +2,12 @@
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
 use crate::buffs::buff::{Buff, BuffUser};
+use crate::character::character_card_inventory::CardItem;
+use crate::character::character_inventory::InventoryItem;
 use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
-use crate::character::character_entity::{CharacterEntity, InventoryItem};
+use crate::character::character_entity::CharacterEntity;
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
@@ -47,8 +49,15 @@ pub async fn get_characters_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
+                let card_inventory = doc.card_inventory.into_iter().map(|item| CardItem 
+                {
+                    card_id: item.item_id,
+                    equipped: item.equipped,
+                    amount: item.amount,
+                }).collect();
+
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
-                let mut buffs_summary : [u8;5]= [0,0,0,0,0];
+                let buffs_summary : [u8;5]= [0,0,0,0,0];
 
                 println!("----- faction {}", doc.faction);
                 let pos = TetrahedronId::from_string(&doc.position);
@@ -68,6 +77,7 @@ pub async fn get_characters_from_db_by_world(
                     flags: doc.flags,
                     character_name: doc.character_name,
                     inventory,
+                    card_inventory,
                     inventory_version: 1,
                     level: doc.level,
                     experience: doc.experience,
@@ -161,12 +171,17 @@ pub fn start_server(
 
             for player in modified_player_entities 
             {
-                let updated_inventory : Vec<StoredInventoryItem> = player.inventory
+                let inventory : Vec<StoredInventoryItem> = player.inventory
                 .into_iter()
                 .map(|item| StoredInventoryItem ::from(item))
                 .collect();
+                let inventory_serialized_data= bson::to_bson(&inventory).unwrap();
 
-                let serialized_data= bson::to_bson(&updated_inventory).unwrap();
+                let card_inventory : Vec<StoredInventoryItem> = player.card_inventory
+                .into_iter()
+                .map(|item| StoredInventoryItem ::from(item))
+                .collect();
+                let card_inventory_serialized_data= bson::to_bson(&card_inventory).unwrap();
 
                 let updated_buffs : Vec<StoredBuff> = player.buffs
                 .into_iter()
@@ -186,7 +201,8 @@ pub fn start_server(
                             "vertex_id": bson::to_bson(&player.vertex_id).unwrap(),
                             "action":bson::to_bson(&player.action).unwrap(),
                             "flags":bson::to_bson(&player.flags).unwrap(),
-                            "inventory" : serialized_data,
+                            "inventory" : inventory_serialized_data,
+                            "card_inventory" : card_inventory_serialized_data,
                             "level": bson::to_bson(&player.level).unwrap(),
                             "experience" : bson::to_bson(&player.experience).unwrap(),
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),

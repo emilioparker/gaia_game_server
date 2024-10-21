@@ -157,7 +157,7 @@ impl AbilityUser for MobEntity
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> u16 
     {
-        let card_attack = definition.get_card(card_id as usize).map_or(0f32, |d| d.strength_factor);
+        let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
 
         let (base_strength, strength_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_strength, d.strength_points));
         let added_strength : f32 = self.buffs.iter().map(|b| 

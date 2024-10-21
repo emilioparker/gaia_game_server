@@ -26,12 +26,16 @@ pub async fn process(
         let item_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
 
         start = end;
+        end = start + 1;
+        let item_type = data[start]; 
+
+        start = end;
         end = start + 2;
         let amount = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
         let command = CharacterCommand{
             player_id,
-            info: CharacterCommandInfo::BuyItem(faction, item_id, amount)
+            info: CharacterCommandInfo::BuyItem(faction, item_id, item_type, amount)
         };
 
         println!("got a command {:?}", command);

@@ -34,13 +34,13 @@ pub async fn process_request(
     let player_entities = map.character.lock().await;
     let player_option = player_entities.get(&player_id);
 
-    let (inventory, inventory_version) = if let Some(player_entity) = player_option 
+    let (inventory, card_inventory, inventory_version) = if let Some(player_entity) = player_option 
     {
-        (player_entity.inventory.clone(), player_entity.inventory_version)
+        (player_entity.inventory.clone(), player_entity.card_inventory.clone(), player_entity.inventory_version)
     }
     else {
         println!("Inventory Request - player not found {}" , player_id);
-        (Vec::new(), 1)
+        (Vec::new(), Vec::new(), 1)
     };
 
     drop(player_entities); // we drop the lock asap, we can do what we want later.
@@ -53,15 +53,23 @@ pub async fn process_request(
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &item_len_bytes).unwrap();
 
-    std::io::Write::write_all(&mut encoder, &[inventory_version]).unwrap();
-
-    let mut offset = 0;
-    for item in inventory {
+    for item in inventory 
+    {
         let buffer = item.to_bytes();
-        offset += buffer.len();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }
 
+    // card inventory
+    let card_inventory_len_bytes = u32::to_le_bytes(card_inventory.len() as u32);
+    std::io::Write::write_all(&mut encoder, &card_inventory_len_bytes).unwrap();
+
+    for item in card_inventory 
+    {
+        let buffer = item.to_bytes();
+        std::io::Write::write_all(&mut encoder, &buffer).unwrap();
+    }
+
+    std::io::Write::write_all(&mut encoder, &[inventory_version]).unwrap();
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
     generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
 }
