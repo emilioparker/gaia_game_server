@@ -106,7 +106,7 @@ pub fn start_server(
                 {
                     Ok(_) => 
                     {
-                        println!("ping sent to client ");
+                        // println!("ping sent to client ");
                     },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
                     {

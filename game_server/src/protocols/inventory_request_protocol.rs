@@ -16,6 +16,7 @@ pub async fn process_request(
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
+    println!("---- inventory request");
     let start = 1;
     let end = start + 8;
     let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
@@ -53,8 +54,11 @@ pub async fn process_request(
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &item_len_bytes).unwrap();
 
+    println!("--- inventory length {}", inventory.len());
+
     for item in inventory 
     {
+        println!("---- item {:?}", item);
         let buffer = item.to_bytes();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }
@@ -63,8 +67,10 @@ pub async fn process_request(
     let card_inventory_len_bytes = u32::to_le_bytes(card_inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &card_inventory_len_bytes).unwrap();
 
+    println!("--- inventory length {}", card_inventory.len());
     for item in card_inventory 
     {
+        println!("---- card {:?}", item);
         let buffer = item.to_bytes();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }

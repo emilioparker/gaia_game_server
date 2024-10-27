@@ -313,11 +313,11 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         defense_points: 0,
         intelligence_points: 0,
         mana_points: 0,
-        strength: 5,
-        defense: 5,
-        intelligence: 5,
-        mana: 5,
-        health: 1,
+        strength: 10,
+        defense: 10,
+        intelligence: 10,
+        mana: 10,
+        health: 10,
         buffs : Vec::new()
     };
 
@@ -356,11 +356,11 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         defense_points: 0,
         intelligence_points: 0,
         mana_points: 0,
-        base_strength: 5,
-        base_defense: 5,
-        base_intelligence: 5,
-        base_mana: 5,
-        health: 1,
+        base_strength: 10,
+        base_defense: 10,
+        base_intelligence: 10,
+        base_mana: 10,
+        health: 10,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0]
     };

@@ -105,11 +105,24 @@ impl CharacterEntity
         self.card_inventory.iter().filter(|i| i.equipped == slot).count()
     }
 
+    pub fn count_card_in_slot(&mut self, card_id : u32, slot:u8) -> usize
+    {
+        self.card_inventory.iter().filter(|i| i.card_id == card_id && i.equipped == slot).count()
+    }
+
     pub fn equip_card(&mut self, card_id : u32, current_slot : u8, slot: u8) -> bool
     {
-        let count = self.count_cards_in_slot(slot);
-        if slot == 1 && count >= 10
+        let equip_count = self.count_cards_in_slot(slot);
+        if slot == 1 && equip_count >= 10
         {
+            println!("-- max equip count reached");
+            return false;
+        }
+
+        let equip_card_count = self.count_card_in_slot(card_id, slot);
+        if slot == 1 && equip_card_count > 0 
+        {
+            println!("-- card of {card_id} is already equipped");
             return false;
         }
 
@@ -126,7 +139,7 @@ impl CharacterEntity
 
                 if item.amount == 0 
                 {
-                    self.inventory.swap_remove(index);
+                    self.card_inventory.swap_remove(index);
                 }
                 break;
             }
