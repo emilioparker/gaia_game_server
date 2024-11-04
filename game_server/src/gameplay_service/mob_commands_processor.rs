@@ -1,4 +1,5 @@
 use std::{collections::HashMap, sync::Arc, u16};
+use rand::rngs::StdRng;
 use tokio::sync::{mpsc::Sender, Mutex};
 use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_inventory::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
@@ -493,7 +494,6 @@ pub async fn cast_mob_from_character(
         attacker.version += 1;
         defender.version += 1;
 
-
         if defender.health <= 0 
         {
             let base_xp = defender.level + 1;
@@ -511,14 +511,36 @@ pub async fn cast_mob_from_character(
             };
             attacker.add_inventory_item(reward);
 
-            let reward = InventoryItem 
+
+            let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+            let x =  rand::Rng::gen::<f32>(&mut random_generator);
+            let shard_id = (x * 15f32).floor() as u32;
+
+            let shard_id_option = match shard_id 
             {
-                item_id: 6, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                equipped:0,
-                amount: 1,
+                id if id <= 15 => Some(id + 6), // 15 shards with ids starting from 6
+                _ => None
             };
 
-            attacker.add_inventory_item(reward);
+            if let Some(shard_id) = shard_id_option 
+            {
+                let reward = InventoryItem 
+                {
+                    item_id: shard_id, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
+                    equipped:0,
+                    amount: 1,
+                };
+
+                attacker.add_inventory_item(reward);
+
+                characters_rewards_summary.push(CharacterReward
+                {
+                    player_id: character_id,
+                    item_id: shard_id,
+                    amount: 1,
+                    inventory_hash: attacker.inventory_version,
+                });
+            } 
 
             characters_rewards_summary.push(CharacterReward
             {
@@ -536,13 +558,6 @@ pub async fn cast_mob_from_character(
                 inventory_hash: attacker.inventory_version,
             });
 
-            characters_rewards_summary.push(CharacterReward
-            {
-                player_id: character_id,
-                item_id: 6,
-                amount: xp as u16,
-                inventory_hash: attacker.inventory_version,
-            });
         }
 
         let attacker_stored = attacker.clone();

@@ -5,18 +5,18 @@ item_id,item_type,cost,usage,equip_slot,benefit,store_location,item_name,item_de
 3,1,5,1,0,3,potion_heal,Basic Heal Potion,Gives you 3 health points,Icons/Items/Nobg/15_Heal_potion_nobg
 4,1,15,2,0,3,potion_xp,Basic XP Potion,Gives you 3 skill points,Icons/Items/Nobg/18_Crystal
 5,2,10,3,0,3,none,XP,Gives you xp,Icons/Items/Nobg/18_Crystal
-6,3,100,4,0,0,shard_knight,knight_card_shard_a,Knight card shard,Icons/Items/Nobg/Knight_Shard
-7,3,100,4,0,0,shard_knight,knight_card_shard_b,Knight card shard,Icons/Items/Nobg/Knight_Shard
-8,3,100,4,0,0,shard_knight,knight_card_shard_c,Knight card shard,Icons/Items/Nobg/Knight_Shard
-9,3,100,4,0,0,shard_knight,knight_card_shard_d,Knight card shard,Icons/Items/Nobg/Knight_Shard
-10,3,100,4,0,0,shard_knight,knight_card_shard_e,Knight card shard,Icons/Items/Nobg/Knight_Shard
-11,3,100,4,0,0,shard_knight,knight_card_shard_f,Knight card shard,Icons/Items/Nobg/Knight_Shard
-12,3,100,4,0,0,shard_knight,knight_card_shard_g,Knight card shard,Icons/Items/Nobg/Knight_Shard
-13,3,100,4,0,0,shard_knight,knight_card_shard_h,Knight card shard,Icons/Items/Nobg/Knight_Shard
-14,3,100,4,0,0,shard_knight,knight_card_shard_i,Knight card shard,Icons/Items/Nobg/Knight_Shard
-15,3,100,4,0,0,shard_knight,knight_card_shard_j,Knight card shard,Icons/Items/Nobg/Knight_Shard
-16,3,100,4,0,0,shard_knight,knight_card_shard_k,Knight card shard,Icons/Items/Nobg/Knight_Shard
-17,3,100,4,0,0,shard_knight,knight_card_shard_l,Knight card shard,Icons/Items/Nobg/Knight_Shard
-18,3,100,4,0,0,shard_knight,knight_card_shard_m,Knight card shard,Icons/Items/Nobg/Knight_Shard
-19,3,100,4,0,0,shard_knight,knight_card_shard_n,Knight card shard,Icons/Items/Nobg/Knight_Shard
-20,3,100,4,0,0,shard_knight,knight_card_shard_o,Knight card shard,Icons/Items/Nobg/Knight_Shard
+6,3,100,4,0,0,shard_knight,knight_card_shard_a,Knight card shard,Icons/Shards/a
+7,3,100,4,0,0,shard_knight,knight_card_shard_b,Knight card shard,Icons/Shards/b
+8,3,100,4,0,0,shard_knight,knight_card_shard_c,Knight card shard,Icons/Shards/c
+9,3,100,4,0,0,shard_knight,knight_card_shard_d,Knight card shard,Icons/Shards/d
+10,3,100,4,0,0,shard_knight,knight_card_shard_e,Knight card shard,Icons/Shards/e
+11,3,100,4,0,0,shard_knight,knight_card_shard_f,Knight card shard,Icons/Shards/f
+12,3,100,4,0,0,shard_knight,knight_card_shard_g,Knight card shard,Icons/Shards/g
+13,3,100,4,0,0,shard_knight,knight_card_shard_h,Knight card shard,Icons/Shards/h
+14,3,100,4,0,0,shard_knight,knight_card_shard_i,Knight card shard,Icons/Shards/i
+15,3,100,4,0,0,shard_knight,knight_card_shard_j,Knight card shard,Icons/Shards/j
+16,3,100,4,0,0,shard_knight,knight_card_shard_k,Knight card shard,Icons/Shards/k
+17,3,100,4,0,0,shard_knight,knight_card_shard_l,Knight card shard,Icons/Shards/l
+18,3,100,4,0,0,shard_knight,knight_card_shard_m,Knight card shard,Icons/Shards/m
+19,3,100,4,0,0,shard_knight,knight_card_shard_n,Knight card shard,Icons/Shards/n
+20,3,100,4,0,0,shard_knight,knight_card_shard_o,Knight card shard,Icons/Shards/o

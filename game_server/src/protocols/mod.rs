@@ -26,6 +26,7 @@ pub mod character_attacks_character_protocol;
 pub mod disconnect_protocol;
 pub mod touch_mob_protocol;
 pub mod cast_mob_from_mob_protocol;
+pub mod craft_card_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
