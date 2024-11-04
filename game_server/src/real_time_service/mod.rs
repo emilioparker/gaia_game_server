@@ -92,7 +92,7 @@ pub fn start_server(
     }
 
     let shared_player_missing_packets = Arc::new(player_missing_packets);
-    let executer_shared_player_missing_packets = shared_player_missing_packets.clone();
+    let _executer_shared_player_missing_packets = shared_player_missing_packets.clone();
     let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
 
     tokio::spawn(async move 

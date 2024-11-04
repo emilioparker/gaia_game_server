@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
+use crate::character::character_card_inventory::CardItem;
+use crate::character::character_inventory::InventoryItem;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -45,10 +47,18 @@ pub async fn process_request(
     };
 
     drop(player_entities); // we drop the lock asap, we can do what we want later.
-    let mut encoder = ZlibEncoder::new(Vec::new(),Compression::new(9));        
 
+    // we pay the price of cloning, but just because compressing might be costly.
+    let compressed_bytes = pack_inventory(inventory, card_inventory, inventory_version);
+    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+}
+
+pub fn pack_inventory(inventory: Vec<InventoryItem>, card_inventory: Vec<CardItem>, inventory_version: u8) -> Vec<u8>
+{
+    let mut encoder = ZlibEncoder::new(Vec::new(),Compression::new(9));        
     // we write the protocol
-    let buffer = [5u8;1];
+    let inventory_request = crate::protocols::Protocol::InventoryRequest as u8;
+    let buffer = [inventory_request;1];
     std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     // we write the amount of items.
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
@@ -77,5 +87,5 @@ pub async fn process_request(
 
     std::io::Write::write_all(&mut encoder, &[inventory_version]).unwrap();
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+    compressed_bytes
 }

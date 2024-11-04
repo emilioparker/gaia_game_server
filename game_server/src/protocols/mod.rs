@@ -76,6 +76,7 @@ pub enum Protocol
     AttackStructure = 27,
     TouchMob = 28,
     CastMobFromMob = 29,
+    CraftCard = 30,
 }
     
 pub async fn route_packet(
@@ -241,6 +242,11 @@ pub async fn route_packet(
             let capacity = channel_mob_tx.capacity();
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             cast_mob_from_mob_protocol::process(data, channel_mob_tx).await;
+        },
+        Some(protocol) if *protocol == Protocol::CraftCard as u8 => 
+        {
+            println!("--------------------- process craft card");
+            craft_card_protocol::process_request(player_id, player_address, generic_channel_tx, data, map).await;
         },
         unknown_protocol => 
         {

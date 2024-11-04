@@ -1,3 +1,7 @@
+use rand::rngs::StdRng;
+
+use crate::{character::character_card_inventory::CardItem, definitions::{definitions_container::Definitions, Definition}};
+
 use super::character_entity::CharacterEntity;
 
 pub const CHARACTER_INVENTORY_ITEM_SIZE: usize = 7;
@@ -136,5 +140,37 @@ impl CharacterEntity
             self.version += 1;
         }
         successfuly_removed
+    }
+
+
+    pub fn craft_card(&mut self, definitions : &Definitions) -> bool
+    {
+        let set_size = self.inventory.iter().filter(|i| i.item_id >= 6 && i.item_id <= 20).count();
+        println!("---- complete set {set_size}");
+
+        if set_size == 15 
+        {
+            for id in 6..=20
+            {
+                self.remove_inventory_item(InventoryItem { item_id: id, equipped: 0, amount: 1 });
+            }
+
+            let cards_count = definitions.cards.len();
+
+            let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+            let x =  rand::Rng::gen::<f32>(&mut random_generator);
+            let card_id = (x * cards_count as f32).floor() as u32;
+
+            self.add_card(CardItem
+            {
+                card_id: card_id,
+                equipped: 0,
+                amount: 1,
+            });
+
+            return true;
+        }
+
+        false
     }
 }
