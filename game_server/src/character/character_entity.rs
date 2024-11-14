@@ -4,9 +4,9 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::{map_entity::MapEntity, tetrahedron_id::TetrahedronId}};
 
-use super::{character_card_inventory::CardItem, character_inventory::InventoryItem};
+use super::{character_card_inventory::CardItem, character_inventory::InventoryItem, character_weapon_inventory::WeaponItem};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 49;
+pub const CHARACTER_ENTITY_SIZE: usize = 50;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 
@@ -37,6 +37,7 @@ pub struct CharacterEntity
     
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub card_inventory : Vec<CardItem>,// this one is not serializable  normally
+    pub weapon_inventory : Vec<WeaponItem>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
     // 1 bytes
@@ -44,6 +45,7 @@ pub struct CharacterEntity
     pub level:u8, // 1 bytes
     pub experience:u32, // 4 bytes
     pub available_skill_points:u8, // 1 bytes used for stats
+    pub weapon:u8,// 1 byte
 
     // 6 bytes
 
@@ -149,6 +151,10 @@ impl CharacterEntity
         offset = end;
 
         end = offset + 1;
+        buffer[offset] = self.weapon;
+        offset = end;
+
+        end = offset + 1;
         buffer[offset] = self.strength_points;
         offset = end;
 
@@ -213,7 +219,6 @@ impl CharacterEntity
         }
         println!("----- add xp:{} from battle {}", xp, self.experience);
     }
-
 
     pub fn set_flag(&mut self, flag : u8, value : bool)
     {
@@ -400,11 +405,13 @@ mod tests
             time:0,
             inventory: Vec::new(),
             card_inventory: Vec::new(),
+            weapon_inventory: Vec::new(),
             inventory_version: 1,
             health: 0,
             level: 1,
             experience: 0,
             available_skill_points: 0,
+            weapon:0,
             base_strength: 0,
             base_defense: 0,
             base_intelligence: 0,
@@ -459,10 +466,12 @@ mod tests
             flags:0,
             inventory: Vec::new(),
             card_inventory: Vec::new(),
+            weapon_inventory: Vec::new(),
             inventory_version: 10,
             level: 0,
             experience: 0,
             available_skill_points: 0,
+            weapon:0,
             strength_points: 0,
             defense_points: 0,
             intelligence_points: 0,

@@ -5,6 +5,7 @@ use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use crate::character::character_card_inventory::CardItem;
 use crate::character::character_inventory::InventoryItem;
+use crate::character::character_weapon_inventory::WeaponItem;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -37,23 +38,28 @@ pub async fn process_request(
     let player_entities = map.character.lock().await;
     let player_option = player_entities.get(&player_id);
 
-    let (inventory, card_inventory, inventory_version) = if let Some(player_entity) = player_option 
+    let (inventory, card_inventory, weapon_inventory, inventory_version) = if let Some(player_entity) = player_option 
     {
-        (player_entity.inventory.clone(), player_entity.card_inventory.clone(), player_entity.inventory_version)
+        (player_entity.inventory.clone(), player_entity.card_inventory.clone(), player_entity.weapon_inventory.clone(), player_entity.inventory_version)
     }
     else {
         println!("Inventory Request - player not found {}" , player_id);
-        (Vec::new(), Vec::new(), 1)
+        (Vec::new(), Vec::new(), Vec::new(), 1)
     };
 
     drop(player_entities); // we drop the lock asap, we can do what we want later.
 
     // we pay the price of cloning, but just because compressing might be costly.
-    let compressed_bytes = pack_inventory(inventory, card_inventory, inventory_version);
+    let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, inventory_version);
     generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
 }
 
-pub fn pack_inventory(inventory: Vec<InventoryItem>, card_inventory: Vec<CardItem>, inventory_version: u8) -> Vec<u8>
+pub fn pack_inventory(
+    inventory: Vec<InventoryItem>, 
+    card_inventory: Vec<CardItem>,
+    weapon_inventory : Vec<WeaponItem>,
+    inventory_version: u8)
+    -> Vec<u8>
 {
     let mut encoder = ZlibEncoder::new(Vec::new(),Compression::new(9));        
     // we write the protocol
@@ -79,6 +85,18 @@ pub fn pack_inventory(inventory: Vec<InventoryItem>, card_inventory: Vec<CardIte
 
     println!("--- inventory length {}", card_inventory.len());
     for item in card_inventory 
+    {
+        println!("---- card {:?}", item);
+        let buffer = item.to_bytes();
+        std::io::Write::write_all(&mut encoder, &buffer).unwrap();
+    }
+
+    // weapon inventory
+    let weapon_inventory_len_bytes = u32::to_le_bytes(weapon_inventory.len() as u32);
+    std::io::Write::write_all(&mut encoder, &weapon_inventory_len_bytes).unwrap();
+
+    println!("--- weapon inventory length {}", weapon_inventory.len());
+    for item in weapon_inventory 
     {
         println!("---- card {:?}", item);
         let buffer = item.to_bytes();

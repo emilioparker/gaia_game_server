@@ -22,8 +22,8 @@ pub enum CharacterCommandInfo
     AttackCharacter(u16, u32, u32, u8, u8), // other_character_id, card_id, required_time, effect
     Greet(),
     Respawn(TetrahedronId),
-    SellItem(u8,u32, u16),
-    BuyItem(u8,u32,u8, u16),// faction, item id, item type, amount
+    SellItem(u8,u32, u8, u16), // faction, item id, inventory type, amount
+    BuyItem(u8,u32,u8, u16),// faction, item id, inventory type, amount
     UseItem(u8,u32, u16),
     EquipItem(EquipItemCommandData),
     ActivateBuff(u32),
@@ -53,7 +53,7 @@ pub struct EquipItemCommandData
 {
     pub faction: u8,
     pub item_id:u32,
-    pub item_type: u8,
+    pub inventory_type: u8,
     pub current_slot:u8,
     pub new_slot:u8,
 }

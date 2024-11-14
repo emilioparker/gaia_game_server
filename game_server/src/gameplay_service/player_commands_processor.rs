@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward, character_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -50,9 +50,9 @@ pub async fn process_player_commands (
                     movement_data.dash,
                 ).await;
             },
-            character_command::CharacterCommandInfo::SellItem(_faction, item_id, amount) => 
+            character_command::CharacterCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
             {
-                sell_item(&map, tx_pe_gameplay_longterm, players_summary, *item_id, cloned_data.player_id, *amount).await
+                sell_item(&map, tx_pe_gameplay_longterm, players_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
             },
             character_command::CharacterCommandInfo::BuyItem(_faction, item_id, item_type, amount) => 
             {
@@ -64,7 +64,7 @@ pub async fn process_player_commands (
             },
             character_command::CharacterCommandInfo::EquipItem(equip_data) => 
             {
-                equip_item(&map, tx_pe_gameplay_longterm, players_summary, equip_data.item_id, equip_data.item_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
+                equip_item(&map, tx_pe_gameplay_longterm, players_summary, equip_data.item_id, equip_data.inventory_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
             },
             character_command::CharacterCommandInfo::Respawn(respawn_tile) => 
             {
@@ -244,7 +244,7 @@ pub async fn equip_item(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
-    item_type : u8,
+    inventory_type : u8,
     player_id: u16,
     current_slot: u8,
     new_slot:u8)
@@ -256,7 +256,7 @@ pub async fn equip_item(
     {
         Some(player_entity) => 
         {
-            if item_type == 0
+            if inventory_type == 0
             {
                 let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
                 println!("equip item with result {}",result);
@@ -264,10 +264,18 @@ pub async fn equip_item(
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
             }
-            else if item_type == 1
+            else if inventory_type == 1
             {
                 let result = player_entity.equip_card(item_id, current_slot, new_slot);
                 println!("equip item with result {}",result);
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            }
+            else if inventory_type == 2
+            {
+                let result = player_entity.equip_weapon(item_id, current_slot, new_slot);
+                println!("equip weapon with result {}",result);
 
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
@@ -285,52 +293,16 @@ pub async fn buy_item(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
-    item_type: u8,
+    inventory_type: u8,
     player_id: u16,
     amount: u16)
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-
-    let is_card = item_type == 1;
-    println!("Buy item with id {item_id}, item_type: {item_type}");
+    println!("Buy item with id {item_id}, item_type: {inventory_type}");
 
     let player_option = player_entities.get_mut(&player_id);
 
-    if is_card
-    {
-        let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
-        println!("card cost {cost:?}");
-        match (player_option, cost) 
-        {
-            (Some(player_entity), Some(cost)) => 
-            {
-                let result = player_entity.remove_inventory_item(InventoryItem
-                {
-                    item_id : 0,
-                    equipped : 0,
-                    amount : cost * amount,
-                });// remove soft currency
-
-                if result || cost == 0
-                {
-                    player_entity.add_card(CardItem
-                    {
-                        card_id: item_id,
-                        equipped : 0,
-                        amount
-                    });// add item currency
-                }
-
-                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-                players_summary.push(player_entity.clone());
-            },
-            _ => 
-            {
-                println!("error buying item");
-            }
-        }
-    }
-    else 
+    if inventory_type == 0
     {
         let cost  = map.definitions.items.get(item_id as usize).map(|d| d.cost);
         println!("cost {cost:?}");
@@ -364,6 +336,74 @@ pub async fn buy_item(
             }
         }
     }
+    else if inventory_type == 1
+    {
+        let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
+        println!("card cost {cost:?}");
+        match (player_option, cost) 
+        {
+            (Some(player_entity), Some(cost)) => 
+            {
+                let result = player_entity.remove_inventory_item(InventoryItem
+                {
+                    item_id : 0,
+                    equipped : 0,
+                    amount : cost * amount,
+                });// remove soft currency
+
+                if result || cost == 0
+                {
+                    player_entity.add_card(CardItem
+                    {
+                        card_id: item_id,
+                        equipped : 0,
+                        amount
+                    });// add item currency
+                }
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            },
+            _ => 
+            {
+                println!("error buying item");
+            }
+        }
+    }
+    else if inventory_type == 2
+    {
+        let cost  = map.definitions.weapons.get(item_id as usize).map(|d| d.store_cost);
+        println!("weapon cost {cost:?}");
+        match (player_option, cost) 
+        {
+            (Some(player_entity), Some(cost)) => 
+            {
+                let result = player_entity.remove_inventory_item(InventoryItem
+                {
+                    item_id : 0,
+                    equipped : 0,
+                    amount : cost * amount,
+                });// remove soft currency
+
+                if result || cost == 0
+                {
+                    player_entity.add_weapon(WeaponItem
+                    {
+                        weapon_id: item_id,
+                        equipped : 0,
+                        amount
+                    });// add item currency
+                }
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            },
+            _ => 
+            {
+                println!("error buying item");
+            }
+        }
+    }
 
 }
 
@@ -372,40 +412,113 @@ pub async fn sell_item(
     tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
+    inventory_type : u8,
     player_id: u16,
     amount: u16)
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    let item_definition = map.definitions.items.get(item_id as usize);
     let player_option = player_entities.get_mut(&player_id);
 
-    match (player_option, item_definition) 
+    if inventory_type == 0
     {
-        (Some(player_entity), Some(definition)) => {
-            let result = player_entity.remove_inventory_item(InventoryItem
-            {
-                item_id : item_id,
-                equipped:0,
-                amount,
-            });// add soft currency
-
-            if result 
-            {
-                player_entity.add_inventory_item(InventoryItem
-                {
-                    item_id: 0,
-                    equipped: 0,
-                    amount: amount * definition.cost,
-                });// add soft currency
-            }
-
-            tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
-            players_summary.push(player_entity.clone());
-
-        },
-        _ => 
+        let cost  = map.definitions.items.get(item_id as usize).map(|d| d.cost);
+        match (player_option, cost) 
         {
-            println!("error selling item");
+            (Some(player_entity), Some(cost)) => 
+            {
+                let result = player_entity.remove_inventory_item(InventoryItem
+                {
+                    item_id : item_id,
+                    equipped:0,
+                    amount,
+                });
+
+                // add soft currency
+                if result 
+                {
+                    player_entity.add_inventory_item(InventoryItem
+                    {
+                        item_id: 0,
+                        equipped: 0,
+                        amount: amount * cost,
+                    });// add soft currency
+                }
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            },
+            _ => 
+            {
+                println!("error selling item")
+            }
+        }
+    }
+    else if inventory_type == 1
+    {
+        let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
+        match (player_option, cost) 
+        {
+            (Some(player_entity), Some(cost)) => 
+            {
+                let result = player_entity.remove_card(CardItem
+                {
+                    card_id : item_id,
+                    equipped:0,
+                    amount,
+                });
+
+                // add soft currency
+                if result 
+                {
+                    player_entity.add_inventory_item(InventoryItem
+                    {
+                        item_id: 0,
+                        equipped: 0,
+                        amount: amount * cost,
+                    });// add soft currency
+                }
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            },
+            _ => 
+            {
+                println!("error selling card")
+            }
+        }
+    }
+    else if inventory_type == 2
+    {
+        let cost  = map.definitions.weapons.get(item_id as usize).map(|d| d.store_cost);
+        match (player_option, cost) 
+        {
+            (Some(player_entity), Some(cost)) => 
+            {
+                let result = player_entity.remove_weapon(WeaponItem
+                {
+                    weapon_id : item_id,
+                    equipped:0,
+                    amount,
+                });
+
+                // add soft currency
+                if result 
+                {
+                    player_entity.add_inventory_item(InventoryItem
+                    {
+                        item_id: 0,
+                        equipped: 0,
+                        amount: amount * cost,
+                    });// add soft currency
+                }
+
+                tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
+                players_summary.push(player_entity.clone());
+            },
+            _ => 
+            {
+                println!("error selling weapon")
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ pub mod items;
 pub mod card;
 pub mod mobs_data;
 pub mod buffs_data;
+pub mod weapons;
 
 
 pub trait Definition 

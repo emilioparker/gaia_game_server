@@ -1,8 +1,8 @@
 id,name,mob_type,item,skills
 0,none,normal,none,0
-1,enemy_1,normal,none,9
-2,enemy_2,normal,none,0
-3,enemy_3,normal,none,11;8
-4,enemy_4,normal,none,1
-5,enemy_5,normal,none,2
-6,enemy_6,normal,none,10
+1,enemy_1,normal,none,0
+2,enemy_2,normal,none,3
+3,enemy_3,normal,none,0;13
+4,enemy_4,normal,none,3
+5,enemy_5,normal,none,5
+6,enemy_6,normal,none,12

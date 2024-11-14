@@ -41,10 +41,11 @@ pub async fn process_request(
         { 
             let inventory = player_entity.inventory.clone();
             let card_inventory = player_entity.card_inventory.clone();
+            let weapon_inventory = player_entity.weapon_inventory.clone();
             let version = player_entity.inventory_version;
             drop(player_entities); // we drop the lock asap, we can do what we want later.
 
-            let compressed_bytes = pack_inventory(inventory, card_inventory, version);
+            let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, version);
             generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
         }
     }

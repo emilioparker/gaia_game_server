@@ -1,25 +1,25 @@
 use super::character_entity::CharacterEntity;
 
 
-pub const CHARACTER_CARD_INVENTORY_ITEM_SIZE: usize = 7;
+pub const CHARACTER_WEAPON_INVENTORY_ITEM_SIZE: usize = 7;
 
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct CardItem
+pub struct WeaponItem
 {
-    pub card_id : u32, //4
+    pub weapon_id : u32, //4
     pub equipped : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 means equipped.
     pub amount : u16 // 2
 }
 
-impl CardItem 
+impl WeaponItem 
 {
-    pub fn to_bytes(&self) -> [u8; CHARACTER_CARD_INVENTORY_ITEM_SIZE]
+    pub fn to_bytes(&self) -> [u8; CHARACTER_WEAPON_INVENTORY_ITEM_SIZE]
     {
         let mut start = 0;
-        let mut buffer = [0u8;CHARACTER_CARD_INVENTORY_ITEM_SIZE];
-        let card_id_bytes = u32::to_le_bytes(self.card_id); // 4 bytes
+        let mut buffer = [0u8;CHARACTER_WEAPON_INVENTORY_ITEM_SIZE];
+        let card_id_bytes = u32::to_le_bytes(self.weapon_id); // 4 bytes
         let end = start + 4; 
         buffer[start..end].copy_from_slice(&card_id_bytes);
         start = end;
@@ -37,12 +37,12 @@ impl CardItem
 impl CharacterEntity
 {
 
-    pub fn has_card(&self, id : u32) -> bool
+    pub fn has_weapon(&self, id : u32) -> bool
     {
         let mut found = false;
-        for item in &self.card_inventory 
+        for item in &self.weapon_inventory 
         {
-            if item.card_id == id
+            if item.weapon_id == id
             {
                 found = true;
             }
@@ -50,12 +50,12 @@ impl CharacterEntity
         return found;
     }
 
-    pub fn add_card(&mut self, new_item : CardItem)
+    pub fn add_weapon(&mut self, new_item : WeaponItem)
     {
         let mut found = false;
-        for item in &mut self.card_inventory 
+        for item in &mut self.weapon_inventory 
         {
-            if item.card_id == new_item.card_id && item.equipped == new_item.equipped 
+            if item.weapon_id == new_item.weapon_id && item.equipped == new_item.equipped 
             {
                 item.amount += new_item.amount;
                 found = true;
@@ -64,19 +64,19 @@ impl CharacterEntity
 
         if !found 
         {
-            self.card_inventory.push(new_item);
+            self.weapon_inventory.push(new_item);
         }
 
         self.version += 1;
         self.inventory_version += 1;
     }
 
-    pub fn remove_card(&mut self, old_item : CardItem) -> bool
+    pub fn remove_weapon(&mut self, old_item : WeaponItem) -> bool
     {
         let mut successfuly_removed = false;
-        for (index, item) in &mut self.card_inventory.iter_mut().enumerate() 
+        for (index, item) in &mut self.weapon_inventory.iter_mut().enumerate() 
         {
-            if item.card_id == old_item.card_id && item.equipped == old_item.equipped
+            if item.weapon_id == old_item.weapon_id && item.equipped == old_item.equipped
             {
                 if item.amount >= old_item.amount
                 {
@@ -86,7 +86,7 @@ impl CharacterEntity
 
                 if item.amount == 0 
                 {
-                    self.card_inventory.swap_remove(index);
+                    self.weapon_inventory.swap_remove(index);
                 }
                 break;
             }
@@ -100,36 +100,29 @@ impl CharacterEntity
         successfuly_removed
     }
 
-    pub fn count_cards_in_slot(&mut self, slot:u8) -> usize
+    pub fn count_weapons_in_slot(&mut self, slot:u8) -> usize
     {
-        self.card_inventory.iter().filter(|i| i.equipped == slot).count()
+        self.weapon_inventory.iter().filter(|i| i.equipped == slot).count()
     }
 
-    pub fn count_card_in_slot(&mut self, card_id : u32, slot:u8) -> usize
+    pub fn count_weapon_in_slot_by_id(&mut self, weapon_id : u32, slot:u8) -> usize
     {
-        self.card_inventory.iter().filter(|i| i.card_id == card_id && i.equipped == slot).count()
+        self.weapon_inventory.iter().filter(|i| i.weapon_id == weapon_id && i.equipped == slot).count()
     }
 
-    pub fn equip_card(&mut self, card_id : u32, current_slot : u8, slot: u8) -> bool
+    pub fn equip_weapon(&mut self, weapon_id : u32, current_slot : u8, slot: u8) -> bool
     {
-        let equip_count = self.count_cards_in_slot(slot);
-        if slot == 1 && equip_count >= 10
+        let equip_count = self.count_weapons_in_slot(slot);
+        if slot > 0 && equip_count > 0 
         {
-            println!("-- max equip count reached");
-            return false;
-        }
-
-        let equip_card_count = self.count_card_in_slot(card_id, slot);
-        if slot == 1 && equip_card_count > 0 
-        {
-            println!("-- card of {card_id} is already equipped");
+            println!("-- max equip count reached for weapons");
             return false;
         }
 
         let mut successfuly_removed = false;
-        for (index, item) in &mut self.card_inventory.iter_mut().enumerate() 
+        for (index, item) in &mut self.weapon_inventory.iter_mut().enumerate() 
         {
-            if item.card_id == card_id && item.equipped == current_slot
+            if item.weapon_id == weapon_id && item.equipped == current_slot
             {
                 if item.amount > 0
                 {
@@ -139,7 +132,7 @@ impl CharacterEntity
 
                 if item.amount == 0 
                 {
-                    self.card_inventory.swap_remove(index);
+                    self.weapon_inventory.swap_remove(index);
                 }
                 break;
             }
@@ -148,7 +141,15 @@ impl CharacterEntity
 
         if successfuly_removed 
         {
-            self.add_card(CardItem { card_id, equipped: slot, amount: 1 });
+            self.add_weapon(WeaponItem { weapon_id, equipped: slot, amount: 1 });
+            if slot == 0
+            {
+                self.weapon = 0;
+            }
+            else
+            {
+                self.weapon = weapon_id as u8;
+            }
             self.inventory_version += 1;
             self.version += 1;
         }

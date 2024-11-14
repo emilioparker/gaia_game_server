@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::buffs::buff::{Buff, BuffUser};
 use crate::character::character_card_inventory::CardItem;
 use crate::character::character_inventory::InventoryItem;
+use crate::character::character_weapon_inventory::WeaponItem;
 use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
@@ -56,6 +57,13 @@ pub async fn get_characters_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
+                let weapon_inventory = doc.weapon_inventory.into_iter().map(|item| WeaponItem 
+                {
+                    weapon_id: item.item_id,
+                    equipped: item.equipped,
+                    amount: item.amount,
+                }).collect();
+
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
                 let buffs_summary : [u8;5]= [0,0,0,0,0];
 
@@ -78,10 +86,12 @@ pub async fn get_characters_from_db_by_world(
                     character_name: doc.character_name,
                     inventory,
                     card_inventory,
+                    weapon_inventory,
                     inventory_version: 1,
                     level: doc.level,
                     experience: doc.experience,
                     available_skill_points: doc.available_skill_points,
+                    weapon:doc.weapon,
                     strength_points: doc.strength_points,
                     defense_points: doc.defense_points,
                     intelligence_points: doc.intelligence_points,
@@ -183,6 +193,12 @@ pub fn start_server(
                 .collect();
                 let card_inventory_serialized_data= bson::to_bson(&card_inventory).unwrap();
 
+                let weapon_inventory : Vec<StoredInventoryItem> = player.weapon_inventory
+                .into_iter()
+                .map(|item| StoredInventoryItem ::from(item))
+                .collect();
+                let weapon_inventory_serialized_data= bson::to_bson(&weapon_inventory).unwrap();
+
                 let updated_buffs : Vec<StoredBuff> = player.buffs
                 .into_iter()
                 .map(|buff| StoredBuff ::from(buff))
@@ -203,9 +219,11 @@ pub fn start_server(
                             "flags":bson::to_bson(&player.flags).unwrap(),
                             "inventory" : inventory_serialized_data,
                             "card_inventory" : card_inventory_serialized_data,
+                            "weapon_inventory" : weapon_inventory_serialized_data,
                             "level": bson::to_bson(&player.level).unwrap(),
                             "experience" : bson::to_bson(&player.experience).unwrap(),
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
+                            "weapon": bson::to_bson(&player.weapon).unwrap(),
                             "defense_points": bson::to_bson(&player.defense_points).unwrap(),
                             "strength_points": bson::to_bson(&player.strength_points).unwrap(),
                             "mana_points": bson::to_bson(&player.mana_points).unwrap(),

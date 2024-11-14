@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::buffs::buff;
 
-use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData};
+use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData, weapons::Weapon};
 
 
 #[derive(Debug, Clone)]
@@ -17,6 +17,7 @@ pub struct Definitions
     pub mobs : Vec<MobData>,
     pub buffs : HashMap<String, BuffData>,
     pub buffs_by_code : Vec<BuffData>,
+    pub weapons : Vec<Weapon>,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +33,7 @@ pub struct DefinitionsData
     pub cards_data : Vec<u8>,
     pub mobs_data : Vec<u8>,
     pub buffs_data : Vec<u8>,
+    pub weapons_data : Vec<u8>,
 }
 
 impl Definitions 

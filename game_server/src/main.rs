@@ -20,6 +20,7 @@ use game_server::definitions::main_paths::MapPath;
 use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::mobs_data::MobData;
 use game_server::definitions::props_data::PropData;
+use game_server::definitions::weapons::Weapon;
 use game_server::definitions::Definition;
 use game_server::ServerState;
 use game_server::chat_service;
@@ -296,6 +297,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("buffs.csv");
     let buffs_result = load_definition_by_name::<BuffData>(file_name).await;
 
+    let file_name = format!("weapons.csv");
+    let weapons_result = load_definition_by_name::<Weapon>(file_name).await;
 
     let mut buffs_hash = HashMap::new();
 
@@ -314,7 +317,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         cards :cards_result.0,
         mobs: mobs_result.0,
         buffs_by_code: buffs_result.0,
-        buffs : buffs_hash
+        buffs : buffs_hash,
+        weapons : weapons_result.0
     };
 
     let definitions_data = DefinitionsData
@@ -328,7 +332,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         items_data :items_result.1,
         cards_data: cards_result.1,
         mobs_data: mobs_result.1,
-        buffs_data: buffs_result.1
+        buffs_data: buffs_result.1,
+        weapons_data: weapons_result.1,
     };
 
     (definitions, definitions_data)

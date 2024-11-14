@@ -5,4 +5,5 @@ pub mod character_presentation;
 pub mod character_reward;
 pub mod character_inventory;
 pub mod character_card_inventory;
+pub mod character_weapon_inventory;
 

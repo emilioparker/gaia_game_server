@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::{buffs::buff::Buff, character::{character_card_inventory::CardItem, character_inventory::InventoryItem}};
+use crate::{buffs::buff::Buff, character::{character_card_inventory::CardItem, character_inventory::InventoryItem, character_weapon_inventory::WeaponItem}};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,10 +23,12 @@ pub struct StoredCharacter
     pub flags:u8,
     pub inventory: Vec<StoredInventoryItem>,
     pub card_inventory: Vec<StoredInventoryItem>,
+    pub weapon_inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,
     pub experience:u32,
     pub available_skill_points:u8, // used for stats
+    pub weapon:u8,
 
     // attributes
     pub strength_points: u8,
@@ -66,6 +68,14 @@ impl From<CardItem> for StoredInventoryItem
     fn from(item: CardItem) -> Self
     {
         StoredInventoryItem { item_id: item.card_id, equipped: item.equipped, amount: item.amount }
+    }
+}
+
+impl From<WeaponItem> for StoredInventoryItem
+{
+    fn from(item: WeaponItem) -> Self
+    {
+        StoredInventoryItem { item_id: item.weapon_id, equipped: item.equipped, amount: item.amount }
     }
 }
 
