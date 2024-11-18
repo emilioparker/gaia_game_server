@@ -447,36 +447,34 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
         let session_id = current_time.as_secs();
 
-        let saved_char = JoinWithCharacterResponse
-        {
-            character_id: data.character_id,
-            faction:player.faction,
-            position:  player.second_position.to_string(),
-            vertex_id: player.vertex_id,
-            level : player.level,
-            experience : player.experience,
-            health: player.health,
-            session_id,
-            available_points: player.available_skill_points,
-            strength: player.base_strength,
-            defense: player.base_defense,
-            intelligence: player.base_intelligence,
-            mana: player.base_mana,
-        };
+        let encoded_player_data = player.to_bytes();
         drop(players);
 
         println!("creating session id {} for {}", session_id, data.character_id);
         let session = &context.working_game_map.logged_in_players[data.character_id as usize];
         session.store(session_id, std::sync::atomic::Ordering::Relaxed);
 
-        let response = serde_json::to_vec(&saved_char).unwrap();
-        Ok(Response::new(Body::from(response)))
-    }
-    else {
-        Ok(Response::new(Body::from("error: char not found")))
-    }
+        let session_bytes = u64::to_le_bytes(session_id); // 8 bytes
+        let mut output = Vec::<u8>::new();
+        output.extend_from_slice(&session_bytes);
+        output.extend_from_slice(&encoded_player_data);
 
-    
+        let response = Response::builder()
+            .status(hyper::StatusCode::OK)
+            .header("Content-Type", "application/octet-stream")
+            .body(Body::from(output))
+            .expect("Failed to create response");
+        Ok(response)
+    }
+    else 
+    {
+        let response = Response::builder()
+            .status(hyper::StatusCode::NOT_FOUND)
+            .header("Content-Type", "application/octet-stream")
+            .body(Body::from("Error"))
+            .expect("Failed to create response");
+        Ok(response)
+    }
 }
 
 pub async fn handle_characters_request(context: AppContext) -> Result<Response<Body>, Error> 

@@ -6,6 +6,7 @@ pub struct Card
     pub id: u32,
     pub name: String,
     pub card_type: String,
+    pub required_weapon: String,
     pub target_type: String,
     pub icon: String,
     pub asset: String,
