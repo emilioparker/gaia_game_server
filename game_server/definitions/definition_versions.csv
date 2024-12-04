@@ -3,7 +3,8 @@ character_progression,4
 mob_progression,5
 definition_versions,0
 props,8
-main_paths,2
+main_paths,3
+towers_difficulty,0
 items,15
 cards,43
 mobs,12

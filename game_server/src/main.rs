@@ -8,7 +8,6 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
-use game_server::definitions;
 use game_server::definitions::buffs_data::BuffData;
 use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
@@ -20,6 +19,7 @@ use game_server::definitions::main_paths::MapPath;
 use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::mobs_data::MobData;
 use game_server::definitions::props_data::PropData;
+use game_server::definitions::tower_difficulty::TowerDifficulty;
 use game_server::definitions::weapons::Weapon;
 use game_server::definitions::Definition;
 use game_server::ServerState;
@@ -69,7 +69,7 @@ async fn main() {
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_079";
+    let world_name = "world_080";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -285,6 +285,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("main_paths.csv");
     let paths_result = load_definition_by_name::<MapPath>(file_name).await;
 
+    let file_name = format!("towers_difficulty.csv");
+    let towers_difficulty_result = load_definition_by_name::<TowerDifficulty>(file_name).await;
+
     let file_name = format!("items.csv");
     let items_result = load_definition_by_name::<Item>(file_name).await;
 
@@ -313,6 +316,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         props : props_result.0,
         mob_progression : mob_progression_result.0,
         main_paths: paths_result.0,
+        towers_difficulty: towers_difficulty_result.0,
         items: items_result.0,
         cards :cards_result.0,
         mobs: mobs_result.0,
@@ -329,6 +333,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         definition_versions_data : definition_versions_result.1,
         props_data : props_result.1,
         main_paths_data : paths_result.1,
+        towers_difficulty_data: towers_difficulty_result.1,
         items_data :items_result.1,
         cards_data: cards_result.1,
         mobs_data: mobs_result.1,

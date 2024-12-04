@@ -9,6 +9,7 @@ pub mod card;
 pub mod mobs_data;
 pub mod buffs_data;
 pub mod weapons;
+pub mod tower_difficulty;
 
 
 pub trait Definition 

@@ -204,6 +204,10 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 return Ok(Response::new(Body::from(context.definitions_data.weapons_data)));
             }
+            else if definition_data.version == data.version && data.name == "towers_difficulty"
+            {
+                return Ok(Response::new(Body::from(context.definitions_data.towers_difficulty_data)));
+            }
             else
             {
                 let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
