@@ -4,7 +4,7 @@ use super::Definition;
 pub struct TowerDifficulty 
 {
     pub tower_id: String,
-    pub difficulty: f32,
+    pub difficulty: i32,
     pub is_auxiliar:bool,
 }
 
