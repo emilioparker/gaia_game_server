@@ -658,12 +658,25 @@ pub async fn activate_buff(
     card_id : u32,
     player_id: u16)
 {
-    // let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    // if let Some(player) = player_entities.get_mut(&player_id)
-    // {
-    //     let current_time_in_seconds = (current_time / 1000) as u32;
-    //     player.removed_expired_buffs(current_time_in_seconds)
-    // }
+    println!("---- activate buff with card {card_id}");
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    if let Some(player) = player_entities.get_mut(&player_id)
+    {
+        let current_time_in_seconds = (current_time / 1000) as u32;
+        player.removed_expired_buffs(current_time_in_seconds);
+        let card = map.definitions.cards.get(card_id as usize).unwrap();
+        let buff = map.definitions.get_buff(&card.buff).unwrap();
+        let result = player.add_buff(buff.code, current_time_in_seconds, &map.definitions);
+        // let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
+        println!("activate buff with id:{}",buff.id);
+
+        if result 
+        {
+            player.version += 1;
+            tx_pe_gameplay_longterm.send(player.clone()).await.unwrap();
+            players_summary.push(player.clone());
+        }
+    }
 
     
     println!("--- activate buff");

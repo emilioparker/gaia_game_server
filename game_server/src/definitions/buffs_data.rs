@@ -8,7 +8,7 @@ pub struct BuffData
     pub buff_type:String,
     pub base_value:f32,
     pub hits:u8,
-    pub duration:u8,
+    pub duration:u32,
 }
 
 

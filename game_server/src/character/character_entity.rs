@@ -328,6 +328,7 @@ impl AbilityUser for CharacterEntity
             })
             .sum();
 
+        println!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
         stat + added_defense.round() as u16
     }
 }

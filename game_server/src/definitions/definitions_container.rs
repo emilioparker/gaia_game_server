@@ -41,9 +41,9 @@ pub struct DefinitionsData
 impl Definitions 
 {
     // used by the test_client ignores the protocol byte.
-    pub fn get_buff(&self, id : String) -> Option<&BuffData>
+    pub fn get_buff(&self, id : &String) -> Option<&BuffData>
     {
-        self.buffs.get(&id)
+        self.buffs.get(id)
     }
 
     pub fn get_buff_by_code(&self, id : u8) -> Option<&BuffData>

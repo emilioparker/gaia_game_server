@@ -22,7 +22,7 @@ pub struct Card
     pub cooldown:f32,
     pub cast_range:f32,
     pub hit_range:f32,
-    pub status_effect:String,
+    pub buff:String,
     pub effect_probability:f32,
 }
 
