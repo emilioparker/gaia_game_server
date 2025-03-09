@@ -29,7 +29,7 @@ pub async fn process_construction(
         let count = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
 
 
-        println!("construction protocol count {}", count);
+        cli_log::info!("construction protocol count {}", count);
 
         start = end;
         for _ in 0..count {
@@ -61,7 +61,7 @@ pub async fn process_construction(
                 info: MapCommandInfo::LayFoundation(player_id, prop, full_health, pathness_a, pathness_b, pathness_c)
             };
 
-            // println!("got a {:?}", map_action);
+            // cli_log::info!("got a {:?}", map_action);
 
             channel_map_tx.send(map_action).await.unwrap();
         }

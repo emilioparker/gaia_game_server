@@ -51,11 +51,11 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
             },
             Err(error_details) => 
             {
-                println!("error getting towers from db with {:?}", error_details);
+                cli_log::info!("error getting towers from db with {:?}", error_details);
             },
         }
     }
-    println!("----- towers {}", towers_count);
+    cli_log::info!("----- towers {}", towers_count);
 
     let response = Response::builder()
         .status(hyper::StatusCode::OK)
@@ -67,14 +67,14 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
 
 pub async fn handle_temp_tower_request(context: AppContext) -> Result<Response<Body>, hyper::http::Error>
 {
-    println!("request temp towers");
+    cli_log::info!("request temp towers");
     let mut binary_data = Vec::<u8>::new();
     let temp_towers = context.temp_towers.lock().await;
     let size = temp_towers.0;
-    println!("request temp towers {}", size);
+    cli_log::info!("request temp towers {}", size);
     binary_data.extend_from_slice(&temp_towers.1[..size]);
 
-    println!("sending data back");
+    cli_log::info!("sending data back");
     let response = Response::builder()
         .status(hyper::StatusCode::OK)
         .header("Content-Type", "application/octet-stream")

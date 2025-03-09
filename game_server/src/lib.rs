@@ -16,6 +16,7 @@ pub mod definitions;
 pub mod mob;
 pub mod buffs;
 pub mod ability_user;
+pub mod app;
 
 pub const SERVER_STATE_SIZE: usize = 20;
 

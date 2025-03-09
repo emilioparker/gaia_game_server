@@ -48,7 +48,7 @@ pub async fn process(
             info: MobCommandInfo::AttackFromMobToWalker(player_id, card_id, required_time, active_effect, missed)
         };
 
-        println!("got a {:?}", mob_action);
+        cli_log::info!("got a {:?}", mob_action);
 
         channel_mob_tx.send(mob_action).await.unwrap();
 }

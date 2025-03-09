@@ -48,14 +48,14 @@ pub async fn process_construction(
         start = end;
         end = start + 4;
         let prop = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        // println!("construction protocol count {}", count);
+        // cli_log::info!("construction protocol count {}", count);
 
         let map_action = MapCommand{
             id: tile_id,
             info: MapCommandInfo::LayWallFoundation(player_id, faction, prop, endpoint_a, endpoint_b, wall_size)
         };
 
-        println!("got a {:?}", map_action);
+        cli_log::info!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }

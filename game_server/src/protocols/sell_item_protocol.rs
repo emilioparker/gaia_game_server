@@ -39,7 +39,7 @@ pub async fn process(
             info: CharacterCommandInfo::SellItem(faction, item_id, inventory_type, amount)
         };
 
-        println!("got a command {:?}", command);
+        cli_log::info!("got a command {:?}", command);
 
         channel_player_tx.send(command).await.unwrap();
 }

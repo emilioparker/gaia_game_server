@@ -32,6 +32,6 @@ pub async fn process(data : &[u8; 508],  channel_map_tx : &Sender<MapCommand>)
     let map_action = MapCommand { id: tile_id, info };
     
     // let map_action = MapCommand::from_bytes(data);
-    // println!("got a {:?} {:?}",map_action, map_action.id.to_string());
+    // cli_log::info!("got a {:?} {:?}",map_action, map_action.id.to_string());
     channel_map_tx.send(map_action).await.unwrap();
 }

@@ -94,12 +94,12 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: SellItemRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let mut players = context.working_game_map.character.lock().await;
 
     if let Some(player) = players.get_mut(&data.character_id) {
-        // println!("selling player {:?}", player);
+        // cli_log::info!("selling player {:?}", player);
 
         // let mut updated_player_entity = player.clone();
         let result = player.remove_inventory_item(InventoryItem
@@ -142,7 +142,7 @@ async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Re
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let response = ClientVersionResponse
     {
@@ -160,7 +160,7 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
     let result : Result<DefinitionRequest, _> = serde_json::from_slice(&data);
     if let Ok(data) = result
     {
-        println!("handling request {:?}", data);
+        cli_log::info!("handling request {:?}", data);
 
         if let Some(definition_data)= context.definitions_data.definition_versions.get(&data.name)
         {
@@ -302,10 +302,10 @@ pub fn start_server(
 
     for id in regions.iter()
     {
-        println!("webservice -preload map region {}", id.to_string());
+        cli_log::info!("webservice -preload map region {}", id.to_string());
         arc_regions.insert(id.clone(), Arc::new(Mutex::new(TempMapBuffer::new())));
     }
-    println!("mpa regions len on preload {}",arc_regions.len());
+    cli_log::info!("mpa regions len on preload {}",arc_regions.len());
 
     let regions_adder_reference = Arc::new(arc_regions);
     let regions_cleaner_reference = regions_adder_reference.clone();
@@ -316,10 +316,10 @@ pub fn start_server(
 
     for id in regions.into_iter()
     {
-        println!("webservice -preload mob region {}", id.to_string());
+        cli_log::info!("webservice -preload mob region {}", id.to_string());
         arc_mob_regions.insert(id, Arc::new(Mutex::new(TempMapBuffer::new())));
     }
-    println!("mob regions len on preload {}",arc_mob_regions.len());
+    cli_log::info!("mob regions len on preload {}",arc_mob_regions.len());
 
     let mob_regions_adder_reference = Arc::new(arc_mob_regions);
     // this is not saved to disk, we never delete... haha... 
@@ -370,7 +370,7 @@ pub fn start_server(
 
         // And run forever...
         if let Err(e) = server.await {
-            eprintln!("server error: {}", e);
+            cli_log::info!("server error: {}", e);
         }
     });
 
@@ -387,12 +387,12 @@ pub fn start_server(
             {
                 let idx = *index;
                 region_map_lock.buffer[idx.. idx + MapEntity::get_size()].copy_from_slice(&message.to_bytes());
-                // println!("Replaced temp data to regions map {}", idx);
+                // cli_log::info!("Replaced temp data to regions map {}", idx);
             }
             else {
                 let index = region_map_lock.index;
                 if index + MapEntity::get_size() < region_map_lock.buffer.len() {
-                    // println!("index {}, size {}", index, MapEntity::get_size());
+                    // cli_log::info!("index {}, size {}", index, MapEntity::get_size());
                     
                     region_map_lock.buffer[index .. index + MapEntity::get_size()].copy_from_slice(&message.to_bytes());
                     region_map_lock.index = index + MapEntity::get_size();
@@ -400,7 +400,7 @@ pub fn start_server(
                     region_map_lock.tile_to_index.insert(message.id.clone(), index);
                 }
                 else {
-                    println!("webservice - temp buffer at capacity {}", region_id);
+                    cli_log::info!("webservice - temp buffer at capacity {}", region_id);
                 }
             }
         }
@@ -468,7 +468,7 @@ pub fn start_server(
                         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
                         mob_region_map_lock.tile_to_index.insert(tile_id, index);
                         mob_region_map_lock.index = last_index;
-                        println!("-- replacing mob index {}", mob_region_map_lock.index);
+                        cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
                     }
                 }
                 else
@@ -488,11 +488,11 @@ pub fn start_server(
                         mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
                         mob_region_map_lock.index = index + MobEntity::get_size();
                         mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
-                        println!("-- updated mob index {}", mob_region_map_lock.index);
+                        cli_log::info!("-- updated mob index {}", mob_region_map_lock.index);
                     }
                     else 
                     {
-                        println!("webservice - mob temp buffer at capacity {}", region_id);
+                        cli_log::info!("webservice - mob temp buffer at capacity {}", region_id);
                     }
                 }
             }
@@ -514,7 +514,7 @@ pub fn start_server(
             }
             else
             {
-                println!("tower temp buffer max size reached");
+                cli_log::info!("tower temp buffer max size reached");
             }
         }
     });
@@ -550,12 +550,12 @@ pub fn start_server(
             if let Some(messages) = chat.get_mut(&message_faction)
             {
                 let index = messages.index;
-                println!("chat index {index} {}", messages.count);
+                cli_log::info!("chat index {index} {}", messages.count);
                 messages.count = usize::min(CHAT_STORAGE_SIZE, messages.count + 1);
                 messages.index = (index + 1) % CHAT_STORAGE_SIZE;
                 let offset = index * CHAT_ENTRY_SIZE;
                 messages.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
-                println!("index {}", index)
+                cli_log::info!("index {}", index)
             }
         }
     });

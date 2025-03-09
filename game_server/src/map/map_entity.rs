@@ -307,7 +307,7 @@ mod tests {
         let encoded = entity.to_bytes();
 
         let decoded_tile = MapEntity::from_bytes(&encoded);
-        println!("{:?}", decoded_tile);
+        cli_log::info!("{:?}", decoded_tile);
         assert_eq!(decoded_tile,entity);
     }
 }

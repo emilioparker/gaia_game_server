@@ -17,7 +17,7 @@ pub async fn process_request(
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
-    println!("---- card crafting request");
+    cli_log::info!("---- card crafting request");
     let start = 1;
     let end = start + 8;
     let _player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
@@ -51,6 +51,6 @@ pub async fn process_request(
     }
     else 
     {
-        println!("Inventory Request - player not found {}" , player_id);
+        cli_log::info!("Inventory Request - player not found {}" , player_id);
     };
 }

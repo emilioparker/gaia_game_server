@@ -91,7 +91,7 @@ mod tests {
         };
 
         let encoded = reward.to_bytes();
-        println!("encoded size {}", encoded.len());
+        cli_log::info!("encoded size {}", encoded.len());
 
         let decoded_reward = CharacterReward::from_bytes(&encoded);
         assert_eq!(decoded_reward,reward);

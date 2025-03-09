@@ -152,7 +152,7 @@ impl AbilityUser for MobEntity
     {
         let constitution = self.get_constitution(definition);
         self.health =  new_health.min(constitution);
-        println!("---- updated health {}" ,self.health)
+        cli_log::info!("---- updated health {}" ,self.health)
     }
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> u16 
@@ -195,7 +195,7 @@ impl AbilityUser for MobEntity
 
         let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
         let level = self.level;
-        println!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
+        cli_log::info!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
         stat + added_defense.round() as u16
     }
 }

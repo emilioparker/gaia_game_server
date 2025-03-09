@@ -115,7 +115,7 @@ impl CharacterEntity
         let equip_count = self.count_weapons_in_slot(slot);
         if slot > 0 && equip_count > 0 
         {
-            println!("-- max equip count reached for weapons");
+            cli_log::info!("-- max equip count reached for weapons");
             return false;
         }
 

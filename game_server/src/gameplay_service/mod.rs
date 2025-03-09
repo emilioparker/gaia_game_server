@@ -117,7 +117,7 @@ pub fn start_service(
         loop {
             let message = rx_pc_client_game.recv().await.unwrap();
 
-            // println!("got a player change data {}", message.player_id);
+            // cli_log::info!("got a player change data {}", message.player_id);
             // let mut current_time = 0;
             // let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
             // if let Ok(elapsed) = result {
@@ -136,7 +136,7 @@ pub fn start_service(
         loop 
         {
             let message = rx_mc_client_game.recv().await.unwrap();
-            // println!("got a tile change data {}", message.id);
+            // cli_log::info!("got a tile change data {}", message.id);
             let mut data = tile_commands_agregator_from_client_lock.lock().await;
             data.push(message);
         }
@@ -148,7 +148,7 @@ pub fn start_service(
         loop
         {
             let message = rx_tc_client_game.recv().await.unwrap();
-            println!("got a tower change data {}", message.id);
+            cli_log::info!("got a tower change data {}", message.id);
             let mut data = tower_commands_agregator_from_client_lock.lock().await;
             data.push(message);
         }
@@ -346,7 +346,7 @@ pub fn start_service(
 
             if !data_package_required && (current_time_in_millis - previous_time) < 1000
             {
-                // println!("--- skipping");
+                // cli_log::info!("--- skipping");
                 continue;
             }
 
@@ -358,7 +358,7 @@ pub fn start_service(
             let len = tiles_summary.len();
             if len > 0
             {
-                println!("--tiles {len}");
+                cli_log::info!("--tiles {len}");
             }
             tiles_summary.drain(..)
             .for_each(|d| 
@@ -423,7 +423,7 @@ pub fn start_service(
             let len = players_summary.len();
             if len > 0
             {
-                println!("--players {len}");
+                cli_log::info!("--players {len}");
             }
             players_summary.drain(..)
             .for_each(|d| 
@@ -443,13 +443,13 @@ pub fn start_service(
             let len = attacks_summary.len();
             if len > 0
             {
-                println!("--attacks {len}");
+                cli_log::info!("--attacks {len}");
             }
             attacks_summary.drain(..)
             .for_each(|d| 
             {
                 let a = d.battle_type;
-                println!("--- sending an attack summary {a}");
+                cli_log::info!("--- sending an attack summary {a}");
                 let chunk = d.to_bytes();
                 let chunk_size = Attack::get_size();
                 data_packer::build_data_packet(
@@ -465,7 +465,7 @@ pub fn start_service(
             let len = attack_details_summary.len();
             if len > 0
             {
-                println!("--results {len}");
+                cli_log::info!("--results {len}");
             }
             attack_details_summary.drain(..)
             .for_each(|d| 
@@ -485,7 +485,7 @@ pub fn start_service(
             let len = mobs_summary.len();
             if len > 0
             {
-                println!("--mobs {len}");
+                cli_log::info!("--mobs {len}");
             }
             mobs_summary.drain(..)
             .for_each(|d| 

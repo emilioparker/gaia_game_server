@@ -9,7 +9,7 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
     let mut iterator = data.into_iter();
     let region_list = iterator.next();
     let regions = if let Some(regions_csv) = region_list {
-        println!("{}", regions_csv);
+        cli_log::info!("{}", regions_csv);
         let data = regions_csv.split(",");
         let regions_ids : Vec<&str> = data.collect();
         let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
@@ -36,7 +36,7 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
         .unwrap();
 
         if let Some(region_from_db) = data_from_db {
-            println!("region id {:?} with version {}", region_from_db.region_id, region_from_db.region_version);
+            cli_log::info!("region id {:?} with version {}", region_from_db.region_id, region_from_db.region_version);
             let region_data: Vec<u8> = match region_from_db.compressed_data {
                 bson::Bson::Binary(binary) => binary.bytes,
                 _ => panic!("Expected Bson::Binary"),
@@ -73,7 +73,7 @@ pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -
 
 // this string might contain more than one region separated by semicolon
     let regions = if let Some(regions_csv) = region_list {
-        println!("{}", regions_csv);
+        cli_log::info!("{}", regions_csv);
         let data = regions_csv.split(",");
         let regions_ids : Vec<&str> = data.collect();
         let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
@@ -107,7 +107,7 @@ pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str
 // this string might contain more than one region separated by semicolon
     let regions = if let Some(regions_csv) = region_list 
     {
-        println!("{}", regions_csv);
+        cli_log::info!("{}", regions_csv);
         let data = regions_csv.split(",");
         let regions_ids : Vec<&str> = data.collect();
         let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
@@ -126,7 +126,7 @@ pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str
         let size = region_map_lock.index;
         binary_data.extend_from_slice(&region_map_lock.buffer[..size]);
 
-        println!("mob region size {size}");
+        cli_log::info!("mob region size {size}");
     }
 
     let response = Response::builder()

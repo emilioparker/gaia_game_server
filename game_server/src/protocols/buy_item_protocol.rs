@@ -38,7 +38,7 @@ pub async fn process(
             info: CharacterCommandInfo::BuyItem(faction, item_id, item_type, amount)
         };
 
-        println!("got a command {:?}", command);
+        cli_log::info!("got a command {:?}", command);
 
         channel_player_tx.send(command).await.unwrap();
 }

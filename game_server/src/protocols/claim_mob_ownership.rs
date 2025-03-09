@@ -36,7 +36,7 @@ pub async fn process(
             info: MobCommandInfo::ControlMob(player_id)
         };
 
-        // println!("got a {:?}", map_action);
+        // cli_log::info!("got a {:?}", map_action);
 
         channel_mob_tx.send(mob_action).await.unwrap();
 }

@@ -115,14 +115,14 @@ impl CharacterEntity
         let equip_count = self.count_cards_in_slot(slot);
         if slot == 1 && equip_count >= 10
         {
-            println!("-- max equip count reached");
+            cli_log::info!("-- max equip count reached");
             return false;
         }
 
         let equip_card_count = self.count_card_in_slot(card_id, slot);
         if slot == 1 && equip_card_count > 0 
         {
-            println!("-- card of {card_id} is already equipped");
+            cli_log::info!("-- card of {card_id} is already equipped");
             return false;
         }
 

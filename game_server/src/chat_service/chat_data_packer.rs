@@ -10,7 +10,7 @@ use flate2::write::ZlibEncoder;
 pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : &mut u64) -> Vec<(u64, u8, Vec<u8>)> 
 {
     *packet_number = 0u64;
-    // println!("{packet_number} -A");
+    // cli_log::info!("{packet_number} -A");
 
     let mut buffer = [0u8; 5000];
     let mut start: usize = 1;
@@ -36,7 +36,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
     let mut packets = Vec::<(u64, u8, Vec<u8>)>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
-    // println!("data to send {}" , data.len());
+    // cli_log::info!("data to send {}" , data.len());
     for chat_entry in data
     {
         let required_space = CHAT_ENTRY_SIZE as u32 + 1;
@@ -47,7 +47,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
 
             encoder.write_all(buffer.as_slice()).unwrap();
             let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-            // println!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
+            // cli_log::info!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
             packets.push((0, faction, compressed_bytes)); // this is a copy!
 
             start = 1;
@@ -55,7 +55,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
             stored_bytes = 0;
 
             *packet_number += 1u64;
-            println!("{packet_number} -B");
+            cli_log::info!("{packet_number} -B");
             let end: usize = start + 8;
             let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
             buffer[start..end].copy_from_slice(&packet_number_bytes);
@@ -89,7 +89,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
         encoder.write_all(trimmed_buffer).unwrap();
         // encoder.write_all(buffer.as_slice()).unwrap();
         let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-        // println!("compressed {} vs normal {}", compressed_bytes.len(), trimmed_buffer.len());
+        // cli_log::info!("compressed {} vs normal {}", compressed_bytes.len(), trimmed_buffer.len());
 
 
         // let data : &[u8] = &compressed_bytes;
@@ -99,10 +99,10 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
         // let decoded_data = decoded_data_result.unwrap();
         // let decoded_data_array : &[u8] = &decoded_data;
 
-        // println!("data:");
-        // println!("{:#04X?}", buffer);
+        // cli_log::info!("data:");
+        // cli_log::info!("{:#04X?}", buffer);
 
-        // println!("decoded data: {}", (buffer == *decoded_data_array));
+        // cli_log::info!("decoded data: {}", (buffer == *decoded_data_array));
         packets.push((0, faction, compressed_bytes)); // this is a copy!
     }
 

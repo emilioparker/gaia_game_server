@@ -8,6 +8,7 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 
 use flate2::read::ZlibDecoder;
+use game_server::app;
 use game_server::definitions::buffs_data::BuffData;
 use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
@@ -39,11 +40,32 @@ use mongodb::Client;
 use mongodb::options::ClientOptions;
 use mongodb::options::ResolverConfig;
 
+use cli_log::*;
+
+fn main() {
+    init_cli_log!();
+    // build runtime
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .thread_name("gaia-main_thread")
+        .thread_stack_size(3 * 1024 * 1024)
+        .enable_all()
+        .build()
+        .unwrap();
+
+    // use runtime ...
+    runtime.spawn(run_server()); 
+
+    let terminal = ratatui::init();
+    let result = app::App::new().run(terminal);
+    ratatui::restore();
+}
 
 // #[tokio::main(worker_threads = 1)]
-#[tokio::main()]
-async fn main() {
-
+// #[tokio::main()]
+async fn run_server() 
+{
+    tokio::time::sleep(tokio::time::Duration::from_millis(20000)).await;
     let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
 
     let definitions = load_definitions().await;
@@ -82,13 +104,13 @@ async fn main() {
 
     if let Some(world) = world_state 
     {
-        println!("Load the world from db init at {}", world.start_time);
+        cli_log::info!("Load the world from db init at {}", world.start_time);
         let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world.id, db_client.clone()).await;
         //used and updated by the long storage system
         let storage_players = working_players.clone();
 
         let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
-        println!("reading regions into game maps");
+        cli_log::info!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
 
 
@@ -104,7 +126,7 @@ async fn main() {
                 player_id: player.character_id,
                 character_name: name_array,
             };
-            println!("Adding player data {}", player.character_name);
+            cli_log::info!("Adding player data {}", player.character_name);
 
             presentation_data_cache.extend(player_presentation.to_bytes());
         }
@@ -118,13 +140,13 @@ async fn main() {
     }
     else
     {
-        println!("Creating world from scratch, because it was not found in the database");
+        cli_log::info!("Creating world from scratch, because it was not found in the database");
         // any errors will just crash the app.
 
         let world_id = long_term_storage_service::world_service::init_world_state(world_name, db_client.clone()).await;
         if let Some(id) = world_id
         {
-            println!("Creating world with id {}", id);
+            cli_log::info!("Creating world with id {}", id);
             let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world_id, db_client.clone()).await;
             //used and updated by the long storage system
             let storage_players = working_players.clone();
@@ -145,7 +167,7 @@ async fn main() {
             storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data, storage_players, world_towers));
         }
         else {
-            println!("Error creating world in db");
+            cli_log::info!("Error creating world in db");
             return;
         }
     }
@@ -231,17 +253,31 @@ async fn main() {
         // ---------------------------------------------------
         },
         _ => {
-            println!("big and horrible error with the working and storage tiles");
+            cli_log::info!("big and horrible error with the working and storage tiles");
         }
     }
 
-    println!("Game server started correctly");
+    log_mem(Level::Info);
+    cli_log::info!("Game server started correctly");
+    // let mut terminal = ratatui::init();
+    // let mut app_instance = app::App::new();
+
+
     loop {
         // assuming 30 fps.
         // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         main_loop.tick().await;
-        // println!("{:?}", server_state);
+        // cli_log::info!("tick");
+        // app_instance.run(&mut terminal);
+        // // log_mem(Level::Info);
+        // // app_instance.run2();
+        // // cli_log::info!("{:?}", server_state);
+        // if !app_instance.running
+        // {
+        //     break;
+        // }
     }
+
 }
 
 
@@ -250,7 +286,7 @@ where T: serde::de::DeserializeOwned + Definition
 {
     let file_name = format!("definitions/{file_name}");
     let mut data = Vec::<T>::new();
-    println!("reading definition file {}", file_name);
+    cli_log::info!("reading definition file {}", file_name);
     let definition_versions_data = tokio::fs::read(file_name).await.unwrap();
     let mut rdr = csv::Reader::from_reader(definition_versions_data.as_slice());
     for result in rdr.deserialize() 
@@ -357,7 +393,7 @@ fn load_regions_data_into_game_map(
 
     for region in regions_stored_data.iter(){
         region_count += 1;
-        // println!("decoding region progress {region_count}/{region_total} tiles {count}");
+        // cli_log::info!("decoding region progress {region_count}/{region_total} tiles {count}");
 
         let region_object_id = region.1.id.clone();
         let binary_data: Vec<u8> = match region.1.compressed_data.clone() {
@@ -377,7 +413,7 @@ fn load_regions_data_into_game_map(
         let mut start = 0;
         let mut end = MapEntity::get_size() as usize;
 
-        // println!("initialy for region {} {}",region_id, all_tiles.len());
+        // cli_log::info!("initialy for region {} {}",region_id, all_tiles.len());
 
         let mut region_tiles : HashMap<TetrahedronId, MapEntity> = HashMap::new();
 
@@ -388,7 +424,7 @@ fn load_regions_data_into_game_map(
             map_entity.object_id = region_object_id;
             
             if map_entity.id.to_string() == "j202020303" {
-                println!("Found saved entity  {:?} " , map_entity);
+                cli_log::info!("Found saved entity  {:?} " , map_entity);
             }
             region_tiles.insert(map_entity.id.clone(), map_entity);
 
@@ -407,7 +443,7 @@ fn load_regions_data_into_game_map(
         regions_data.push((region_id.clone(), region_tiles));
     }
 
-    println!("finished loading data, starting services. regions: {} with {} tiles",region_total, count);
+    cli_log::info!("finished loading data, starting services. regions: {} with {} tiles",region_total, count);
     regions_data
     // GameMap::new(regions_data)
 }
@@ -416,7 +452,7 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
 {
     let file_name = format!("../../map_initial_data/{}_{}_props.bytes",world_id, region_id);
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
-    println!("reading file {}", file_name);
+    cli_log::info!("reading file {}", file_name);
 
     let tiles = tokio::fs::read(file_name).await.unwrap();
     let size = tiles.len();
@@ -490,7 +526,7 @@ mod tests {
         // let world = world_state.unwrap(); 
         // let working_players = long_term_storage_service::players_service::get_players_from_db(world.id, db_client.clone()).await;
         // let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
-        // println!("reading regions into game maps");
+        // cli_log::info!("reading regions into game maps");
         // let regions_data = load_regions_data_into_game_map(&regions_db_data);
 
         // let working_game_map = GameMap::new(world.id, regions_data, working_players);
@@ -510,14 +546,14 @@ mod tests {
             "region_id": region_id.to_string()
         }, None).await;
 
-        println!("delete result {delete_result:?}");
+        cli_log::info!("delete result {delete_result:?}");
 
         // let mut locked_tiles = region.lock().await;
 
         let old = region.get(&tile_id);
         match old {
             Some(previous_record) => {
-                println!("got a {:?}", previous_record);
+                cli_log::info!("got a {:?}", previous_record);
                 let new_tile = MapEntity{
                     health: 50,
                     ..previous_record.clone()
@@ -525,7 +561,7 @@ mod tests {
                 region.insert(tile_id.clone(), new_tile);
             }
             _ => {
-                println!("not found");
+                cli_log::info!("not found");
                 assert!(false);
                 // locked_tiles.insert(message.id.clone(), message);
             }
@@ -535,11 +571,11 @@ mod tests {
         let old = region.get(&tile_id);
         match old {
             Some(previous_record) => {
-                println!("got a {:?}", previous_record);
+                cli_log::info!("got a {:?}", previous_record);
                 assert!(previous_record.health == 50);
             }
             _ => {
-                println!("not found");
+                cli_log::info!("not found");
                 assert!(false);
                 // locked_tiles.insert(message.id.clone(), message);
             }
@@ -572,7 +608,7 @@ mod tests {
 
         let insert_result = data_collection.insert_one(data, None).await;
 
-        println!("update_result {insert_result:?}");
+        cli_log::info!("update_result {insert_result:?}");
 
         let recovered_region = data_collection
         .find_one(
@@ -596,7 +632,7 @@ mod tests {
         let old = region.get(&tile_id);
         match old {
             Some(previous_record) => {
-                println!("got a {:?}", previous_record);
+                cli_log::info!("got a {:?}", previous_record);
                 let new_tile = MapEntity{
                     health: 20,
                     ..previous_record.clone()
@@ -604,7 +640,7 @@ mod tests {
                 region.insert(tile_id.clone(), new_tile);
             }
             _ => {
-                println!("not found");
+                cli_log::info!("not found");
                 assert!(false);
                 // locked_tiles.insert(message.id.clone(), message);
             }
@@ -646,7 +682,7 @@ mod tests {
             None
         ).await;
         
-        println!("update_result {update_result:?}");
+        cli_log::info!("update_result {update_result:?}");
 
 
         let recovered_region = data_collection

@@ -22,7 +22,7 @@ pub async fn get_towers_from_db_by_world(
 ) 
 -> HashMap<TetrahedronId, TowerEntity>
 {
-    println!("get towers from db using {:?}", world_id);
+    cli_log::info!("get towers from db using {:?}", world_id);
 
     let mut data = HashMap::<TetrahedronId, TowerEntity>::new();
 
@@ -62,17 +62,17 @@ pub async fn get_towers_from_db_by_world(
                     damage_received_in_event: record,
                 };
 
-                // println!("-------Add tower {}", tower.tetrahedron_id);
+                // cli_log::info!("-------Add tower {}", tower.tetrahedron_id);
                 count += 1;
                 data.insert(tower.tetrahedron_id.clone(), tower);
             },
             Err(error_details) => 
             {
-                println!("error getting towers from db with {:?}", error_details);
+                cli_log::info!("error getting towers from db with {:?}", error_details);
             },
         }
     }
-    println!("Got {} towerw from database", count);
+    cli_log::info!("Got {} towerw from database", count);
 
     data
 }
@@ -106,7 +106,7 @@ pub async fn preload_db(
     }
 
     let insert_result = data_collection.insert_many(stored_towers, None).await.unwrap();
-    println!("{:?}", insert_result);
+    cli_log::info!("{:?}", insert_result);
 
 }
 pub fn start_server(
@@ -132,7 +132,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_te_realtime_longterm.recv().await.unwrap();
-            // println!("player entity changed  with inventory ? {}" , message.inventory.len());
+            // cli_log::info!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_towers = modified_towers_update_lock.lock().await;
             modified_towers.insert(message.tetrahedron_id.clone());
 
@@ -161,7 +161,7 @@ pub fn start_server(
             let mut modified_tower_entities = Vec::<TowerEntity>::new();
             for id in modified_tower_keys.iter()
             {
-                println!("this tower was changed {}", id.to_string());
+                cli_log::info!("this tower was changed {}", id.to_string());
                 if let Some(tower_data) = towers_guard.get(id) 
                 {
                     modified_tower_entities.push(tower_data.clone());
@@ -199,7 +199,7 @@ pub fn start_server(
                 ).await;
 
 
-                println!("updated tower result {:?}", update_result);
+                cli_log::info!("updated tower result {:?}", update_result);
             }
             let _result = tx_te_saved_longterm_webservice.send(true).await;
         }

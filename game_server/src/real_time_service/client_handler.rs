@@ -59,7 +59,7 @@ pub async fn spawn_client_process(
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508])
 {
-    println!("------ create reusable socket {} from {}", address, from_address);
+    cli_log::info!("------ create reusable socket {} from {}", address, from_address);
 
     // let socket_sender : tokio::net::UdpSocket = super::utils::create_reusable_udp_socket(address);
 
@@ -102,7 +102,7 @@ pub async fn spawn_client_process(
                     {
                         Ok(_size) => 
                         {
-                            // println!("Child: {:?} bytes received on child process for {}", size, from_address);
+                            // cli_log::info!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(
                                 player_id,
                                 from_address,
@@ -120,14 +120,14 @@ pub async fn spawn_client_process(
                         }
                         Err(error) => 
                         {
-                            println!("we got an error {:?}", error);
+                            cli_log::info!("we got an error {:?}", error);
                             break 'main_loop;
                         }
                     }
                 }
                 _ = time_out => 
                 {
-                    println!("we couldn't wait any longer sorry!");
+                    cli_log::info!("we couldn't wait any longer sorry!");
                     break 'main_loop;
                 }
             }

@@ -26,12 +26,12 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     target.use_buffs(vec![BUFF_DEFENSE], definitions);
 
     let damage = attack.saturating_sub(defense);
-    println!("--- attack {attack} def {defense} damage {damage}");
+    cli_log::info!("--- attack {attack} def {defense} damage {damage}");
 
     let health = target.get_health();
     let updated_health = health.saturating_sub(damage);
 
-    println!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
+    cli_log::info!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
     target.update_health(updated_health, definitions);
 
     if health == updated_health
@@ -87,7 +87,7 @@ pub fn heal<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
 //         inventory_hash : player_entity.inventory_version
 //     };
 
-//     println!("reward {:?}", reward);
+//     cli_log::info!("reward {:?}", reward);
 
 //     players_rewards_summary.push(reward);
 //     players_summary.push(player_entity.clone());
@@ -125,7 +125,7 @@ pub fn get_tile_commands_to_execute(current_time : u64, delayed_tile_commands_gu
     delayed_tile_commands_guard.retain(|b| 
     {
         let should_execute = b.0 <= current_time;
-        // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+        // cli_log::info!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute
         {
             items_to_execute.push(b.1.clone());
@@ -145,7 +145,7 @@ pub fn get_mob_commands_to_execute(current_time : u64, delayed_mob_commands_guar
     delayed_mob_commands_guard.retain(|b| 
         {
         let should_execute = b.0 <= current_time;
-        // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+        // cli_log::info!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute
         {
             items_to_execute.push(b.1.clone());
@@ -165,7 +165,7 @@ pub fn get_tower_commands_to_execute(current_time : u64, delayed_tower_commands_
     delayed_tower_commands_guard.retain(|b| 
         {
         let should_execute = b.0 <= current_time;
-        // println!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
+        // cli_log::info!("checking delayed action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute
         {
             items_to_execute.push(b.1.clone());
@@ -182,11 +182,11 @@ pub fn get_player_commands_to_execute(current_time : u64, delayed_player_command
 {
     let mut player_commands_to_execute = Vec::<CharacterCommand>::new();
 
-    // println!("checking delayed plaeyr commands {}" , delayed_commands_lock.len());
+    // cli_log::info!("checking delayed plaeyr commands {}" , delayed_commands_lock.len());
     delayed_player_commands_guards.retain(|b| 
     {
         let should_execute = b.0 <= current_time;
-        // println!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
+        // cli_log::info!("checking delayed player action {} task_time {} current_time {current_time}", should_execute, b.0);
         if should_execute
         {
             player_commands_to_execute.push(b.1.clone());

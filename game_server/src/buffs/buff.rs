@@ -47,7 +47,7 @@ pub trait BuffUser
 
     fn add_buff(&mut self, buff_id:u8, current_time_in_seconds : u32, definitions: &Definitions) -> bool
     {
-        println!("---- add buff {buff_id}");
+        cli_log::info!("---- add buff {buff_id}");
         if self.has_buff(buff_id) 
         {
             return false;
@@ -111,7 +111,7 @@ pub trait BuffUser
 
     fn removed_expired_buffs(&mut self, current_time_in_seconds:u32)
     {
-        println!("--- removing expired buff");
+        cli_log::info!("--- removing expired buff");
         self.get_buffs_mut()
         .retain(|b| 
             {

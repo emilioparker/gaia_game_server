@@ -98,7 +98,7 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: PlayerCreationRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let data_from_db: Option<StoredPlayer> = data_collection
@@ -121,7 +121,7 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
 
     let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
     let player_token = format!("token_{}", current_time.as_secs());
-    println!("got a {} as player token",player_token);
+    cli_log::info!("got a {} as player token",player_token);
 
     let stored_character = StoredPlayer{
         id: None,
@@ -149,7 +149,7 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: PlayerDetailsRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let stored_player: Option<StoredPlayer> = data_collection
@@ -195,11 +195,11 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
                     })
             },
             Err(error_details) => {
-                println!("error getting characters from db with {:?}", error_details);
+                cli_log::info!("error getting characters from db with {:?}", error_details);
             },
         }
     }
-    println!("----- characters {}", characters.len());
+    cli_log::info!("----- characters {}", characters.len());
 
     // now get all the worlds to see available ones
 
@@ -237,7 +237,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: CharacterCreationRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let data_from_db: Option<StoredPlayer> = data_collection
@@ -261,7 +261,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let generator = &context.working_game_map.id_generator;
     let new_id = generator.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-    println!("got a {} as id base ",new_id);
+    cli_log::info!("got a {} as id base ",new_id);
 
 
     let initial_position = match data.faction
@@ -389,7 +389,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         character_name: name_array,
     };
     
-    println!("Adding player data {}", data.character_name);
+    cli_log::info!("Adding player data {}", data.character_name);
     let mut presentation_data_cache =  context.cached_presentation_data.lock().await;
     presentation_data_cache.extend(player_presentation.to_bytes());
 
@@ -410,7 +410,7 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: JoinWithCharacterRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let data_from_db: Option<StoredPlayer> = data_collection
@@ -441,16 +441,16 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
 
     if let Some(player) = players.get(&data.character_id) 
     {
-        println!("player login {:?} vertex id {}", player, player.vertex_id);
+        cli_log::info!("player login {:?} vertex id {}", player, player.vertex_id);
 
-        println!("position {:?} {}", player.position, player.health);
+        cli_log::info!("position {:?} {}", player.position, player.health);
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
         let session_id = current_time.as_secs();
 
         let encoded_player_data = player.to_bytes();
         drop(players);
 
-        println!("creating session id {} for {}", session_id, data.character_id);
+        cli_log::info!("creating session id {} for {}", session_id, data.character_id);
         let session = &context.working_game_map.logged_in_players[data.character_id as usize];
         session.store(session_id, std::sync::atomic::Ordering::Relaxed);
 
@@ -495,13 +495,13 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: ExchangeSkillPointsRequest = serde_json::from_slice(&data).unwrap();
-    println!("handling request {:?}", data);
+    cli_log::info!("handling request {:?}", data);
     
     let mut players = context.working_game_map.character.lock().await;
 
     if let Some(player) = players.get_mut(&data.character_id) 
     {
-        println!("player points exchange {:?}", player);
+        cli_log::info!("player points exchange {:?}", player);
         let total_points = data.strength + data.defense + data.mana + data.intelligence;
         if total_points > player.available_skill_points
         {

@@ -21,7 +21,7 @@ pub async fn process_mob_commands (
 {
     let mut mobs_commands_data = mobs_commands_processor_lock.lock().await;
 
-    // println!("mobs commands len {}", mobs_commands_data.len());
+    // cli_log::info!("mobs commands len {}", mobs_commands_data.len());
     if mobs_commands_data.len() > 0 
     {
         for mobs_command in mobs_commands_data.iter()
@@ -58,7 +58,7 @@ pub async fn process_mob_commands (
                     }
                     else
                     {
-                        println!("------------ required time for cast to mob {required_time} current time: {current_time} {card_id}");
+                        cli_log::info!("------------ required time for cast to mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
                         let info = mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id.clone(), *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
@@ -79,7 +79,7 @@ pub async fn process_mob_commands (
                             battle_type : BATTLE_MOB_MOB,
                         };
 
-                        println!("--- cast {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- cast {} effect {}", attack.required_time, attack.active_effect);
                         attacks_summary.push(attack);
                     }
 
@@ -107,7 +107,7 @@ pub async fn process_mob_commands (
                     }
                     else 
                     {
-                        println!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
+                        cli_log::info!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
                         let info = mob_command::MobCommandInfo::CastFromCharacterToMob(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
@@ -128,7 +128,7 @@ pub async fn process_mob_commands (
                             battle_type : BATTLE_CHAR_MOB,
                         };
 
-                        println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- attack {} effect {}", attack.required_time, attack.active_effect);
                         attacks_summary.push(attack);
                     }
 
@@ -163,7 +163,7 @@ pub async fn process_mob_commands (
                     }
                     else 
                     {
-                        println!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
+                        cli_log::info!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
                         let info = mob_command::MobCommandInfo::AttackFromMobToWalker(*character_id, *card_id, *required_time, *active_effect, *missed);
                         let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
@@ -184,7 +184,7 @@ pub async fn process_mob_commands (
                             battle_type : BATTLE_MOB_CHAR,
                         };
 
-                        println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- attack {} effect {}", attack.required_time, attack.active_effect);
                         attacks_summary.push(attack);
                     }
                 },
@@ -315,7 +315,7 @@ pub async fn spawn_mob(
         if mob.health <= 0 // we can spawn a mob here.
         {
             new_mob.version = mob.version + 1;
-            // println!("new mob {:?}", updated_tile);
+            // cli_log::info!("new mob {:?}", updated_tile);
             *mob = new_mob.clone();
             drop(mobs);
             mobs_summary.push(new_mob.clone());
@@ -356,7 +356,7 @@ pub async fn control_mob(
         let difference = current_time_in_seconds as i32 - updated_mob.ownership_time as i32;
         // let id = tile_command.id.to_string();
         // let tile_time = updated_tile.ownership_time;
-        // println!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
+        // cli_log::info!("for mob {id} time {current_time_in_seconds} tile time: {tile_time} difference :{difference}");
 
         if difference > 60000
         {
@@ -369,11 +369,11 @@ pub async fn control_mob(
         }
         else if updated_mob.ownership_time < current_time_in_seconds 
         {
-            // println!("updating time {current_time} {}", updated_tile.ownership_time);
+            // cli_log::info!("updating time {current_time} {}", updated_tile.ownership_time);
             updated_mob.version += 1;
             updated_mob.owner_id = player_id;
             updated_mob.ownership_time = current_time_in_seconds; // seconds of control
-            // println!("new time {}", updated_tile.ownership_time);
+            // cli_log::info!("new time {}", updated_tile.ownership_time);
         }
 
         mobs_summary.push(updated_mob.clone());
@@ -400,7 +400,7 @@ pub async fn cast_mob_from_mob(
     missed: u8,
 )
 {
-    println!("----- cast to mob from mob ");
+    cli_log::info!("----- cast to mob from mob ");
 
     // let key = self.get_parent(tetrahedron_id);
 
@@ -414,7 +414,7 @@ pub async fn cast_mob_from_mob(
     {
         let mut caster = mob_caster.clone();
         let mut target = mob_target.clone();
-        println!("---- calling heal {} id: {}" , mob_target.health, mob_target.tile_id);
+        cli_log::info!("---- calling heal {} id: {}" , mob_target.health, mob_target.tile_id);
         let result = super::utils::heal::<MobEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, &mut caster, &mut target);
 
         caster.version += 1;
@@ -475,7 +475,7 @@ pub async fn cast_mob_from_character(
     missed: u8,
 )
 {
-    println!("----- attack mob ");
+    cli_log::info!("----- attack mob ");
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let character_attacker_option = character_entities.get(&character_id);
 
@@ -500,7 +500,7 @@ pub async fn cast_mob_from_character(
             let factor = 1.1f32.powf((defender.level as i32 - attacker.level as i32).max(0) as f32);
             let xp = base_xp as f32 * factor;
 
-            println!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
+            cli_log::info!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
 
             attacker.add_xp_from_battle(xp.ceil() as u32, &map.definitions);
             let reward = InventoryItem 
@@ -618,7 +618,7 @@ pub async fn cast_character_from_mob(
     missed: u8,
 )
 {
-    println!("----- attack character ");
+    cli_log::info!("----- attack character ");
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let character_defender_option = character_entities.get(&character_id);
 
@@ -703,11 +703,11 @@ pub async fn check_buffs(
     let current_time_in_seconds = (current_time / 1000) as u32;
     if let Some(mob) = mob_attacker_option
     {
-        println!("-----  check buffs for {} {:?}", mob_id, mob.buffs_summary );
+        cli_log::info!("-----  check buffs for {} {:?}", mob_id, mob.buffs_summary );
 
         if mob.has_expired_buffs(current_time_in_seconds)
         {
-            println!("------- check removing expired buffs");
+            cli_log::info!("------- check removing expired buffs");
             mob.removed_expired_buffs(current_time_in_seconds);
         }
 

@@ -31,7 +31,7 @@ pub async fn process_chat_commands (
 
             let _send_result = tx_ce_gameplay_webservice.send(chat_entry.clone()).await;
             chat_summary.push(chat_entry);
-            println!("added chat entry");
+            cli_log::info!("added chat entry");
         }
     }
     chat_commands_data.clear();

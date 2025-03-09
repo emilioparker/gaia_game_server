@@ -94,7 +94,7 @@ pub async fn process_tile_commands (
             //     }
             //     else 
             //     {
-            //         println!("------------ required time for attack {required_time} current time: {current_time} {card_id}");
+            //         cli_log::info!("------------ required time for attack {required_time} current time: {current_time} {card_id}");
             //         let mut lock = delayed_tile_commands_lock.lock().await;
             //         let info = MapCommandInfo::AttackMob(*player_id, *card_id, *required_time, *active_effect);
             //         let map_action = MapCommand { id: tile_command.id.clone(), info };
@@ -112,7 +112,7 @@ pub async fn process_tile_commands (
             //         required_time: *required_time,
             //         active_effect: *active_effect
             //     };
-            //     println!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+            //     cli_log::info!("--- attack {} effect {}", attack.required_time, attack.active_effect);
             //     player_attacks_summary.push(attack);
 
             // }
@@ -122,7 +122,7 @@ pub async fn process_tile_commands (
             },
         }
     }
-    // println!("tiles summary {} ", tiles_summary.len());
+    // cli_log::info!("tiles summary {} ", tiles_summary.len());
     tile_commands_data.clear();
 }
 
@@ -215,7 +215,7 @@ pub async fn extract_resource(
     {
         let mut updated_tile = tile.clone();
         let previous_health = tile.health;
-        println!("Change tile health!!! {}", tile.prop);
+        cli_log::info!("Change tile health!!! {}", tile.prop);
         // this means this tile is being built
         if tile.health > tile.constitution 
         {
@@ -245,7 +245,7 @@ pub async fn extract_resource(
             if updated_tile.health == 0
             {
                 updated_tile.prop = 0;
-                println!("updated tile is now 0");
+                cli_log::info!("updated tile is now 0");
             }
             tiles_summary.push(updated_tile.clone());
             *tile = updated_tile.clone();
@@ -264,7 +264,7 @@ pub async fn extract_resource(
                 let player_option = player_entities.get_mut(&player_id);
                 if let Some(player_entity) = player_option 
                 {
-                    println!("Add inventory item for player");
+                    cli_log::info!("Add inventory item for player");
                     let new_item = InventoryItem 
                     {
                         item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
@@ -287,7 +287,7 @@ pub async fn extract_resource(
                         inventory_hash : updated_player_entity.inventory_version
                     };
 
-                    println!("reward {:?}", reward);
+                    cli_log::info!("reward {:?}", reward);
 
                     players_rewards_summary.push(reward);
                     tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
@@ -390,7 +390,7 @@ pub async fn build_structure(
         else {
             // we send the tile in case the one thinking that the structure is not built yet will receive the tile
             tiles_summary.push(updated_tile.clone());
-            println!("structure is already built!");
+            cli_log::info!("structure is already built!");
             // structure is already built!
         }
     }
@@ -456,7 +456,7 @@ pub async fn move_mob(
         let mut updated_tile = tile.clone();
         let id = tile_id.to_string();
         let tile_time = updated_tile.ownership_time;
-        println!("move mob {id} tile time: {tile_time}");
+        cli_log::info!("move mob {id} tile time: {tile_time}");
         let current_time_in_seconds = (current_time / 1000) as u32;
         // we also need to be sure this player has control over the tile
         if updated_tile.prop == mob_id // we are mostly sure you know this is a mob and wants to move 
@@ -467,13 +467,13 @@ pub async fn move_mob(
             updated_tile.version += 1;
             // let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
             let required_time = required_time.round() as u32;
-            // println!("required time {} " , required_time);
+            // cli_log::info!("required time {} " , required_time);
             updated_tile.time = current_time_in_seconds + required_time;
             updated_tile.origin_id = tile.target_id.clone();
             updated_tile.target_id = new_tile_id.clone();
 
             updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
-            // println!("updating ownership time {}" , updated_tile.ownership_time);
+            // cli_log::info!("updating ownership time {}" , updated_tile.ownership_time);
 
             tiles_summary.push(updated_tile.clone());
             *tile = updated_tile.clone();

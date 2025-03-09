@@ -266,6 +266,6 @@ mod tests {
         let damage = entity.get_damage_by_faction(1);
         assert_eq!(damage, 26);
 
-        println!("{:?}", entity.damage_received_in_event);
+        cli_log::info!("{:?}", entity.damage_received_in_event);
     }
 }

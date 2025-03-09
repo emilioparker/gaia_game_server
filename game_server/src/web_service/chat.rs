@@ -16,7 +16,7 @@ pub async fn handle_chat_record_request(context: AppContext, data : Vec<&str>) -
         0
     };
 
-    println!("request chat record");
+    cli_log::info!("request chat record");
     let mut binary_data = Vec::<u8>::new();
     let record = context.old_messages.lock().await;
     if let Some(messages) = record.get(&(message_faction as u8))
@@ -28,7 +28,7 @@ pub async fn handle_chat_record_request(context: AppContext, data : Vec<&str>) -
         binary_data.extend_from_slice(&global_messages.record);
     }
 
-    println!("sending data back");
+    cli_log::info!("sending data back");
     let response = Response::builder()
         .status(hyper::StatusCode::OK)
         .header("Content-Type", "application/octet-stream")

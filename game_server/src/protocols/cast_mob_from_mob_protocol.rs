@@ -39,7 +39,7 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
     let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
     start = end;
 
-    println!("-------- mob from mob");
+    cli_log::info!("-------- mob from mob");
 
     let info = MobCommandInfo::CastFromMobToMob(caster_tile_id, card_id, required_time, 1, 0);
     let mob_action = MobCommand { tile_id: target_tile_id, info };

@@ -197,60 +197,60 @@ pub async fn route_packet(
             lay_wall_foundation_protocol::process_construction(data, channel_map_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Respawn as u8 => {
-            println!("--------------------- process respawn");
+            cli_log::info!("--------------------- process respawn");
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             respawn_protocol::process_respawn(data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
-            println!("--------------------- process character action");
+            cli_log::info!("--------------------- process character action");
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             action_protocol::process(data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::Greet as u8 => 
         {
-            println!("--------------------- process greet");
+            cli_log::info!("--------------------- process greet");
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             greet_protocol::process(data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::ActivateBuff as u8 => 
         {
-            println!("--------------------- process buff");
+            cli_log::info!("--------------------- process buff");
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             activate_buff_protocol::process(data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAttacksCharacter as u8 => 
         {
-            println!("--------------------- process character attack");
+            cli_log::info!("--------------------- process character attack");
             let capacity = channel_tx.capacity();
             server_state.tx_pc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             character_attacks_character_protocol::process(data, channel_tx).await;
         },
         Some(protocol) if *protocol == Protocol::TouchMob as u8 => 
         {
-            println!("--------------------- process touch mob");
+            cli_log::info!("--------------------- process touch mob");
             let capacity = channel_mob_tx.capacity();
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             touch_mob_protocol::process(data, channel_mob_tx).await;
         },
         Some(protocol) if *protocol == Protocol::CastMobFromMob as u8 => 
         {
-            println!("--------------------- process touch mob");
+            cli_log::info!("--------------------- process touch mob");
             let capacity = channel_mob_tx.capacity();
             server_state.tx_moc_client_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             cast_mob_from_mob_protocol::process(data, channel_mob_tx).await;
         },
         Some(protocol) if *protocol == Protocol::CraftCard as u8 => 
         {
-            println!("--------------------- process craft card");
+            cli_log::info!("--------------------- process craft card");
             craft_card_protocol::process_request(player_id, player_address, generic_channel_tx, data, map).await;
         },
         unknown_protocol => 
         {
-            println!("unknown protocol {:?}", unknown_protocol);
+            cli_log::info!("unknown protocol {:?}", unknown_protocol);
         }
     }
 }

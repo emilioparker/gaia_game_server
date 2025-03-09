@@ -41,7 +41,7 @@ pub async fn process(data : &[u8; 508],  channel_mob_tx : &Sender<MobCommand>)
     let missed = data[start]; // 1 bytes
     start = end;
 
-    println!("active effect {active_effect}");
+    cli_log::info!("active effect {active_effect}");
 
     let info = MobCommandInfo::CastFromCharacterToMob(player_id, card_id, required_time, active_effect, missed);
     let mob_action = MobCommand { tile_id, info };

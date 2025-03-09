@@ -172,17 +172,17 @@ mod tests {
     {
         let tile_human_id = "k233333313";
         let tile_id = TetrahedronId::from_string(tile_human_id);
-        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        cli_log::info!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_human_id, tile_id.to_string());
 
         let tile_human_id = "a233";
         let tile_id = TetrahedronId::from_string(tile_human_id);
-        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        cli_log::info!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_human_id, tile_id.to_string());
 
         let tile_human_id = "a";
         let tile_id = TetrahedronId::from_string(tile_human_id);
-        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        cli_log::info!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_human_id, tile_id.to_string());
     }
 
@@ -191,7 +191,7 @@ mod tests {
     {
         let tile_human_id = "k233333313";
         let tile_id = TetrahedronId::from_string(tile_human_id);
-        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        cli_log::info!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
 
         let parent = "k23333331";
         let parent_tile_id = TetrahedronId::from_string(parent);
@@ -241,7 +241,7 @@ mod tests {
         let tile_id = TetrahedronId::from_string(tile_human_id);
         let bin_data = tile_id.to_bytes();
         let tile_2 = TetrahedronId::from_bytes(&bin_data);
-        println!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
+        cli_log::info!("data area:{} lod:{} id:{}", tile_id.area, tile_id.lod, tile_id.id);
         assert_eq!(tile_id,tile_2);
     }
 

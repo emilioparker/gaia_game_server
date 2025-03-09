@@ -35,7 +35,7 @@ pub async fn process(
             info: TowerCommandInfo::RepairTower(player_id, repair_amount)
         };
 
-        println!("got a {:?}", tower_action);
+        cli_log::info!("got a {:?}", tower_action);
 
         channel_tower_tx.send(tower_action).await.unwrap();
 }

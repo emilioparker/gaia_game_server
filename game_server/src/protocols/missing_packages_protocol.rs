@@ -20,7 +20,7 @@ pub fn process_request(
     end = start + 1;
     let _faction = data[start];
 
-    // println!("set missing packages for character {player_id}");
+    // cli_log::info!("set missing packages for character {player_id}");
     start = end;
     if let Some(group) = missing_packages.get(&player_id)
     {
@@ -29,7 +29,7 @@ pub fn process_request(
             end = start + 8;
             let missing_packet = u64::from_le_bytes(data[start..end].try_into().unwrap());
             start = end;
-            // println!("set missing {index} packet {missing_packet}");
+            // cli_log::info!("set missing {index} packet {missing_packet}");
             group[index].store(missing_packet, std::sync::atomic::Ordering::Relaxed);
         }
     }

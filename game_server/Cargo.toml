@@ -30,6 +30,12 @@ chrono = "0.4" # Used for setting DateTimes
 # flate2 = { version = "1.0.17", features = ["zlib-ng"], default-features = false }
 # console-subscriber = "0.1.8"
 
+#ratatui
+crossterm = "0.28.1"
+ratatui = "0.29.0"
+
+#since ratatui will use the termina, I need to see logs somewhere else...
+cli-log = "2.1.0"
 
 # [profile.release]
 # incremental = true

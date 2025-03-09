@@ -59,7 +59,7 @@ async fn spawn_test_client(client_id : u64) {
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
-            // println!("send data {} " ,position);
+            // cli_log::info!("send data {} " ,position);
 
             // let client_action = PlayerCommand { 
             //     player_id:client_id,
@@ -105,12 +105,12 @@ async fn spawn_test_client(client_id : u64) {
         loop {
             let mut data = vec![0u8; 508];
             let _len = rec_socket.recv(&mut data).await.unwrap();
-            // println!("got some data from server {}", len);
+            // cli_log::info!("got some data from server {}", len);
             let _first_byte = data[0]; // this is the protocol
             let packet_sequence_number = u64::from_le_bytes(data[1..9].try_into().unwrap());
 
             if client_id == 0 {
-                println!("{}", packet_sequence_number);
+                cli_log::info!("{}", packet_sequence_number);
             }
         }
     });

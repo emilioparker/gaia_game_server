@@ -27,7 +27,7 @@ mod tests {
         // "released": Utc.ymd(2020, 2, 7).and_hms_opt(0, 0, 0),
         };
 
-        println!("{}", new_doc);
+        cli_log::info!("{}", new_doc);
     }
 
     // fn insert_test()
@@ -39,9 +39,9 @@ mod tests {
     //     "released": Utc.ymd(2020, 2, 7).and_hms_opt(0, 0, 0),
     //     };
 
-    //     println!("{}", new_doc);
+    //     cli_log::info!("{}", new_doc);
     //     let insert_result = movies.insert_one(new_doc.clone(), None).await?;
-    //     println!("New document ID: {}", insert_result.inserted_id);
+    //     cli_log::info!("New document ID: {}", insert_result.inserted_id);
     // }
 
     #[tokio::test]
@@ -62,9 +62,9 @@ mod tests {
         let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
         let client = Client::with_options(options).unwrap();
         // Print the databases in our MongoDB cluster:
-        println!("Databases:");
+        cli_log::info!("Databases:");
         for name in client.list_database_names(None, None).await.unwrap() {
-            println!("- {}", name);
+            cli_log::info!("- {}", name);
         }
     }
 
@@ -86,9 +86,9 @@ mod tests {
         let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
         let client = Client::with_options(options).unwrap();
         // Print the databases in our MongoDB cluster:
-        println!("Databases:");
+        cli_log::info!("Databases:");
         for name in client.list_database_names(None, None).await.unwrap() {
-            println!("- {}", name);
+            cli_log::info!("- {}", name);
         }
         let movies = client.database("sample_mflix").collection("movies");
 
@@ -98,9 +98,9 @@ mod tests {
         "plot": "A poor family, the Kims, con their way into becoming the servants of a rich family, the Parks. But their easy life gets complicated when their deception is threatened with exposure.",
         };
 
-        println!("{}", new_doc);
+        cli_log::info!("{}", new_doc);
         let insert_result = movies.insert_one(new_doc.clone(), None).await.unwrap();
-        println!("New document ID: {}", insert_result.inserted_id);
+        cli_log::info!("New document ID: {}", insert_result.inserted_id);
     }
 
     // You use `serde` to create structs which can serialize & deserialize between BSON:
@@ -132,9 +132,9 @@ mod tests {
         let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
         let client = Client::with_options(options).unwrap();
         // Print the databases in our MongoDB cluster:
-        println!("Databases:");
+        cli_log::info!("Databases:");
         for name in client.list_database_names(None, None).await.unwrap() {
-            println!("- {}", name);
+            cli_log::info!("- {}", name);
         }
 
         let data_collection: mongodb::Collection<bson::Document> = client.database("game").collection("main_data");
@@ -156,7 +156,7 @@ mod tests {
 
         let insert_result = data_collection.insert_one(document.to_owned(), None).await.unwrap();
 
-        println!("New document ID: {}", insert_result.inserted_id);
+        cli_log::info!("New document ID: {}", insert_result.inserted_id);
 
     }
 }

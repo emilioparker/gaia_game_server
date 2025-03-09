@@ -28,7 +28,7 @@ pub async fn process(data : &[u8; 508],  channel_player_tx : &Sender<CharacterCo
         info: CharacterCommandInfo::ActivateBuff(card_id)
     };
 
-    println!("got a command {:?}", command);
+    cli_log::info!("got a command {:?}", command);
 
     channel_player_tx.send(command).await.unwrap();
 }

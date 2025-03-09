@@ -47,7 +47,7 @@ mod tests {
             _ => panic!("Expected Bson::Binary"),
         };
 
-        println!("{:?}", binary_data);
+        cli_log::info!("{:?}", binary_data);
         assert!(binary_data == bin_clone);
 
 
@@ -80,7 +80,7 @@ mod tests {
         };
 
         let insert_result = data_collection.insert_one(data, None).await.unwrap();
-        println!("New document ID: {}", insert_result.inserted_id);
+        cli_log::info!("New document ID: {}", insert_result.inserted_id);
     }
 
     #[tokio::test]
@@ -109,7 +109,7 @@ mod tests {
         };
 
         let insert_result = data_collection.insert_one(data, None).await.unwrap();
-        println!("New document ID: {}", insert_result.inserted_id);
+        cli_log::info!("New document ID: {}", insert_result.inserted_id);
 
         // Look up one document:
         let data_from_db: StoredRegion = data_collection
@@ -121,6 +121,6 @@ mod tests {
         ).await
         .unwrap()
         .expect("Missing 'region a' document.");
-        println!("stored_data: {:?}", data_from_db);
+        cli_log::info!("stored_data: {:?}", data_from_db);
     }
 }

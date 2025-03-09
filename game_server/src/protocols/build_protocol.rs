@@ -35,7 +35,7 @@ pub async fn process(
             info: MapCommandInfo::BuildStructure(player_id, increment)
         };
 
-        // println!("got a {:?}", map_action);
+        // cli_log::info!("got a {:?}", map_action);
 
         channel_map_tx.send(map_action).await.unwrap();
 }

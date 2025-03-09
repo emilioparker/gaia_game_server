@@ -50,6 +50,6 @@ pub async fn process(
             })
         };
 
-        println!("got a command {:?}", command);
+        cli_log::info!("got a command {:?}", command);
         channel_player_tx.send(command).await.unwrap();
 }

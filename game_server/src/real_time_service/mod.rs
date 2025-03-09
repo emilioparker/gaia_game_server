@@ -106,13 +106,13 @@ pub fn start_server(
                 {
                     Ok(_) => 
                     {
-                        // println!("ping sent to client ");
+                        // cli_log::info!("ping sent to client ");
                     },
                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
                     {
-                        println!("error sending specific data to {} would block", command.player_address);
+                        cli_log::info!("error sending specific data to {} would block", command.player_address);
                     },
-                    Err(_) => println!("error sending specific data through socket"),
+                    Err(_) => cli_log::info!("error sending specific data through socket"),
                 }
             }
         }
@@ -130,13 +130,13 @@ pub fn start_server(
                 {
                     for (_packet_id, faction, data) in packet_list.iter()
                     {
-                        // println!("sending packet with id {packet_id}");
+                        // cli_log::info!("sending packet with id {packet_id}");
                         if client.1.0 == 0u16 
                         {
                             // let first_byte = packet[0]; // this is the protocol
                             // the packet is compress, I can't read the sequence number
                             // let packet_sequence_number = u64::from_le_bytes(packet[1..9].try_into().unwrap());
-                            // println!("sending {}", packet_sequence_number);
+                            // cli_log::info!("sending {}", packet_sequence_number);
                         }
                         // todo: only send data if client is correctly validated, add state to clients_data
                         if client.1.1 == *faction || *faction == 0
@@ -146,19 +146,19 @@ pub fn start_server(
                             {
                                 Ok(_) => 
                                 {
-                                    // println!("data sent to client {}", packet.len());
+                                    // cli_log::info!("data sent to client {}", packet.len());
                                 },
                                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
                                 {
-                                    println!("error sending data would block");
+                                    cli_log::info!("error sending data would block");
                                 },
-                                Err(_) => println!("error sending data through socket"),
+                                Err(_) => cli_log::info!("error sending data through socket"),
                             }
                         }
 
                         // we will try to send missing packages.
 
-                        // println!("sending missing packets for {}", client.1.0);
+                        // cli_log::info!("sending missing packets for {}", client.1.0);
                         // if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(&client.1.0) 
                         // {
                         //     // this should never fail
@@ -170,17 +170,17 @@ pub fn start_server(
                         //             if let Some((old_id, _faction, old_data)) = previous_packages.iter().find(|(id, _faction, _data)| packet_id == *id)
                         //             {
                         //                 // sending missing data if found
-                        //                 println!("sending missing packet with id {packet_id}");
+                        //                 cli_log::info!("sending missing packet with id {packet_id}");
                         //                 let result = send_udp_socket.try_send_to(old_data, client.0.clone());
                         //                 match result {
                         //                     Ok(_) => {
-                        //                         // println!("data sent to client {}", packet.len());
+                        //                         // cli_log::info!("data sent to client {}", packet.len());
                         //                     },
                         //                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
                         //                     {
-                        //                         println!("error sending old data would block {}", old_id);
+                        //                         cli_log::info!("error sending old data would block {}", old_id);
                         //                     },
-                        //                     Err(_) => println!("error sending old data through socket {} ", old_id),
+                        //                     Err(_) => cli_log::info!("error sending old data through socket {} ", old_id),
                         //                 }
                         //             }
                         //         }
@@ -201,7 +201,7 @@ pub fn start_server(
                         }
                     }
                 }
-                // println!("storing packages {}", previous_packages.len());
+                // cli_log::info!("storing packages {}", previous_packages.len());
             }
         }
     });
@@ -224,7 +224,7 @@ pub fn start_server(
                 {
                     if let Ok((size, from_address)) = result 
                     {
-                        println!("Parent: {:?} bytes received from {}", size, from_address);
+                        cli_log::info!("Parent: {:?} bytes received from {}", size, from_address);
                         let mut clients_data = server_lock.lock().await;
                         if !clients_data.contains_key(&from_address)
                         {
@@ -241,10 +241,10 @@ pub fn start_server(
                             // let end = start + 1;
                             let faction = buf_udp[start];
 
-                            println!("--- create child for {} with session id {}", player_id, player_session_id);
+                            cli_log::info!("--- create child for {} with session id {}", player_id, player_session_id);
                             let stored_session_id = &map.logged_in_players[player_id as usize];
                             let session_id = stored_session_id.load(std::sync::atomic::Ordering::Relaxed);
-                            println!("comparing {} with server {}", player_session_id, session_id);
+                            cli_log::info!("comparing {} with server {}", player_session_id, session_id);
 
                             if session_id == player_session_id  && session_id != 0
                             {
@@ -277,18 +277,18 @@ pub fn start_server(
                             } 
                             else
                             {
-                                println!("rejected: invalid session id");
+                                cli_log::info!("rejected: invalid session id");
                             }
                         }
                         else
                         {
-                            println!("rejected: client process should be handling this");
+                            cli_log::info!("rejected: client process should be handling this");
                         }
                     }
                 }
                 Some((socket, active_session_id)) = rx_addr_client_realtime.recv() => 
                 {
-                    println!("removing entry from hash set");
+                    cli_log::info!("removing entry from hash set");
                     server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
                     let mut clients_data = server_lock.lock().await;
                     let character_id = clients_data.get(&socket);
@@ -302,7 +302,7 @@ pub fn start_server(
                         }
                         else
                         {
-                            println!("probably a reconnection {:?}", character_id);
+                            cli_log::info!("probably a reconnection {:?}", character_id);
                         }
                     }
                 }

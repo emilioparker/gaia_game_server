@@ -48,7 +48,7 @@ pub async fn process(
             message
         };
 
-        // println!("got a {:?}", chat_message);
+        // cli_log::info!("got a {:?}", chat_message);
 
         channel_tower_tx.send(chat_message).await.unwrap();
 }

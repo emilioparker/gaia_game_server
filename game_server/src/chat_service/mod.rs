@@ -34,7 +34,7 @@ pub fn start_service(
         loop 
         {
             let message = rx_cc_client_game.recv().await.unwrap();
-            println!("got a message data {}", message.id);
+            cli_log::info!("got a message data {}", message.id);
             let mut data = chat_commands_agregator_from_client_lock.lock().await;
             data.push(message);
         }
@@ -71,7 +71,7 @@ pub fn start_service(
                 &mut chat_summary,
                 ).await;
 
-            // println!("filtered summarny total {}" , filtered_summary.len());
+            // cli_log::info!("filtered summarny total {}" , filtered_summary.len());
             // separar por faccion.
             //empaquetar mensajes por faccion.
 

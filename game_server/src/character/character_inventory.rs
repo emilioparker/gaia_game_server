@@ -146,7 +146,7 @@ impl CharacterEntity
     pub fn craft_card(&mut self, definitions : &Definitions) -> bool
     {
         let set_size = self.inventory.iter().filter(|i| i.item_id >= 6 && i.item_id <= 20).count();
-        println!("---- complete set {set_size}");
+        cli_log::info!("---- complete set {set_size}");
 
         if set_size == 15 
         {

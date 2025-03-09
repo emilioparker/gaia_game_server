@@ -21,7 +21,7 @@ pub async fn get_characters_from_db_by_world(
     world_id : Option<ObjectId>,
     db_client : Client
 ) -> HashMap<u16, CharacterEntity> {
-    println!("get players from db using {:?}", world_id);
+    cli_log::info!("get players from db using {:?}", world_id);
 
     let mut data = HashMap::<u16, CharacterEntity>::new();
 
@@ -67,7 +67,7 @@ pub async fn get_characters_from_db_by_world(
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
                 let buffs_summary : [u8;5]= [0,0,0,0,0];
 
-                println!("----- faction {}", doc.faction);
+                cli_log::info!("----- faction {}", doc.faction);
                 let pos = TetrahedronId::from_string(&doc.position);
                 let mut player =  CharacterEntity
                 {
@@ -110,11 +110,11 @@ pub async fn get_characters_from_db_by_world(
                 data.insert(doc.character_id, player);
             },
             Err(error_details) => {
-                println!("error getting characters from db with {:?}", error_details);
+                cli_log::info!("error getting characters from db with {:?}", error_details);
             },
         }
     }
-    println!("Got {} characters from database", count);
+    cli_log::info!("Got {} characters from database", count);
 
     data
 }
@@ -139,7 +139,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_pe_realtime_longterm.recv().await.unwrap();
-            // println!("player entity changed  with inventory ? {}" , message.inventory.len());
+            // cli_log::info!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_players = modified_players_update_lock.lock().await;
             modified_players.insert(message.character_id.clone());
 
@@ -167,7 +167,7 @@ pub fn start_server(
 
             let mut modified_player_entities = Vec::<CharacterEntity>::new();
             for player_id in modified_player_keys.iter(){
-                println!("this player was changed {}", player_id.to_string());
+                cli_log::info!("this player was changed {}", player_id.to_string());
                 if let Some(player_data) = locked_players.get(player_id) {
                     modified_player_entities.push(player_data.clone());
                 }
@@ -239,7 +239,7 @@ pub fn start_server(
                     None
                 ).await;
 
-                println!("updated player result {:?}", update_result);
+                cli_log::info!("updated player result {:?}", update_result);
             }
         }
     });

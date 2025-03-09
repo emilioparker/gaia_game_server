@@ -51,7 +51,7 @@ pub async fn preload_db(
     }
 
     let insert_result = data_collection.insert_many(stored_regions, None).await.unwrap();
-    println!("{:?}", insert_result);
+    cli_log::info!("{:?}", insert_result);
 
 }
 
@@ -84,7 +84,7 @@ pub async fn get_regions_from_db(
         count += 1;
         data.insert( TetrahedronId::from_string(&region.region_id), region);
     }
-    println!("Got {} regions from database", count);
+    cli_log::info!("Got {} regions from database", count);
 
     data
 }
@@ -111,7 +111,7 @@ pub async fn init_world_state(
     };
 
     let insert_result = data_collection.insert_one(data, None).await.unwrap();
-    println!("{:?}", insert_result);
+    cli_log::info!("{:?}", insert_result);
 
     if let bson::Bson::ObjectId(id) = insert_result.inserted_id {
         Some(id)
@@ -138,7 +138,7 @@ pub async fn check_world_state(
         None,
     ).await
     .unwrap();
-    println!("stored_data: {:?}", data_from_db);
+    cli_log::info!("stored_data: {:?}", data_from_db);
     data_from_db
 }
 
@@ -164,7 +164,7 @@ pub fn start_server(
     tokio::spawn(async move {
         loop {
             let message = rx_me_realtime_longterm.recv().await.unwrap();
-            // println!("got a tile changed {:?} ", message);
+            // cli_log::info!("got a tile changed {:?} ", message);
             let region_id = message.id.get_parent(7);
 
             let mut modified_regions = modified_regions_update_lock.lock().await;
@@ -194,7 +194,7 @@ pub fn start_server(
 
             let mut stored_regions = Vec::<StoredRegion>:: new();
             for region_id in modified_regions.iter(){
-                println!("this region was changed {}", region_id.to_string());
+                cli_log::info!("this region was changed {}", region_id.to_string());
 
                 let region = map_reader.get_region(region_id);
 
@@ -247,7 +247,7 @@ pub fn start_server(
                         None
                     ).await;
 
-                    println!("updated region result {:?}", update_result);
+                    cli_log::info!("updated region result {:?}", update_result);
                 }
             }
             let _result =  tx_saved_longterm_webservice.send(1).await;

@@ -217,7 +217,7 @@ impl CharacterEntity
                 self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
             }
         }
-        println!("----- add xp:{} from battle {}", xp, self.experience);
+        cli_log::info!("----- add xp:{} from battle {}", xp, self.experience);
     }
 
     pub fn set_flag(&mut self, flag : u8, value : bool)
@@ -308,7 +308,7 @@ impl AbilityUser for CharacterEntity
 
         let base = self.base_strength;
         let points = self.strength_points;
-        println!(" -- calculate total attack {card_attack} base {base} points {points}  stat {stat} buff {added_strength}");
+        cli_log::info!(" -- calculate total attack {card_attack} base {base} points {points}  stat {stat} buff {added_strength}");
         (stat as f32 * card_attack).round() as u16  + added_strength.round() as u16
     }
     
@@ -328,7 +328,7 @@ impl AbilityUser for CharacterEntity
             })
             .sum();
 
-        println!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
+        cli_log::info!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
         stat + added_defense.round() as u16
     }
 }
@@ -350,25 +350,25 @@ mod tests
         // いいえ
         let mut ch:char='い';
     
-        println!("ASCII value: {}",ch as u32);
+        cli_log::info!("ASCII value: {}",ch as u32);
         
         ch='&';
-        println!("ASCII value: {}",ch as u32);
+        cli_log::info!("ASCII value: {}",ch as u32);
 
         ch='X';
-        println!("ASCII value: {}",ch as u32); 
+        cli_log::info!("ASCII value: {}",ch as u32); 
     }
 
     #[test]
     fn test_convert_string_to_array() {
         let name = "aaaa".to_string();
         let filled = format!("{: <5}", name);
-        println!("filled {}", filled);
+        cli_log::info!("filled {}", filled);
         let name_data : Vec<u32> = filled.chars().into_iter().map(|c| c as u32).collect();
 
         let mut name_array = [0u32; 5];
         name_array.clone_from_slice(&name_data.as_slice()[0..5]);
-        println!("{:?}", name_array);
+        cli_log::info!("{:?}", name_array);
     }
 
     #[test]
@@ -379,11 +379,11 @@ mod tests
         let c = Wrapping(121u8);
         let d = Wrapping(15u8);
         let result = a * b * c * d;
-        println!("{result}");
+        cli_log::info!("{result}");
         let result = c * b * d * a;
-        println!("{result}");
+        cli_log::info!("{result}");
         let result = a * c * d * b;
-        println!("{result}");
+        cli_log::info!("{result}");
     }
 
     #[test]
@@ -434,7 +434,7 @@ mod tests
         assert!(item.amount == 3);
         entity.add_inventory_item(super::InventoryItem { item_id: 2, equipped: 1, amount: 2 });
         assert!(entity.inventory.len() == 2);
-        println!("{:?}", entity.inventory);
+        cli_log::info!("{:?}", entity.inventory);
     }
 
     #[test]
@@ -486,7 +486,7 @@ mod tests
             buffs_summary: [0,0,0,0,0],
         };
         let buffer = char.to_bytes();
-        println!("{:?}", buffer);
+        cli_log::info!("{:?}", buffer);
 
         assert!(buffer.len() == CHARACTER_ENTITY_SIZE);
     }

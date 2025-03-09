@@ -70,7 +70,7 @@ impl GameMap
 
         // let current_time_raw = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH);
         // let current_time = current_time_raw.ok().map(|d| d.as_millis() as u64).unwrap();
-        // println!(" current_time {:?}", current_time);
+        // cli_log::info!(" current_time {:?}", current_time);
 
         GameMap
         {

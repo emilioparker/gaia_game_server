@@ -9,6 +9,6 @@ pub async fn process(player_id:u16, channel_player_tx : &Sender<CharacterCommand
         info: CharacterCommandInfo::Disconnect()
     };
 
-    println!("got a command {:?}", command);
+    cli_log::info!("got a command {:?}", command);
     channel_player_tx.send(command).await.unwrap();
 }

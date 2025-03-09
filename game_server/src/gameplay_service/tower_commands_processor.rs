@@ -17,14 +17,14 @@ pub async fn process_tower_commands (
 {
     // process tower stuff.
     let mut tower_commands_data = tower_commands_processor_lock.lock().await;
-    // println!("tower commands len {}", tower_commands_data.len());
+    // cli_log::info!("tower commands len {}", tower_commands_data.len());
     if tower_commands_data.len() > 0 
     {
         for tower_command in tower_commands_data.iter()
         {
             // let cloned_data = tower_command.to_owned();
             let mut towers = map.towers.lock().await;
-            println!("towers count {}", towers.len());
+            cli_log::info!("towers count {}", towers.len());
             let tower_option = towers.get_mut(&tower_command.id);
 
             if let Some(tower) = tower_option
@@ -76,16 +76,16 @@ pub async fn process_tower_commands (
                         }
                         else
                         {
-                            println!("Tower is in cool down");
+                            cli_log::info!("Tower is in cool down");
                         }
 
-                        // println!("Got a tower attack towers {}", map.to);
+                        // cli_log::info!("Got a tower attack towers {}", map.to);
                     },
                 }
             }
             else
             {
-                println!("tower not found with id {}", tower_command.id);
+                cli_log::info!("tower not found with id {}", tower_command.id);
             }
 
         }
@@ -109,7 +109,7 @@ pub async fn process_delayed_tower_commands (
     {
 
             let mut towers = map.towers.lock().await;
-            println!("towers count {}", towers.len());
+            cli_log::info!("towers count {}", towers.len());
             let tower_option = towers.get_mut(&tower_command.id);
 
             if let Some(tower) = tower_option
@@ -123,7 +123,7 @@ pub async fn process_delayed_tower_commands (
                     },
                     TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
                     {
-                        println!("Got a tower attack");
+                        cli_log::info!("Got a tower attack");
                         let mut updated_tower = tower.clone();
                         let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
                         let player_option = player_entities.get_mut(&player_id);

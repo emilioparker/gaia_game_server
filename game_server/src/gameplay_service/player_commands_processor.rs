@@ -102,7 +102,7 @@ pub async fn process_player_commands (
                 }
                 else 
                 {
-                    println!("------------ required time for player attack {required_time} current time: {current_time} {card_id}");
+                    cli_log::info!("------------ required time for player attack {required_time} current time: {current_time} {card_id}");
                     let mut lock = delayed_player_commands_lock.lock().await;
                     let info = CharacterCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect, *missed);
                     let character_action = CharacterCommand { player_id: cloned_data.player_id, info };
@@ -122,7 +122,7 @@ pub async fn process_player_commands (
                         battle_type: BATTLE_CHAR_CHAR,
                     };
 
-                    println!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
+                    cli_log::info!("--- attack player {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
                     attacks_summary.push(attack);
                 }
 
@@ -174,7 +174,7 @@ pub async fn process_delayed_player_commands(
             },
             _ => 
             {
-                println!("delayed command not supported");
+                cli_log::info!("delayed command not supported");
             }
         }
     }
@@ -207,7 +207,7 @@ pub async fn use_item(
                     amount,
                 });// remove soft currency
 
-                println!("using item with result {} and  {:?}",result, definition.usage);
+                cli_log::info!("using item with result {} and  {:?}",result, definition.usage);
 
                 match (result, definition.usage)
                 {
@@ -223,18 +223,18 @@ pub async fn use_item(
                     },
                     _ => 
                     {
-                        println!("item {} cannot be used ", item_id);
+                        cli_log::info!("item {} cannot be used ", item_id);
                     }
                 }
             }
 
-            // println!("Add health {:?}", player_entity);
+            // cli_log::info!("Add health {:?}", player_entity);
             tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
             players_summary.push(player_entity.clone());
         },
         _ => 
         {
-            println!("error buying item");
+            cli_log::info!("error buying item");
         }
     }
 }
@@ -259,7 +259,7 @@ pub async fn equip_item(
             if inventory_type == 0
             {
                 let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
-                println!("equip item with result {}",result);
+                cli_log::info!("equip item with result {}",result);
 
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
@@ -267,7 +267,7 @@ pub async fn equip_item(
             else if inventory_type == 1
             {
                 let result = player_entity.equip_card(item_id, current_slot, new_slot);
-                println!("equip item with result {}",result);
+                cli_log::info!("equip item with result {}",result);
 
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
@@ -275,7 +275,7 @@ pub async fn equip_item(
             else if inventory_type == 2
             {
                 let result = player_entity.equip_weapon(item_id, current_slot, new_slot);
-                println!("equip weapon with result {}",result);
+                cli_log::info!("equip weapon with result {}",result);
 
                 tx_pe_gameplay_longterm.send(player_entity.clone()).await.unwrap();
                 players_summary.push(player_entity.clone());
@@ -283,7 +283,7 @@ pub async fn equip_item(
         },
         _ => 
         {
-            println!("error equipping item");
+            cli_log::info!("error equipping item");
         }
     }
 }
@@ -298,14 +298,14 @@ pub async fn buy_item(
     amount: u16)
 {
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
-    println!("Buy item with id {item_id}, item_type: {inventory_type}");
+    cli_log::info!("Buy item with id {item_id}, item_type: {inventory_type}");
 
     let player_option = player_entities.get_mut(&player_id);
 
     if inventory_type == 0
     {
         let cost  = map.definitions.items.get(item_id as usize).map(|d| d.cost);
-        println!("cost {cost:?}");
+        cli_log::info!("cost {cost:?}");
         match (player_option, cost) 
         {
             (Some(player_entity), Some(cost)) => 
@@ -332,14 +332,14 @@ pub async fn buy_item(
             },
             _ => 
             {
-                println!("error buying item");
+                cli_log::info!("error buying item");
             }
         }
     }
     else if inventory_type == 1
     {
         let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
-        println!("card cost {cost:?}");
+        cli_log::info!("card cost {cost:?}");
         match (player_option, cost) 
         {
             (Some(player_entity), Some(cost)) => 
@@ -366,14 +366,14 @@ pub async fn buy_item(
             },
             _ => 
             {
-                println!("error buying item");
+                cli_log::info!("error buying item");
             }
         }
     }
     else if inventory_type == 2
     {
         let cost  = map.definitions.weapons.get(item_id as usize).map(|d| d.store_cost);
-        println!("weapon cost {cost:?}");
+        cli_log::info!("weapon cost {cost:?}");
         match (player_option, cost) 
         {
             (Some(player_entity), Some(cost)) => 
@@ -400,7 +400,7 @@ pub async fn buy_item(
             },
             _ => 
             {
-                println!("error buying item");
+                cli_log::info!("error buying item");
             }
         }
     }
@@ -449,7 +449,7 @@ pub async fn sell_item(
             },
             _ => 
             {
-                println!("error selling item")
+                cli_log::info!("error selling item")
             }
         }
     }
@@ -483,7 +483,7 @@ pub async fn sell_item(
             },
             _ => 
             {
-                println!("error selling card")
+                cli_log::info!("error selling card")
             }
         }
     }
@@ -517,7 +517,7 @@ pub async fn sell_item(
             },
             _ => 
             {
-                println!("error selling weapon")
+                cli_log::info!("error selling weapon")
             }
         }
     }
@@ -533,11 +533,11 @@ pub async fn respawn(
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
-    println!("respawn {}", player_id);
+    cli_log::info!("respawn {}", player_id);
     if let Some(player_entity) = player_option 
     {
         let character_definition = map.definitions.character_progression.get(player_entity.level as usize).unwrap();
-        println!("b-respawn {}", character_definition.constitution);
+        cli_log::info!("b-respawn {}", character_definition.constitution);
         let updated_player_entity = CharacterEntity 
         {
             action: 0,
@@ -571,7 +571,7 @@ pub async fn move_character(
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
-    println!("move {} vertex id {}", player_id, vertex_id);
+    cli_log::info!("move {} vertex id {}", player_id, vertex_id);
     if let Some(player_entity) = player_option 
     {
         let mut updated_player_entity = CharacterEntity 
@@ -606,7 +606,7 @@ pub async fn set_action(
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
-    println!("set action {} {action}", player_id);
+    cli_log::info!("set action {} {action}", player_id);
     if let Some(player_entity) = player_option 
     {
         let mut action = action;
@@ -658,7 +658,7 @@ pub async fn activate_buff(
     card_id : u32,
     player_id: u16)
 {
-    println!("---- activate buff with card {card_id}");
+    cli_log::info!("---- activate buff with card {card_id}");
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     if let Some(player) = player_entities.get_mut(&player_id)
     {
@@ -668,7 +668,7 @@ pub async fn activate_buff(
         let buff = map.definitions.get_buff(&card.buff).unwrap();
         let result = player.add_buff(buff.code, current_time_in_seconds, &map.definitions);
         // let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
-        println!("activate buff with id:{}",buff.id);
+        cli_log::info!("activate buff with id:{}",buff.id);
 
         if result 
         {
@@ -679,14 +679,14 @@ pub async fn activate_buff(
     }
 
     
-    println!("--- activate buff");
+    cli_log::info!("--- activate buff");
     // match player_option 
     // {
     //     Some(player_entity) => 
     //     {
     //         let result = player_entity.add_buff(card_id, &map.definitions);
     //         // let result = player_entity.equip_inventory_item(item_id, current_slot, new_slot);
-    //         // println!("equip item with result {}",result);
+    //         // cli_log::info!("equip item with result {}",result);
 
     //         if result 
     //         {
@@ -697,7 +697,7 @@ pub async fn activate_buff(
     //     },
     //     _ => 
     //     {
-    //         println!("error equipping item");
+    //         cli_log::info!("error equipping item");
     //     }
     // }
 }
@@ -737,7 +737,7 @@ pub async fn attack_character(
             let factor = 1.1f32.powf((defender.level as i32 - attacker.level as i32).max(0) as f32);
             let xp = base_xp as f32 * factor;
 
-            println!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
+            cli_log::info!("base_xp:{base_xp} - factor:{factor} xp: {xp}");
 
             attacker.add_xp_from_battle(xp.ceil() as u32, &map.definitions);
             let reward = InventoryItem 
