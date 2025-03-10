@@ -42,7 +42,10 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&mut self, frame: &mut Frame) {
-        let title = Line::from(format!("Ratatui Simple Template:{}", self.counter))
+        let online_players = self.app_data.game_status.online_players.load(std::sync::atomic::Ordering::Relaxed);
+        cli_log::info!("online: {}", online_players);
+
+        let title = Line::from(format!("Ratatui Simple Template:{}", online_players))
             .bold()
             .blue()
             .centered();

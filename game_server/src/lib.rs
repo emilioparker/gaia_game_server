@@ -20,7 +20,6 @@ pub mod mob;
 pub mod buffs;
 pub mod ability_user;
 pub mod app;
-pub mod gaia_logger;
 
 pub struct AppData
 {
