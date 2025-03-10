@@ -6,11 +6,14 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 
+use crate::AppData;
+
 pub struct App {
     /// Is the application running?
     /// 
     pub running: bool,
     counter: u32,
+    app_data: AppData,
 }
 
 pub struct AppError{
@@ -19,9 +22,9 @@ pub struct AppError{
 
 impl App {
     /// Construct a new instance of [`App`].
-    pub fn new() -> Self 
+    pub fn new(data: AppData) -> Self 
     {
-        Self { running: true, counter:0}
+        Self { running: true, counter:0, app_data: data}
     }
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<(), AppError> {

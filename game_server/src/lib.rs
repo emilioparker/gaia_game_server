@@ -1,6 +1,9 @@
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicU16;
+use std::sync::Arc;
+
+use map::GameMap;
 
 pub mod protocols;
 pub mod gameplay_service;
@@ -17,6 +20,13 @@ pub mod mob;
 pub mod buffs;
 pub mod ability_user;
 pub mod app;
+pub mod gaia_logger;
+
+pub struct AppData
+{
+    pub game_data: Arc<GameMap>,
+    pub game_status: Arc<ServerState>
+}
 
 pub const SERVER_STATE_SIZE: usize = 20;
 
