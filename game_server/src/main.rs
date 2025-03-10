@@ -51,6 +51,7 @@ use tokio::sync::oneshot::Sender;
 
 fn main() {
 
+    //GAME_SERVER_LOG=debug cargo run --release
     init_cli_log!();
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -66,7 +67,6 @@ fn main() {
     // use runtime ...
     cli_log::info!("running server");
     runtime.spawn(run_server(tx)); 
-    // runtime.block_on(run_server(tx)); 
     cli_log::info!("running tui");
     runtime.block_on(run_tui(rx)); 
     cli_log::info!("--end--");

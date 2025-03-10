@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crossterm::{event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers}, terminal};
 use ratatui::{
     style::Stylize,
@@ -30,8 +32,16 @@ impl App {
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<(), AppError> {
         self.running = true;
         while self.running {
+            // cli_log::info!("running!: {}", 0);
             terminal.draw(|frame| self.draw(frame));
-            self.handle_crossterm_events();
+            // cli_log::info!("running2!: {}", 0);
+            if let Ok(poll_result) =  event::poll(Duration::from_millis(100))
+            {
+                if poll_result
+                {
+                    self.handle_crossterm_events();
+                }
+            }
         }
         Ok(())
     }
@@ -42,9 +52,8 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&mut self, frame: &mut Frame) {
-        let online_players = self.app_data.game_status.online_players.load(std::sync::atomic::Ordering::Relaxed);
-        cli_log::info!("online: {}", online_players);
 
+        let online_players = self.app_data.game_status.online_players.load(std::sync::atomic::Ordering::Relaxed);
         let title = Line::from(format!("Ratatui Simple Template:{}", online_players))
             .bold()
             .blue()
