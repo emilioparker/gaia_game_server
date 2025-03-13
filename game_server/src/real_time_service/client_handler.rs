@@ -57,7 +57,8 @@ pub async fn spawn_client_process(
     channel_tower_action_tx : mpsc::Sender<TowerCommand>,
     channel_chat_action_tx : mpsc::Sender<ChatCommand>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
-    initial_data : [u8; 508])
+    initial_data : [u8; 508],
+    packet_size: usize)
 {
     cli_log::info!("------ create reusable socket {} from {}", address, from_address);
 
@@ -77,6 +78,7 @@ pub async fn spawn_client_process(
             player_id,
             from_address,
             &initial_data, 
+            packet_size,
             map.clone(),
             &server_state,
             missing_packets.clone(),
@@ -100,13 +102,14 @@ pub async fn spawn_client_process(
 
                     match result
                     {
-                        Ok(_size) => 
+                        Ok(packet_size) => 
                         {
                             // cli_log::info!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(
                                 player_id,
                                 from_address,
                                 &child_buff, 
+                                packet_size,
                                 map.clone(),
                                 &server_state,
                                 missing_packets.clone(),

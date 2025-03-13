@@ -56,6 +56,7 @@ pub fn start_server(
     server_state.tx_tc_client_gameplay.store(tx_tc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_cc_client_gameplay.store(tx_cc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
+    let packet_builder_server_state = server_state.clone();
     let client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
@@ -125,11 +126,14 @@ pub fn start_server(
             // there are two sources of packets, chat and game. Each one has a differente packet id.
             if let Some(packet_list) = rx_bytes_state_socket.recv().await 
             {
+                let mut first_client = true;
+                let mut sent_bytes : u64 = 0;
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
                     for (_packet_id, faction, data) in packet_list.iter()
                     {
+                        sent_bytes += data.len() as u64;
                         // cli_log::info!("sending packet with id {packet_id}");
                         if client.1.0 == 0u16 
                         {
@@ -187,6 +191,12 @@ pub fn start_server(
                         //     }
                         // }
                     }
+
+                    if first_client
+                    {
+                        first_client = false;
+                        packet_builder_server_state.sent_bytes.fetch_add(sent_bytes, std::sync::atomic::Ordering::Relaxed);
+                    }
                 }
 
                 for packet in packet_list.into_iter()
@@ -222,9 +232,9 @@ pub fn start_server(
             {
                 result = socket_receive => 
                 {
-                    if let Ok((size, from_address)) = result 
+                    if let Ok((packet_size, from_address)) = result 
                     {
-                        cli_log::info!("Parent: {:?} bytes received from {}", size, from_address);
+                        cli_log::info!("Parent: {:?} bytes received from {}", packet_size, from_address);
                         let mut clients_data = server_lock.lock().await;
                         if !clients_data.contains_key(&from_address)
                         {
@@ -250,8 +260,6 @@ pub fn start_server(
                             {
                                 clients_data.insert(from_address, (player_id, faction));
 
-
-
                                 server_state.online_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                                 // each client can send a message to remove itself using tx,
                                 // each client can send actions to be processed using client_action_tx,
@@ -273,6 +281,7 @@ pub fn start_server(
                                     tx_cc_client_statesys.clone(), 
                                     updater_shared_player_missing_packets.clone(),
                                     buf_udp,
+                                    packet_size
                                 ).await;
                             } 
                             else

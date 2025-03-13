@@ -1,6 +1,7 @@
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicU16;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use map::GameMap;
@@ -42,7 +43,12 @@ pub struct ServerState
     pub tx_me_gameplay_longterm:AtomicU16,
     pub tx_me_gameplay_webservice:AtomicU16,
     pub tx_pe_gameplay_longterm:AtomicU16,
-    pub online_players: AtomicI32,
+    pub received_packets:AtomicU64,
+    pub received_bytes:AtomicU64,
+    pub online_players: AtomicU32,
+    pub sent_udp_packets:AtomicU64,
+    pub sent_game_packets:AtomicU64,
+    pub sent_bytes:AtomicU64,
     pub total_players:AtomicU32,
 }
 

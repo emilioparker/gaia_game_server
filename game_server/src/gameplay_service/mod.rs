@@ -334,21 +334,23 @@ pub fn start_service(
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
-            let data_package_required = 
-                tiles_summary.len() > 0 
-                || towers_summary.len() > 0
-                || players_presentation_summary.len() > 0
-                || players_rewards_summary.len() > 0
-                || players_summary.len() > 0
-                || attacks_summary.len() > 0
-                || attack_details_summary.len() > 0
-                || mobs_summary.len() > 0;
+            let game_packages= 
+                tiles_summary.len() +
+                towers_summary.len() +
+                players_presentation_summary.len() +
+                players_rewards_summary.len() +
+                players_summary.len() +
+                attacks_summary.len() +
+                attack_details_summary.len() +
+                mobs_summary.len();
 
-            if !data_package_required && (current_time_in_millis - previous_time) < 1000
+            if game_packages == 0 && (current_time_in_millis - previous_time) < 1000
             {
                 // cli_log::info!("--- skipping");
                 continue;
             }
+
+            server_state.sent_game_packets.fetch_add(game_packages as u64, std::sync::atomic::Ordering::Relaxed);
 
             previous_time = current_time_in_millis;
 
@@ -530,6 +532,7 @@ pub fn start_service(
             {
                 let capacity = tx_bytes_game_socket.capacity();
                 server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+                server_state.sent_udp_packets.fetch_add(packets.len() as u64, std::sync::atomic::Ordering::Relaxed);
                 tx_bytes_game_socket.send(packets).await.unwrap();
             }
         }

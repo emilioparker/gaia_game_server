@@ -84,6 +84,7 @@ pub async fn route_packet(
     player_address : std::net::SocketAddr, 
     // socket: &UdpSocket,
     data : &[u8; 508],
+    packet_size: usize,
     map : Arc<GameMap>,
     server_state: &Arc<ServerState>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
@@ -94,7 +95,9 @@ pub async fn route_packet(
     channel_tower_tx : &Sender<TowerCommand>,
     channel_chat_tx : &Sender<ChatCommand>
 ){
-    let prot = data.get(0).unwrap();
+
+    server_state.received_packets.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    server_state.received_bytes.fetch_add(packet_size as u64, std::sync::atomic::Ordering::Relaxed);
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {

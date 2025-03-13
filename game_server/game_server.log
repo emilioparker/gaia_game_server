@@ -1,810 +1,673 @@
-22:10:11.126 [INFO] cli_log::init: Starting game_server v0.1.0 with log level DEBUG
-22:10:11.126 [INFO] game_server: running server
-22:10:11.127 [INFO] game_server: running tui
-22:10:11.127 [INFO] game_server: reading definition file definitions/definition_versions.csv
-22:10:11.127 [INFO] game_server: reading definition file definitions/character_progression.csv
-22:10:11.128 [INFO] game_server: reading definition file definitions/mob_progression.csv
-22:10:11.128 [INFO] game_server: reading definition file definitions/props.csv
-22:10:11.128 [INFO] game_server: reading definition file definitions/main_paths.csv
-22:10:11.128 [INFO] game_server: reading definition file definitions/towers_difficulty.csv
-22:10:11.129 [INFO] game_server: reading definition file definitions/items.csv
-22:10:11.129 [INFO] game_server: reading definition file definitions/cards.csv
-22:10:11.129 [INFO] game_server: reading definition file definitions/mobs.csv
-22:10:11.130 [INFO] game_server: reading definition file definitions/buffs.csv
-22:10:11.130 [INFO] game_server: reading definition file definitions/weapons.csv
-22:10:11.150 [INFO] game_server::long_term_storage_service::world_service: stored_data: Some(StoredWorld { id: Some(ObjectId("675515ae0ffc76331f5a57d3")), world_name: "world_082", start_time: 1733629358, inititalized: true, lod: 9 })
-22:10:11.150 [INFO] game_server: Load the world from db init at 1733629358
-22:10:11.150 [INFO] game_server::long_term_storage_service::characters_service: get players from db using Some(ObjectId("675515ae0ffc76331f5a57d3"))
-22:10:11.152 [INFO] game_server::long_term_storage_service::characters_service: ----- faction 2
-22:10:11.152 [INFO] game_server::long_term_storage_service::characters_service: ----- faction 3
-22:10:11.152 [INFO] game_server::long_term_storage_service::characters_service: Got 2 characters from database
-22:10:11.266 [INFO] game_server::long_term_storage_service::world_service: Got 320 regions from database
-22:10:11.266 [INFO] game_server: reading regions into game maps
-22:10:13.899 [INFO] game_server: Found saved entity  MapEntity { object_id: Some(ObjectId("675515cb0ffc76331f5a588a")), version: 0, id: TetrahedronId { area: 9, id: 209442, lod: 9 }, owner_id: 0, ownership_time: 0, origin_id: TetrahedronId { area: 0, id: 0, lod: 0 }, target_id: TetrahedronId { area: 0, id: 0, lod: 0 }, time: 0, prop: 0, faction: 0, level: 0, temperature: 0.6830013, moisture: 0.56084865, heights: [0.4, 0.4, 0.4], pathness: [0.0, 0.0, 0.0], health: 100, constitution: 100, strength: 0, dexterity: 0 } 
-22:10:21.439 [INFO] game_server: finished loading data, starting services. regions: 320 with 5242560 tiles
-22:10:21.439 [INFO] game_server: Adding player data opp
-22:10:21.439 [INFO] game_server: Adding player data kjjjh
-22:10:21.439 [INFO] game_server::long_term_storage_service::towers_service: get towers from db using Some(ObjectId("675515ae0ffc76331f5a57d3"))
-22:10:21.450 [INFO] game_server::long_term_storage_service::towers_service: Got 476 towerw from database
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a00
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a01
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a02
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a03
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a10
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a11
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a12
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a13
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a20
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a21
-22:10:21.937 [INFO] game_server::web_service: webservice -preload map region a22
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region a23
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region a30
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region a31
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region a32
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region a33
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b00
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b01
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b02
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b03
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b10
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b11
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b12
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b13
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b20
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b21
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b22
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b23
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b30
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b31
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b32
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region b33
-22:10:21.938 [INFO] game_server::web_service: webservice -preload map region c00
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c01
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c02
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c03
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c10
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c11
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c12
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c13
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c20
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c21
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c22
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c23
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c30
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c31
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c32
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region c33
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region d00
-22:10:21.939 [INFO] game_server::web_service: webservice -preload map region d01
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d02
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d03
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d10
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d11
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d12
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d13
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d20
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d21
-22:10:21.941 [INFO] game_server::web_service: webservice -preload map region d22
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region d23
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region d30
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region d31
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region d32
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region d33
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e00
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e01
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e02
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e03
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e10
-22:10:21.942 [INFO] game_server::web_service: webservice -preload map region e11
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e12
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e13
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e20
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e21
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e22
-22:10:21.943 [INFO] game_server::web_service: webservice -preload map region e23
-22:10:21.945 [INFO] game_server::web_service: webservice -preload map region e30
-22:10:21.945 [INFO] game_server::web_service: webservice -preload map region e31
-22:10:21.946 [INFO] game_server::web_service: webservice -preload map region e32
-22:10:21.946 [INFO] game_server::web_service: webservice -preload map region e33
-22:10:21.946 [INFO] game_server::web_service: webservice -preload map region f00
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f01
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f02
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f03
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f10
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f11
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f12
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f13
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f20
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f21
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f22
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f23
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f30
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f31
-22:10:21.948 [INFO] game_server::web_service: webservice -preload map region f32
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region f33
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g00
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g01
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g02
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g03
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g10
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g11
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g12
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g13
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g20
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g21
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g22
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g23
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g30
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g31
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g32
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region g33
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h00
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h01
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h02
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h03
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h10
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h11
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h12
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h13
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h20
-22:10:21.949 [INFO] game_server::web_service: webservice -preload map region h21
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h22
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h23
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h30
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h31
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h32
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region h33
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i00
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i01
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i02
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i03
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i10
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i11
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i12
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i13
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i20
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i21
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i22
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i23
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i30
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i31
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i32
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region i33
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j00
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j01
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j02
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j03
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j10
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j11
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j12
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j13
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j20
-22:10:21.950 [INFO] game_server::web_service: webservice -preload map region j21
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j22
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j23
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j30
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j31
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j32
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region j33
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k00
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k01
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k02
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k03
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k10
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k11
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k12
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k13
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k20
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k21
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k22
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k23
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k30
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k31
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k32
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region k33
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l00
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l01
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l02
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l03
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l10
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l11
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l12
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l13
-22:10:21.951 [INFO] game_server::web_service: webservice -preload map region l20
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l21
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l22
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l23
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l30
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l31
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l32
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region l33
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m00
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m01
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m02
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m03
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m10
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m11
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m12
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m13
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m20
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m21
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m22
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m23
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m30
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m31
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m32
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region m33
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n00
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n01
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n02
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n03
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n10
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n11
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n12
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n13
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n20
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n21
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n22
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n23
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n30
-22:10:21.952 [INFO] game_server::web_service: webservice -preload map region n31
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region n32
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region n33
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o00
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o01
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o02
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o03
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o10
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o11
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o12
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o13
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o20
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o21
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o22
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o23
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o30
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o31
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o32
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region o33
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p00
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p01
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p02
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p03
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p10
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p11
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p12
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p13
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p20
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p21
-22:10:21.953 [INFO] game_server::web_service: webservice -preload map region p22
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region p23
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region p30
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region p31
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region p32
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region p33
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q00
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q01
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q02
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q03
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q10
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q11
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q12
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q13
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q20
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q21
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q22
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q23
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q30
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q31
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q32
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region q33
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r00
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r01
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r02
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r03
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r10
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r11
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r12
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r13
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r20
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r21
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r22
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r23
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r30
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r31
-22:10:21.954 [INFO] game_server::web_service: webservice -preload map region r32
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region r33
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s00
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s01
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s02
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s03
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s10
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s11
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s12
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s13
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s20
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s21
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s22
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s23
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s30
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s31
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s32
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region s33
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t00
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t01
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t02
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t03
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t10
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t11
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t12
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t13
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t20
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t21
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t22
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t23
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t30
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t31
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t32
-22:10:21.955 [INFO] game_server::web_service: webservice -preload map region t33
-22:10:21.955 [INFO] game_server::web_service: mpa regions len on preload 320
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a00
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a01
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a02
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a03
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a10
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a11
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a12
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a13
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a20
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a21
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a22
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a23
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a30
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a31
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a32
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region a33
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b00
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b01
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b02
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b03
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b10
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b11
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b12
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b13
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b20
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b21
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b22
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b23
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b30
-22:10:21.956 [INFO] game_server::web_service: webservice -preload mob region b31
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region b32
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region b33
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c00
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c01
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c02
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c03
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c10
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c11
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c12
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c13
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c20
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c21
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c22
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c23
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c30
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c31
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c32
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region c33
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d00
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d01
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d02
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d03
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d10
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d11
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d12
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d13
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d20
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d21
-22:10:21.957 [INFO] game_server::web_service: webservice -preload mob region d22
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region d23
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region d30
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region d31
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region d32
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region d33
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e00
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e01
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e02
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e03
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e10
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e11
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e12
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e13
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e20
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e21
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e22
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e23
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e30
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e31
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e32
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region e33
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f00
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f01
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f02
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f03
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f10
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f11
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f12
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f13
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f20
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f21
-22:10:21.958 [INFO] game_server::web_service: webservice -preload mob region f22
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region f23
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region f30
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region f31
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region f32
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region f33
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g00
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g01
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g02
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g03
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g10
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g11
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g12
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g13
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g20
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g21
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g22
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g23
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g30
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g31
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g32
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region g33
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h00
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h01
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h02
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h03
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h10
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h11
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h12
-22:10:21.959 [INFO] game_server::web_service: webservice -preload mob region h13
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h20
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h21
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h22
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h23
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h30
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h31
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h32
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region h33
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i00
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i01
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i02
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i03
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i10
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i11
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i12
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i13
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i20
-22:10:21.960 [INFO] game_server::web_service: webservice -preload mob region i21
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i22
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i23
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i30
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i31
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i32
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region i33
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j00
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j01
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j02
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j03
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j10
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j11
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j12
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j13
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j20
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j21
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j22
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j23
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j30
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j31
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j32
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region j33
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region k00
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region k01
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region k02
-22:10:21.961 [INFO] game_server::web_service: webservice -preload mob region k03
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k10
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k11
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k12
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k13
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k20
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k21
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k22
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k23
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k30
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k31
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k32
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region k33
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l00
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l01
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l02
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l03
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l10
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l11
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l12
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l13
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l20
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l21
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l22
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l23
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l30
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l31
-22:10:21.962 [INFO] game_server::web_service: webservice -preload mob region l32
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region l33
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m00
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m01
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m02
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m03
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m10
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m11
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m12
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m13
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m20
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m21
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m22
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m23
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m30
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m31
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m32
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region m33
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region n00
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region n01
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region n02
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region n03
-22:10:21.963 [INFO] game_server::web_service: webservice -preload mob region n10
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n11
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n12
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n13
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n20
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n21
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n22
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n23
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n30
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n31
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n32
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region n33
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o00
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o01
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o02
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o03
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o10
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o11
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o12
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o13
-22:10:21.964 [INFO] game_server::web_service: webservice -preload mob region o20
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o21
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o22
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o23
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o30
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o31
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o32
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region o33
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p00
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p01
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p02
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p03
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p10
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p11
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p12
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p13
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p20
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p21
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p22
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p23
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p30
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p31
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p32
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region p33
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region q00
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region q01
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region q02
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region q03
-22:10:21.965 [INFO] game_server::web_service: webservice -preload mob region q10
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q11
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q12
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q13
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q20
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q21
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q22
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q23
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q30
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q31
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q32
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region q33
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r00
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r01
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r02
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r03
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r10
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r11
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r12
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r13
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r20
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r21
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r22
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r23
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r30
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r31
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r32
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region r33
-22:10:21.966 [INFO] game_server::web_service: webservice -preload mob region s00
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s01
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s02
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s03
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s10
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s11
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s12
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s13
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s20
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s21
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s22
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s23
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s30
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s31
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s32
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region s33
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t00
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t01
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t02
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t03
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t10
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t11
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t12
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t13
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t20
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t21
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t22
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t23
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t30
-22:10:21.967 [INFO] game_server::web_service: webservice -preload mob region t31
-22:10:21.968 [INFO] game_server::web_service: webservice -preload mob region t32
-22:10:21.968 [INFO] game_server::web_service: webservice -preload mob region t33
-22:10:21.968 [INFO] game_server::web_service: mob regions len on preload 320
-22:10:21.968 [INFO] game_server: Data sent to tui
-22:10:21.968 [INFO] game_server: Game server started correctly
-22:10:21.968 [INFO] game_server::app: online: 0
-22:10:35.354 [INFO] game_server::web_service: handling request ClientVersionRequest { client_version: 5 }
-22:10:35.760 [INFO] game_server::web_service: handling request DefinitionRequest { name: "definition_versions", version: 0 }
-22:10:37.852 [INFO] game_server::app: online: 0
-22:10:37.873 [INFO] game_server::app: online: 0
-22:10:37.893 [INFO] game_server::app: online: 0
-22:10:37.968 [INFO] game_server::app: online: 0
-22:10:38.120 [INFO] game_server::app: online: 0
-22:10:38.607 [INFO] game_server::app: online: 0
-22:10:38.745 [INFO] game_server::app: online: 0
-22:10:38.794 [INFO] game_server::app: online: 0
-22:10:38.828 [INFO] game_server::app: online: 0
-22:10:38.838 [INFO] game_server::app: online: 0
-22:10:38.895 [INFO] game_server::app: online: 0
-22:10:38.921 [INFO] game_server::app: online: 0
-22:10:39.498 [INFO] game_server::app: online: 0
-22:10:39.527 [INFO] game_server::app: online: 0
-22:10:39.543 [INFO] game_server::app: online: 0
-22:10:39.555 [INFO] game_server::app: online: 0
-22:10:39.578 [INFO] game_server::app: online: 0
-22:10:39.594 [INFO] game_server::app: online: 0
-22:10:39.614 [INFO] game_server::app: online: 0
-22:11:18.843 [INFO] game_server::web_service::characters: handling request PlayerDetailsRequest { player_name: "opp" }
-22:11:18.849 [INFO] game_server::web_service::characters: ----- characters 1
-22:11:19.677 [INFO] game_server::web_service::characters: handling request JoinWithCharacterRequest { player_token: "token_1741208484", character_id: 2 }
-22:11:19.680 [INFO] game_server::web_service::characters: player login CharacterEntity { object_id: Some(ObjectId("67c8bbacd885222797a3d551")), player_id: Some(ObjectId("67c8bba4d885222797a3d550")), version: 1, character_name: "opp", character_id: 2, faction: 3, position: TetrahedronId { area: 10, id: 92747, lod: 9 }, second_position: TetrahedronId { area: 10, id: 92747, lod: 9 }, vertex_id: 1, path: [0, 0, 0, 0, 0, 0], time: 0, action: 0, flags: 0, inventory: [InventoryItem { item_id: 0, equipped: 0, amount: 18 }], card_inventory: [CardItem { card_id: 14, equipped: 1, amount: 1 }, CardItem { card_id: 11, equipped: 1, amount: 1 }], weapon_inventory: [WeaponItem { weapon_id: 3, equipped: 1, amount: 1 }], inventory_version: 1, level: 0, experience: 0, available_skill_points: 5, weapon: 3, strength_points: 0, defense_points: 0, intelligence_points: 0, mana_points: 0, base_strength: 10, base_defense: 10, base_intelligence: 10, base_mana: 10, health: 50, buffs: [], buffs_summary: [0, 0, 0, 0, 0] } vertex id 1
-22:11:19.683 [INFO] game_server::web_service::characters: position TetrahedronId { area: 10, id: 92747, lod: 9 } 50
-22:11:19.683 [INFO] game_server::web_service::characters: creating session id 1741579879 for 2
-22:11:19.771 [INFO] game_server::real_time_service: Parent: 13 bytes received from 127.0.0.1:64539
-22:11:19.771 [INFO] game_server::real_time_service: --- create child for 2 with session id 1741579879
-22:11:19.771 [INFO] game_server::real_time_service: comparing 1741579879 with server 1741579879
-22:11:19.771 [INFO] game_server::real_time_service::client_handler: ------ create reusable socket 0.0.0.0:11004 from 127.0.0.1:64539
-22:11:19.771 [INFO] game_server::protocols::inventory_request_protocol: ---- inventory request
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: --- inventory length 1
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: ---- item InventoryItem { item_id: 0, equipped: 0, amount: 18 }
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: --- inventory length 2
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: ---- card CardItem { card_id: 14, equipped: 1, amount: 1 }
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: ---- card CardItem { card_id: 11, equipped: 1, amount: 1 }
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: --- weapon inventory length 1
-22:11:19.772 [INFO] game_server::protocols::inventory_request_protocol: ---- card WeaponItem { weapon_id: 3, equipped: 1, amount: 1 }
-22:11:19.876 [INFO] game_server::web_service::towers: request temp towers
-22:11:19.876 [INFO] game_server::web_service::towers: request temp towers 0
-22:11:19.876 [INFO] game_server::web_service::towers: sending data back
-22:11:19.907 [INFO] game_server::web_service::chat: request chat record
-22:11:19.907 [INFO] game_server::web_service::chat: sending data back
-22:11:21.293 [INFO] game_server::web_service::map: k32,k33
-22:11:21.293 [INFO] game_server::web_service::map: k32,k33
-22:11:21.294 [INFO] game_server::web_service::map: mob region size 0
-22:11:21.294 [INFO] game_server::web_service::map: mob region size 0
-22:11:21.892 [INFO] game_server::protocols: --------------------- process character action
-22:11:21.892 [INFO] game_server::protocols: --------------------- process character action
-22:11:21.900 [INFO] game_server::gameplay_service::player_commands_processor: set action 2 1
-22:11:21.900 [INFO] game_server::buffs::buff: --- removing expired buff
-22:11:21.900 [INFO] game_server::gameplay_service::player_commands_processor: set action 2 1
-22:11:21.900 [INFO] game_server::buffs::buff: --- removing expired buff
-22:11:21.901 [INFO] game_server::gameplay_service: --players 2
-22:11:21.901 [INFO] game_server::web_service::map: k32,k33
-22:11:21.912 [INFO] game_server::web_service::map: k32,k33
-22:11:22.027 [INFO] game_server::protocols: --------------------- process greet
-22:11:22.045 [INFO] game_server::web_service::map: region id "k32" with version 0
-22:11:22.045 [INFO] game_server::web_service::map: region id "k32" with version 0
-22:11:22.062 [INFO] game_server::web_service::map: region id "k33" with version 0
-22:11:22.063 [INFO] game_server::web_service::map: region id "k33" with version 0
-22:11:25.167 [INFO] game_server::app: online: 1
-22:11:25.202 [INFO] game_server::app: online: 1
-22:11:25.217 [INFO] game_server::app: online: 1
-22:11:25.245 [INFO] game_server::app: online: 1
-22:11:25.292 [INFO] game_server::app: online: 1
-22:11:26.294 [INFO] game_server::app: online: 1
-22:11:26.303 [INFO] game_server::app: online: 1
-22:11:26.328 [INFO] game_server::app: online: 1
-22:11:26.339 [INFO] game_server::app: online: 1
-22:11:26.366 [INFO] game_server::app: online: 1
-22:11:26.391 [INFO] game_server::app: online: 1
-22:11:27.148 [INFO] game_server::gameplay_service: --mobs 3
-22:11:27.149 [INFO] game_server::web_service: -- updated mob index 39
-22:11:27.149 [INFO] game_server::web_service: -- updated mob index 78
-22:11:27.149 [INFO] game_server::web_service: -- updated mob index 117
-22:11:28.128 [INFO] game_server::gameplay_service: --mobs 3
-22:11:28.128 [INFO] game_server::web_service: -- updated mob index 156
-22:11:28.129 [INFO] game_server::web_service: -- updated mob index 195
-22:11:28.129 [INFO] game_server::web_service: -- updated mob index 234
-22:11:28.305 [INFO] game_server::protocols::mob_attacks_character_protocol: got a MobCommand { tile_id: TetrahedronId { area: 10, id: 27211, lod: 9 }, info: AttackFromMobToWalker(2, 12, 252, 1, 0) }
-22:11:28.305 [INFO] game_server::protocols::mob_attacks_character_protocol: got a MobCommand { tile_id: TetrahedronId { area: 10, id: 158283, lod: 9 }, info: AttackFromMobToWalker(2, 12, 141, 1, 0) }
-22:11:28.308 [INFO] game_server::gameplay_service::mob_commands_processor: ------------ required time for attack to character from mob 252 current time: 1741579888308 12
-22:11:28.308 [INFO] game_server::gameplay_service::mob_commands_processor: --- attack 252 effect 1
-22:11:28.308 [INFO] game_server::gameplay_service::mob_commands_processor: ------------ required time for attack to character from mob 141 current time: 1741579888308 12
-22:11:28.308 [INFO] game_server::gameplay_service::mob_commands_processor: --- attack 141 effect 1
-22:11:28.308 [INFO] game_server::gameplay_service: --attacks 2
-22:11:28.308 [INFO] game_server::gameplay_service: --- sending an attack summary 0
-22:11:28.308 [INFO] game_server::gameplay_service: --- sending an attack summary 0
-22:11:28.459 [INFO] game_server::gameplay_service::mob_commands_processor: ----- attack character 
-22:11:28.459 [INFO] game_server::character::character_entity: character added defense -0 buffs_len: 0
-22:11:28.459 [INFO] game_server::gameplay_service::utils: --- attack 64 def 10 damage 54
-22:11:28.459 [INFO] game_server::gameplay_service::utils: --- attack 64 def 10 damage 54 health 50 new health 0
-22:11:28.459 [INFO] game_server::gameplay_service: --players 1
-22:11:28.459 [INFO] game_server::gameplay_service: --results 1
-22:11:28.459 [INFO] game_server::gameplay_service: --mobs 1
-22:11:28.568 [INFO] game_server::gameplay_service::mob_commands_processor: ----- attack character 
-22:11:28.568 [INFO] game_server::character::character_entity: character added defense -0 buffs_len: 0
-22:11:28.568 [INFO] game_server::gameplay_service::utils: --- attack 64 def 10 damage 54
-22:11:28.568 [INFO] game_server::gameplay_service::utils: --- attack 64 def 10 damage 54 health 0 new health 0
-22:11:28.569 [INFO] game_server::gameplay_service: --players 1
-22:11:28.569 [INFO] game_server::gameplay_service: --results 1
-22:11:28.569 [INFO] game_server::gameplay_service: --mobs 1
-22:11:29.179 [INFO] game_server::gameplay_service: --mobs 3
-22:11:29.179 [INFO] game_server::web_service: -- updated mob index 39
-22:11:29.179 [INFO] game_server::web_service: -- updated mob index 273
-22:11:29.179 [INFO] game_server::web_service: -- updated mob index 78
-22:11:33.528 [INFO] game_server::gameplay_service: --mobs 3
-22:11:36.248 [INFO] game_server::gameplay_service: --mobs 3
-22:11:36.248 [INFO] game_server::web_service: -- updated mob index 312
-22:11:36.249 [INFO] game_server::web_service: -- updated mob index 351
-22:11:36.249 [INFO] game_server::web_service: -- updated mob index 390
-22:11:37.279 [INFO] game_server::gameplay_service: --mobs 3
-22:11:37.279 [INFO] game_server::web_service: -- updated mob index 117
-22:11:37.279 [INFO] game_server::web_service: -- updated mob index 156
-22:11:37.279 [INFO] game_server::web_service: -- updated mob index 195
-22:11:38.609 [INFO] game_server::gameplay_service: --mobs 3
-22:11:43.828 [INFO] game_server::gameplay_service: --mobs 3
-22:11:48.979 [INFO] game_server::gameplay_service: --mobs 3
-22:11:54.128 [INFO] game_server::gameplay_service: --mobs 3
-22:11:59.278 [INFO] game_server::gameplay_service: --mobs 3
-22:12:01.939 [INFO] game_server::long_term_storage_service::characters_service: this player was changed 2
-22:12:01.953 [INFO] game_server::long_term_storage_service::characters_service: updated player result Ok(UpdateResult { matched_count: 1, modified_count: 1, upserted_id: None })
-22:12:04.429 [INFO] game_server::gameplay_service: --mobs 3
-22:12:09.598 [INFO] game_server::gameplay_service: --mobs 3
-22:12:14.728 [INFO] game_server::gameplay_service: --mobs 3
-22:12:19.909 [INFO] game_server::gameplay_service: --mobs 3
-22:12:25.079 [INFO] game_server::gameplay_service: --mobs 3
-22:12:30.229 [INFO] game_server::gameplay_service: --mobs 3
-22:12:35.408 [INFO] game_server::gameplay_service: --mobs 3
-22:12:40.608 [INFO] game_server::gameplay_service: --mobs 3
-22:12:45.749 [INFO] game_server::gameplay_service: --mobs 3
-22:12:50.909 [INFO] game_server::gameplay_service: --mobs 3
-22:12:56.079 [INFO] game_server::gameplay_service: --mobs 3
-22:13:01.199 [INFO] game_server::gameplay_service: --mobs 3
-22:13:04.657 [INFO] game_server: --end--
+14:43:21.142 [INFO] cli_log::init: Starting game_server v0.1.0 with log level DEBUG
+14:43:21.142 [INFO] game_server: running server
+14:43:21.142 [INFO] game_server: running tui
+14:43:21.142 [INFO] game_server: reading definition file definitions/definition_versions.csv
+14:43:21.143 [INFO] game_server: reading definition file definitions/character_progression.csv
+14:43:21.143 [INFO] game_server: reading definition file definitions/mob_progression.csv
+14:43:21.143 [INFO] game_server: reading definition file definitions/props.csv
+14:43:21.143 [INFO] game_server: reading definition file definitions/main_paths.csv
+14:43:21.144 [INFO] game_server: reading definition file definitions/towers_difficulty.csv
+14:43:21.144 [INFO] game_server: reading definition file definitions/items.csv
+14:43:21.145 [INFO] game_server: reading definition file definitions/cards.csv
+14:43:21.145 [INFO] game_server: reading definition file definitions/mobs.csv
+14:43:21.146 [INFO] game_server: reading definition file definitions/buffs.csv
+14:43:21.146 [INFO] game_server: reading definition file definitions/weapons.csv
+14:43:21.169 [INFO] game_server::long_term_storage_service::world_service: stored_data: Some(StoredWorld { id: Some(ObjectId("675515ae0ffc76331f5a57d3")), world_name: "world_082", start_time: 1733629358, inititalized: true, lod: 9 })
+14:43:21.169 [INFO] game_server: Load the world from db init at 1733629358
+14:43:21.169 [INFO] game_server::long_term_storage_service::characters_service: get players from db using Some(ObjectId("675515ae0ffc76331f5a57d3"))
+14:43:21.171 [INFO] game_server::long_term_storage_service::characters_service: ----- faction 2
+14:43:21.171 [INFO] game_server::long_term_storage_service::characters_service: ----- faction 3
+14:43:21.171 [INFO] game_server::long_term_storage_service::characters_service: Got 2 characters from database
+14:43:21.312 [INFO] game_server::long_term_storage_service::world_service: Got 320 regions from database
+14:43:21.312 [INFO] game_server: reading regions into game maps
+14:43:28.400 [INFO] game_server: Found saved entity  MapEntity { object_id: Some(ObjectId("675515cb0ffc76331f5a588a")), version: 0, id: TetrahedronId { area: 9, id: 209442, lod: 9 }, owner_id: 0, ownership_time: 0, origin_id: TetrahedronId { area: 0, id: 0, lod: 0 }, target_id: TetrahedronId { area: 0, id: 0, lod: 0 }, time: 0, prop: 0, faction: 0, level: 0, temperature: 0.6830013, moisture: 0.56084865, heights: [0.4, 0.4, 0.4], pathness: [0.0, 0.0, 0.0], health: 100, constitution: 100, strength: 0, dexterity: 0 } 
+14:43:31.451 [INFO] game_server: finished loading data, starting services. regions: 320 with 5242560 tiles
+14:43:31.451 [INFO] game_server: Adding player data kjjjh
+14:43:31.451 [INFO] game_server: Adding player data opp
+14:43:31.451 [INFO] game_server::long_term_storage_service::towers_service: get towers from db using Some(ObjectId("675515ae0ffc76331f5a57d3"))
+14:43:31.464 [INFO] game_server::long_term_storage_service::towers_service: Got 476 towerw from database
+14:43:32.120 [INFO] game_server::web_service: webservice -preload map region a00
+14:43:32.120 [INFO] game_server::web_service: webservice -preload map region a01
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a02
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a03
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a10
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a11
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a12
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a13
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a20
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a21
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a22
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a23
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a30
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a31
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a32
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region a33
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b00
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b01
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b02
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b03
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b10
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b11
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b12
+14:43:32.121 [INFO] game_server::web_service: webservice -preload map region b13
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b20
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b21
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b22
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b23
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b30
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b31
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b32
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region b33
+14:43:32.122 [INFO] game_server::web_service: webservice -preload map region c00
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c01
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c02
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c03
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c10
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c11
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c12
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c13
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c20
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c21
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c22
+14:43:32.130 [INFO] game_server::web_service: webservice -preload map region c23
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region c30
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region c31
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region c32
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region c33
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d00
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d01
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d02
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d03
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d10
+14:43:32.131 [INFO] game_server::web_service: webservice -preload map region d11
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d12
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d13
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d20
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d21
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d22
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d23
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d30
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d31
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d32
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region d33
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e00
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e01
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e02
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e03
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e10
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e11
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e12
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e13
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e20
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e21
+14:43:32.132 [INFO] game_server::web_service: webservice -preload map region e22
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region e23
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region e30
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region e31
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region e32
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region e33
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f00
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f01
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f02
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f03
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f10
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f11
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f12
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f13
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f20
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f21
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f22
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f23
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f30
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f31
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f32
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region f33
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g00
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g01
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g02
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g03
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g10
+14:43:32.133 [INFO] game_server::web_service: webservice -preload map region g11
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g12
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g13
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g20
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g21
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g22
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g23
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g30
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g31
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g32
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region g33
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h00
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h01
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h02
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h03
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h10
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h11
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h12
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h13
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h20
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h21
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h22
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h23
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h30
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h31
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h32
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region h33
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region i00
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region i01
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region i02
+14:43:32.134 [INFO] game_server::web_service: webservice -preload map region i03
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i10
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i11
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i12
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i13
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i20
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i21
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i22
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i23
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i30
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i31
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i32
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region i33
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j00
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j01
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j02
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j03
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j10
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j11
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j12
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j13
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j20
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j21
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j22
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j23
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j30
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j31
+14:43:32.135 [INFO] game_server::web_service: webservice -preload map region j32
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region j33
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k00
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k01
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k02
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k03
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k10
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k11
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k12
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k13
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k20
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k21
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k22
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k23
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k30
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k31
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k32
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region k33
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region l00
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region l01
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region l02
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region l03
+14:43:32.136 [INFO] game_server::web_service: webservice -preload map region l10
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l11
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l12
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l13
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l20
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l21
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l22
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l23
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l30
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l31
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l32
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region l33
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region m00
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region m01
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region m02
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region m03
+14:43:32.137 [INFO] game_server::web_service: webservice -preload map region m10
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m11
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m12
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m13
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m20
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m21
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m22
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m23
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m30
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m31
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m32
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region m33
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n00
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n01
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n02
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n03
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n10
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n11
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n12
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n13
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n20
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n21
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n22
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n23
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n30
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n31
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n32
+14:43:32.138 [INFO] game_server::web_service: webservice -preload map region n33
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o00
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o01
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o02
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o03
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o10
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o11
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o12
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o13
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o20
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o21
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o22
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o23
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o30
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o31
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o32
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region o33
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p00
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p01
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p02
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p03
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p10
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p11
+14:43:32.139 [INFO] game_server::web_service: webservice -preload map region p12
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p13
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p20
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p21
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p22
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p23
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p30
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p31
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p32
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region p33
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q00
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q01
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q02
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q03
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q10
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q11
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q12
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q13
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q20
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q21
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q22
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q23
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q30
+14:43:32.140 [INFO] game_server::web_service: webservice -preload map region q31
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region q32
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region q33
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r00
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r01
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r02
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r03
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r10
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r11
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r12
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r13
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r20
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r21
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r22
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r23
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r30
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r31
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r32
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region r33
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s00
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s01
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s02
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s03
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s10
+14:43:32.141 [INFO] game_server::web_service: webservice -preload map region s11
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s12
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s13
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s20
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s21
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s22
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s23
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s30
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s31
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s32
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region s33
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t00
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t01
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t02
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t03
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t10
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t11
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t12
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t13
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t20
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t21
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t22
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t23
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t30
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t31
+14:43:32.142 [INFO] game_server::web_service: webservice -preload map region t32
+14:43:32.143 [INFO] game_server::web_service: webservice -preload map region t33
+14:43:32.143 [INFO] game_server::web_service: mpa regions len on preload 320
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a00
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a01
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a02
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a03
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a10
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a11
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a12
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a13
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a20
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a21
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a22
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a23
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a30
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a31
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a32
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region a33
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b00
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b01
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b02
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b03
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b10
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b11
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b12
+14:43:32.143 [INFO] game_server::web_service: webservice -preload mob region b13
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b20
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b21
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b22
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b23
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b30
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b31
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b32
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region b33
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c00
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c01
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c02
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c03
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c10
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c11
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c12
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c13
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c20
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c21
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c22
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c23
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c30
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c31
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c32
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region c33
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region d00
+14:43:32.144 [INFO] game_server::web_service: webservice -preload mob region d01
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d02
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d03
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d10
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d11
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d12
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d13
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d20
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d21
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d22
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d23
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d30
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d31
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d32
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region d33
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region e00
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region e01
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region e02
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region e03
+14:43:32.145 [INFO] game_server::web_service: webservice -preload mob region e10
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e11
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e12
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e13
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e20
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e21
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e22
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e23
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e30
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e31
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e32
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region e33
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f00
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f01
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f02
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f03
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f10
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f11
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f12
+14:43:32.146 [INFO] game_server::web_service: webservice -preload mob region f13
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f20
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f21
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f22
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f23
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f30
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f31
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f32
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region f33
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g00
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g01
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g02
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g03
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g10
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g11
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g12
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g13
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g20
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g21
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g22
+14:43:32.147 [INFO] game_server::web_service: webservice -preload mob region g23
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region g30
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region g31
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region g32
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region g33
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h00
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h01
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h02
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h03
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h10
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h11
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h12
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h13
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h20
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h21
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h22
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h23
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h30
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h31
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h32
+14:43:32.148 [INFO] game_server::web_service: webservice -preload mob region h33
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i00
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i01
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i02
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i03
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i10
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i11
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i12
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i13
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i20
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i21
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i22
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i23
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i30
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i31
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i32
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region i33
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j00
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j01
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j02
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j03
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j10
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j11
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j12
+14:43:32.149 [INFO] game_server::web_service: webservice -preload mob region j13
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j20
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j21
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j22
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j23
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j30
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j31
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j32
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region j33
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k00
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k01
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k02
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k03
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k10
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k11
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k12
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k13
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k20
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k21
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k22
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k23
+14:43:32.150 [INFO] game_server::web_service: webservice -preload mob region k30
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region k31
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region k32
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region k33
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l00
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l01
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l02
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l03
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l10
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l11
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l12
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l13
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l20
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l21
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l22
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l23
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l30
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l31
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l32
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region l33
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m00
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m01
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m02
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m03
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m10
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m11
+14:43:32.151 [INFO] game_server::web_service: webservice -preload mob region m12
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m13
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m20
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m21
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m22
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m23
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m30
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m31
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m32
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region m33
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n00
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n01
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n02
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n03
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n10
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n11
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n12
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n13
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n20
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n21
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n22
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n23
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n30
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n31
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n32
+14:43:32.152 [INFO] game_server::web_service: webservice -preload mob region n33
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o00
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o01
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o02
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o03
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o10
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o11
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o12
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o13
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o20
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o21
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o22
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o23
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o30
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o31
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o32
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region o33
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region p00
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region p01
+14:43:32.153 [INFO] game_server::web_service: webservice -preload mob region p02
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p03
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p10
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p11
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p12
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p13
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p20
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p21
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p22
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p23
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p30
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p31
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p32
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region p33
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q00
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q01
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q02
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q03
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q10
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q11
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q12
+14:43:32.154 [INFO] game_server::web_service: webservice -preload mob region q13
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q20
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q21
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q22
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q23
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q30
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q31
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q32
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region q33
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r00
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r01
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r02
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r03
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r10
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r11
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r12
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r13
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r20
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r21
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r22
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r23
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r30
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r31
+14:43:32.155 [INFO] game_server::web_service: webservice -preload mob region r32
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region r33
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s00
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s01
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s02
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s03
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s10
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s11
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s12
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s13
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s20
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s21
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s22
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s23
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s30
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s31
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s32
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region s33
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t00
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t01
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t02
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t03
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t10
+14:43:32.156 [INFO] game_server::web_service: webservice -preload mob region t11
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t12
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t13
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t20
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t21
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t22
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t23
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t30
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t31
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t32
+14:43:32.157 [INFO] game_server::web_service: webservice -preload mob region t33
+14:43:32.157 [INFO] game_server::web_service: mob regions len on preload 320
+14:43:32.157 [INFO] game_server: Data sent to tui
+14:43:32.157 [INFO] game_server: Game server started correctly
+14:44:26.904 [INFO] game_server: --end--

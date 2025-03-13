@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU16;
@@ -10,7 +11,6 @@ use std::sync::atomic::AtomicU32;
 use cli_log::init_cli_log;
 use flate2::read::ZlibDecoder;
 use game_server::app;
-use game_server::app::App;
 use game_server::definitions::buffs_data::BuffData;
 use game_server::definitions::card::Card;
 use game_server::definitions::character_progression::CharacterProgression;
@@ -64,7 +64,6 @@ fn main() {
 
 
     let (tx, rx) = oneshot::channel();
-    // use runtime ...
     cli_log::info!("running server");
     runtime.spawn(run_server(tx)); 
     cli_log::info!("running tui");
@@ -81,6 +80,9 @@ async fn run_tui(rx: Receiver<AppData>)
         let result = app::App::new(game_data).run(terminal);
         ratatui::restore();
     }
+    // let terminal = ratatui::init();
+    // let result = app::App::new().run(terminal);
+    // ratatui::restore();
 }
 
 // #[tokio::main(worker_threads = 1)]
@@ -103,8 +105,13 @@ async fn run_server(tx: Sender<AppData>)
         tx_me_gameplay_webservice:AtomicU16::new(0),
         tx_moe_gameplay_webservice:AtomicU16::new(0),
         tx_pe_gameplay_longterm:AtomicU16::new(0),
-        online_players:AtomicI32::new(0),
-        total_players:AtomicU32::new(0)
+        online_players:AtomicU32::new(0),
+        total_players:AtomicU32::new(0),
+        received_packets: AtomicU64::new(0),
+        received_bytes: AtomicU64::new(0),
+        sent_udp_packets: AtomicU64::new(0),
+        sent_game_packets: AtomicU64::new(0),
+        sent_bytes: AtomicU64::new(0),
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
