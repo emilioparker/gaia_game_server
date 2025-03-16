@@ -24,7 +24,7 @@ use crate::map::map_entity::{MapEntity, MapCommand};
 use crate::protocols::disconnect_protocol;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
-use crate::{protocols, ServerState};
+use crate::{gaia_mpsc, protocols, ServerState};
 
 
 #[derive(Debug)]
@@ -49,7 +49,7 @@ pub async fn spawn_client_process(
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_gc_clients_gameplay : mpsc::Sender<GenericCommand>,
+    tx_gc_clients_gameplay : gaia_mpsc::GaiaSender<GenericCommand>,
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     tx_mc_clients_gameplay : mpsc::Sender<MapCommand>,
     tx_moc_clients_gameplay : mpsc::Sender<MobCommand>,

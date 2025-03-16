@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicU16;
@@ -5,6 +6,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use map::GameMap;
+use strum_macros::EnumIter;
 
 pub mod protocols;
 pub mod gameplay_service;
@@ -31,9 +33,31 @@ pub struct AppData
 
 pub const SERVER_STATE_SIZE: usize = 20;
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, EnumIter)]
+pub enum ServerChannels 
+{
+    TX_GC_ClIENTS_GAMEPLAY,
+    TX_MC_CLIENTS_GAMEPLAY,
+    TX_PC_CLIENTS_GAMEPLAY,
+    TX_TC_CLIENTS_GAMEPLAY,
+    TX_CC_CLIENTS_GAMEPLAY,
+    TX_MOC_CLIENTS_GAMEPLAY,
+    TX_MOE_GAMEPLAY_WEBSERVICE,
+    TX_PACKETS_GAMEPLAY_CHAT_CLIENTS,
+    TX_MC_WEBSERVICE_GAMEPLAY,
+    TX_ME_GAMEPLAY_LONGTERM,
+    TX_ME_GAMEPLAY_WEBSERVICE,
+    TX_PE_GAMEPLAY_LONGTERM,
+    TX_TE_GAMEPLAY_LONGTERM,
+    TX_TE_GAMEPLAY_WEBSERVICE,
+    TX_CE_CHAT_WEBSERVICE,
+    TX_SAVED_LONGTERM_WEBSERVICE,
+    TX_TE_SAVED_LONGTERM_WEBSERVICE,
+}
+
 pub struct ServerState 
 {
+    pub channels : HashMap<ServerChannels, AtomicU16>,
     // client service
     pub tx_gc_clients_gameplay: AtomicU16,
     pub tx_mc_clients_gameplay: AtomicU16,
@@ -75,20 +99,20 @@ impl ServerState
     pub fn get_stats(&self) -> [u16; 10]
     {
         let order = std::sync::atomic::Ordering::Relaxed;
-        let stats :[u16; 10] = 
-        [
-            // self.tx_gc_client_gameplay.load(order),
-            self.tx_mc_clients_gameplay.load(order),
-            self.tx_pc_clients_gameplay.load(order),
-            self.tx_tc_clients_gameplay.load(order),
-            self.tx_cc_clients_gameplay.load(order),
-            self.tx_packets_gameplay_chat_clients.load(order),
-            self.tx_me_gameplay_longterm.load(order),
-            self.tx_me_gameplay_webservice.load(order),
-            self.tx_pe_gameplay_longterm.load(order),
-            self.online_players.load(order) as f32 as u16,
-            self.total_players.load(order) as f32 as u16
-        ];
+        let stats :[u16; 10] = [0;10];
+        // [
+        //     // self.tx_gc_client_gameplay.load(order),
+        //     self.tx_mc_clients_gameplay.load(order),
+        //     self.tx_pc_clients_gameplay.load(order),
+        //     self.tx_tc_clients_gameplay.load(order),
+        //     self.tx_cc_clients_gameplay.load(order),
+        //     self.tx_packets_gameplay_chat_clients.load(order),
+        //     self.tx_me_gameplay_longterm.load(order),
+        //     self.tx_me_gameplay_webservice.load(order),
+        //     self.tx_pe_gameplay_longterm.load(order),
+        //     self.online_players.load(order) as f32 as u16,
+        //     self.total_players.load(order) as f32 as u16
+        // ];
 
         stats
     }
@@ -98,13 +122,13 @@ impl ServerState
         let mut buffer = [0u8; SERVER_STATE_SIZE];
         let mut offset = 0;
 
-        for stat in stats
-        {
-            let tx_mc_client_gameplay_stat = u16::to_le_bytes(*stat); // 2 bytes
-            let end = offset + 2; 
-            buffer[offset..end].copy_from_slice(&tx_mc_client_gameplay_stat);
-            offset = end;
-        }
+        // for stat in stats
+        // {
+        //     let tx_mc_client_gameplay_stat = u16::to_le_bytes(*stat); // 2 bytes
+        //     let end = offset + 2; 
+        //     buffer[offset..end].copy_from_slice(&tx_mc_client_gameplay_stat);
+        //     offset = end;
+        // }
         buffer
     }
 

@@ -35,6 +35,7 @@ use std::sync::atomic::AtomicU64;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
+use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::ServerState;
@@ -88,7 +89,7 @@ pub async fn route_packet(
     map : Arc<GameMap>,
     server_state: &Arc<ServerState>,
     missing_packets: Arc<HashMap<u16, [AtomicU64;10]>>,
-    tx_gc_clients_gameplay: &Sender<GenericCommand>,
+    tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
     tx_pc_clients_gameplay: &Sender<CharacterCommand>,
     tx_mc_clients_gameplay: &Sender<MapCommand>,
     tx_moc_clients_gameplay: &Sender<MobCommand>,
@@ -101,8 +102,6 @@ pub async fn route_packet(
 
     match data.get(0) {
         Some(protocol) if *protocol == Protocol::Ping as u8 => {
-            let capacity = tx_gc_clients_gameplay.capacity();
-            server_state.tx_gc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             ping_protocol::process_ping(player_address, tx_gc_clients_gameplay, data).await;
         },
         Some(protocol) if *protocol == Protocol::SellItem as u8 => {
@@ -126,8 +125,6 @@ pub async fn route_packet(
             equip_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
-            let capacity = tx_gc_clients_gameplay.capacity();
-            server_state.tx_gc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             inventory_request_protocol::process_request(player_id, player_address, tx_gc_clients_gameplay, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
@@ -255,8 +252,6 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::CraftCard as u8 => 
         {
             cli_log::info!("--------------------- process craft card");
-            let capacity = tx_gc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             craft_card_protocol::process_request(player_id, player_address, tx_gc_clients_gameplay, data, map).await;
         },
         unknown_protocol => 

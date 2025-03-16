@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
+use strum;
 
 use cli_log::init_cli_log;
 use flate2::read::ZlibDecoder;
@@ -26,6 +27,7 @@ use game_server::definitions::tower_difficulty::TowerDifficulty;
 use game_server::definitions::weapons::Weapon;
 use game_server::definitions::Definition;
 use game_server::AppData;
+use game_server::ServerChannels;
 use game_server::ServerState;
 use game_server::chat_service;
 use game_server::gameplay_service;
@@ -40,10 +42,12 @@ use game_server::web_service;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 use hyper_static::serve;
+use mongodb::options::ServerApiVersion;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use mongodb::options::ResolverConfig;
 
+use strum::IntoEnumIterator;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
@@ -93,8 +97,15 @@ async fn run_server(tx: Sender<AppData>)
 
     let definitions = load_definitions().await;
 
+    let mut channels_status = HashMap::new();
+    for channel in ServerChannels::iter() 
+    {
+        channels_status.insert(channel, AtomicU16::new(0));
+    }
+
     let server_state = Arc::new(ServerState
     {
+        channels: channels_status,
         tx_gc_clients_gameplay: AtomicU16::new(0),
         tx_mc_clients_gameplay: AtomicU16::new(0),
         tx_moc_clients_gameplay: AtomicU16::new(0),

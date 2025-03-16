@@ -1,11 +1,12 @@
 use tokio::sync::mpsc::Sender;
+use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 pub async fn process_ping(
     player_address : std::net::SocketAddr, 
-    generic_channel_tx : &Sender<GenericCommand>,
+    generic_channel_tx : &GaiaSender<GenericCommand>,
     data : &[u8; 508])
 {
     let start = 1;
@@ -48,5 +49,5 @@ pub async fn process_ping(
     std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     let compressed_bytes = encoder.reset(Vec::new()).unwrap();
 
-    generic_channel_tx.send(GenericCommand { player_address, data: compressed_bytes}).await.unwrap();
+    generic_channel_tx.send_data(GenericCommand { player_address, data: compressed_bytes}).await.unwrap();
 }

@@ -36,6 +36,8 @@ ratatui = "0.29.0"
 
 #since ratatui will use the termina, I need to see logs somewhere else...
 cli-log = "2.1.0"
+strum = "0.27.1"
+strum_macros = "0.27"
 
 # [profile.release]
 # incremental = true

@@ -6,6 +6,7 @@ use tokio::sync::mpsc::Sender;
 use crate::character::character_card_inventory::CardItem;
 use crate::character::character_inventory::InventoryItem;
 use crate::character::character_weapon_inventory::WeaponItem;
+use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -15,7 +16,7 @@ use flate2::write::ZlibEncoder;
 pub async fn process_request(
     _player_id: u16,
     player_address : std::net::SocketAddr, 
-    generic_channel_tx : &Sender<GenericCommand>,
+    generic_channel_tx : &GaiaSender<GenericCommand>,
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
@@ -51,7 +52,7 @@ pub async fn process_request(
 
     // we pay the price of cloning, but just because compressing might be costly.
     let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, inventory_version);
-    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+    generic_channel_tx.send_data(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
 }
 
 pub fn pack_inventory(

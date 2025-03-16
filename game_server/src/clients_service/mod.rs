@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicU64;
 use std::collections::HashMap;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
-use crate::ServerState;
+use crate::{gaia_mpsc, ServerChannels, ServerState};
 use crate::chat::ChatCommand;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
@@ -43,7 +43,7 @@ pub fn start_server(
     Sender<Vec<(u64,u8,u32,Vec<u8>)>>
 ) // packet number, faction, data
 {
-    let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = tokio::sync::mpsc::channel::<GenericCommand>(1000);
+    let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(1000, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
     let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = tokio::sync::mpsc::channel::<MapCommand>(1000);
     let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = tokio::sync::mpsc::channel::<MobCommand>(1000);
     let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
@@ -51,7 +51,6 @@ pub fn start_server(
     let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
     let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = tokio::sync::mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(1000);
 
-    server_state.tx_gc_clients_gameplay.store(tx_gc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_mc_clients_gameplay.store(tx_mc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_moc_clients_gameplay.store(tx_moc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_pc_clients_gameplay.store(tx_pc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
+use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
@@ -13,7 +14,7 @@ use flate2::write::ZlibEncoder;
 pub async fn process_request(
     _player_id: u16,
     player_address : std::net::SocketAddr, 
-    tx_gc_clients_gameplay : &Sender<GenericCommand>,
+    tx_gc_clients_gameplay : &GaiaSender<GenericCommand>,
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
@@ -46,7 +47,7 @@ pub async fn process_request(
             drop(player_entities); // we drop the lock asap, we can do what we want later.
 
             let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, version);
-            tx_gc_clients_gameplay.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+            tx_gc_clients_gameplay.send_data(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
         }
     }
     else 
