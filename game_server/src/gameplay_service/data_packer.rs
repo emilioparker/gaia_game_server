@@ -7,8 +7,8 @@ use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
 use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
 use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
-use crate::real_time_service::DataType;
-use crate::real_time_service::client_handler::StateUpdate;
+use crate::clients_service::DataType;
+use crate::clients_service::client_handler::StateUpdate;
 use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
 
 
@@ -48,8 +48,9 @@ pub fn init_data_packet(
 pub fn build_data_packet(
     packet_number : &mut u64,
     buffer : &mut [u8;5000],
-    packets : &mut Vec<(u64,u8,Vec<u8>)>,
+    packets : &mut Vec<(u64,u8,u32,Vec<u8>)>,
     offset: &mut usize,
+    game_packets_count: &mut u32,
     data_type: DataType,
     chunk : &[u8],
     chunk_size: usize)
@@ -58,16 +59,18 @@ pub fn build_data_packet(
     {
         // this means we already have some data
         let encoded_data = encode_packet(buffer, *offset);
-        packets.push((*packet_number, 0, encoded_data));
+        packets.push((*packet_number, 0, *game_packets_count, encoded_data));
         *offset = init_data_packet( buffer, packet_number);
+        *game_packets_count = 0;
     }
 
-    add_to_data_packet(buffer, offset, data_type, chunk_size, &chunk);
+    add_to_data_packet(buffer, offset, game_packets_count, data_type, chunk_size, &chunk);
 }
 
 pub fn add_to_data_packet(
     buffer : &mut [u8;5000],
     offset: &mut usize ,
+    game_packets_count: &mut u32,
     data_type: DataType,
     chunk_size : usize,
     chunk : &[u8])
@@ -80,6 +83,7 @@ pub fn add_to_data_packet(
     let next = start + chunk_size;
     buffer[start..next].copy_from_slice(chunk);
     *offset = next;
+    *game_packets_count += 1;
 }
 
 pub fn encode_packet(buffer : &mut [u8;5000], start : usize) -> Vec<u8>

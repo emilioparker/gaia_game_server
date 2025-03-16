@@ -283,17 +283,17 @@ impl App {
         
         frame.render_widget(output_sparkline, output_inner_layout[1]);
 
-        let bottom_output_spark_line_title = Line::from(vec![
-            "Out Per Player: ".into(),
-            format!("{:.2} UDP p/s", self.sent_udp_packages_per_second).blue().bold(),
-            "  ".into(),
-            format!("{:.2} Game p/s", self.sent_game_packets_per_second).blue().bold(),
-            "  ".into(),
-            Self::format_bytes_per_second(self.sent_bytes_per_second).blue().bold()
-        ]);
+        // let bottom_output_spark_line_title = Line::from(vec![
+        //     "Out Per Player: ".into(),
+        //     format!("{:.2} UDP p/s", self.sent_udp_packages_per_second).blue().bold(),
+        //     "  ".into(),
+        //     format!("{:.2} Game p/s", self.sent_game_packets_per_second).blue().bold(),
+        //     "  ".into(),
+        //     Self::format_bytes_per_second(self.sent_bytes_per_second).blue().bold()
+        // ]);
 
-        let bottom_block =  Paragraph:: new(bottom_output_spark_line_title).centered().block(Block::new().borders(Borders::TOP | Borders::BOTTOM));
-        frame.render_widget(bottom_block, output_inner_layout[2]);
+        // let bottom_block =  Paragraph:: new(bottom_output_spark_line_title).centered().block(Block::new().borders(Borders::TOP | Borders::BOTTOM));
+        // frame.render_widget(bottom_block, output_inner_layout[2]);
 
 
 

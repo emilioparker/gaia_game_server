@@ -1,7 +1,7 @@
 
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
-use crate::{get_faction_from_code, get_faction_code};
+use crate::{get_faction_code, get_faction_from_code, ServerState};
 use crate::long_term_storage_service::db_tower::StoredDamageByFaction;
 use crate::map::GameMap;
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -112,11 +112,14 @@ pub async fn preload_db(
 pub fn start_server(
     mut rx_te_realtime_longterm : Receiver<TowerEntity>,
     map : Arc<GameMap>,
+    server_state: Arc<ServerState>,
     db_client : Client)
     -> Receiver<bool>
     {
 
     let (tx_te_saved_longterm_webservice, rx_te_saved_longterm_webservice) = tokio::sync::mpsc::channel::<bool>(10);
+    server_state.tx_te_saved_longterm_webservice.store(tx_te_saved_longterm_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+
     let modified_towers = HashSet::<TetrahedronId>::new();
     let modified_towers_reference = Arc::new(Mutex::new(modified_towers));
 

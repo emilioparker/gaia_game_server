@@ -11,7 +11,7 @@ pub mod gameplay_service;
 pub mod character;
 pub mod map;
 pub mod web_service;
-pub mod real_time_service;
+pub mod clients_service;
 pub mod long_term_storage_service;
 pub mod tower;
 pub mod chat;
@@ -21,6 +21,7 @@ pub mod mob;
 pub mod buffs;
 pub mod ability_user;
 pub mod app;
+pub mod gaia_mpsc;
 
 pub struct AppData
 {
@@ -33,16 +34,33 @@ pub const SERVER_STATE_SIZE: usize = 20;
 #[derive(Debug)]
 pub struct ServerState 
 {
-    pub tx_mc_client_gameplay: AtomicU16,
-    pub tx_pc_client_gameplay: AtomicU16,
-    pub tx_tc_client_gameplay: AtomicU16,
-    pub tx_cc_client_gameplay: AtomicU16,
-    pub tx_moc_client_gameplay: AtomicU16,
+    // client service
+    pub tx_gc_clients_gameplay: AtomicU16,
+    pub tx_mc_clients_gameplay: AtomicU16,
+    pub tx_pc_clients_gameplay: AtomicU16,
+    pub tx_tc_clients_gameplay: AtomicU16,
+    pub tx_cc_clients_gameplay: AtomicU16,
+    pub tx_moc_clients_gameplay: AtomicU16,
     pub tx_moe_gameplay_webservice:AtomicU16,
-    pub tx_bytes_gameplay_socket: AtomicU16,
+    pub tx_packets_gameplay_chat_clients: AtomicU16,
+
+    // gameplay service
+    pub tx_mc_webservice_gameplay: AtomicU16,
     pub tx_me_gameplay_longterm:AtomicU16,
     pub tx_me_gameplay_webservice:AtomicU16,
     pub tx_pe_gameplay_longterm:AtomicU16,
+    pub tx_te_gameplay_longterm:AtomicU16,
+    pub tx_te_gameplay_webservice:AtomicU16,
+
+    // chat service
+    pub tx_ce_chat_webservice:AtomicU16,
+
+    // long term serv
+    pub tx_saved_longterm_webservice:AtomicU16,
+
+    // towers service
+    pub tx_te_saved_longterm_webservice: AtomicU16,
+
     pub received_packets:AtomicU64,
     pub received_bytes:AtomicU64,
     pub online_players: AtomicU32,
@@ -59,11 +77,12 @@ impl ServerState
         let order = std::sync::atomic::Ordering::Relaxed;
         let stats :[u16; 10] = 
         [
-            self.tx_mc_client_gameplay.load(order),
-            self.tx_pc_client_gameplay.load(order),
-            self.tx_tc_client_gameplay.load(order),
-            self.tx_cc_client_gameplay.load(order),
-            self.tx_bytes_gameplay_socket.load(order),
+            // self.tx_gc_client_gameplay.load(order),
+            self.tx_mc_clients_gameplay.load(order),
+            self.tx_pc_clients_gameplay.load(order),
+            self.tx_tc_clients_gameplay.load(order),
+            self.tx_cc_clients_gameplay.load(order),
+            self.tx_packets_gameplay_chat_clients.load(order),
             self.tx_me_gameplay_longterm.load(order),
             self.tx_me_gameplay_webservice.load(order),
             self.tx_pe_gameplay_longterm.load(order),

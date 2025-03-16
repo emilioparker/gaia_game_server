@@ -5,7 +5,7 @@ use crate::ability_user::attack_result::AttackResult;
 use crate::character::character_presentation::CharacterPresentation;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
-use crate::real_time_service::DataType;
+use crate::clients_service::DataType;
 use crate::ServerState;
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::map::GameMap;
@@ -13,7 +13,7 @@ use crate::map::map_entity::MapCommand;
 use crate::character::character_entity::CharacterEntity;
 use crate::character::character_reward::CharacterReward;
 use crate::map::map_entity::MapEntity;
-use crate::real_time_service::client_handler::StateUpdate;
+use crate::clients_service::client_handler::StateUpdate;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -38,7 +38,7 @@ pub fn start_service(
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, u8, Vec<u8>)>>
+    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, u8, u32, Vec<u8>)>>
 ) 
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
@@ -51,6 +51,7 @@ pub fn start_service(
 
     // we don't need this for the battle service because we don't store it in the db, at least for the moment.
 
+    // we can receive map commands from the web client.. or at least used to be able.
     let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
     let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
@@ -59,10 +60,13 @@ pub fn start_service(
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(100);
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = tokio::sync::mpsc::channel::<TowerEntity>(100);
 
+    server_state.tx_mc_webservice_gameplay.store(tx_mc_webservice_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_me_gameplay_longterm.store(tx_me_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_me_gameplay_webservice.store(tx_me_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_pe_gameplay_longterm.store(tx_pe_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     server_state.tx_moe_gameplay_webservice.store(tx_moe_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_pe_gameplay_longterm.store(tx_pe_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_te_gameplay_longterm.store(tx_te_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_te_gameplay_webservice.store(tx_te_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
     //players
     //player commands -------------------------------------
@@ -350,10 +354,9 @@ pub fn start_service(
                 continue;
             }
 
-            server_state.sent_game_packets.fetch_add(game_packages as u64, std::sync::atomic::Ordering::Relaxed);
-
             previous_time = current_time_in_millis;
 
+            let mut game_packets_count : u32 = 0;
             let mut offset : usize;
             offset = data_packer::init_data_packet(&mut buffer, &mut packet_number);
 
@@ -372,6 +375,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType:: TileState,
                     &chunk,
                     chunk_size);
@@ -387,6 +391,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::TowerState,
                     &chunk,
                     chunk_size);
@@ -402,6 +407,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::PlayerPresentation,
                     &chunk,
                     chunk_size);
@@ -417,6 +423,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::PlayerReward,
                     &chunk,
                     chunk_size);
@@ -437,6 +444,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::PlayerState,
                     &chunk,
                     chunk_size);
@@ -459,6 +467,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::Attack,
                     &chunk,
                     chunk_size);
@@ -479,6 +488,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::AttackDetails,
                     &chunk,
                     chunk_size);
@@ -499,6 +509,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::MobStatus,
                     &chunk,
                     chunk_size);
@@ -517,6 +528,7 @@ pub fn start_service(
                     &mut buffer,
                     &mut packets,
                     &mut offset,
+                    &mut game_packets_count,
                     DataType::ServerStatus,
                     &chunk,
                     chunk_size);
@@ -525,15 +537,15 @@ pub fn start_service(
             if offset > 0
             {
                 let encoded_data = data_packer::encode_packet(&mut buffer, offset);
-                packets.push((packet_number, 0, encoded_data));
+                packets.push((packet_number, 0, game_packets_count, encoded_data));
             }
 
             if packets.len() > 0 
             {
-                let capacity = tx_bytes_game_socket.capacity();
-                server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-                server_state.sent_udp_packets.fetch_add(packets.len() as u64, std::sync::atomic::Ordering::Relaxed);
                 tx_bytes_game_socket.send(packets).await.unwrap();
+
+                let capacity = tx_bytes_game_socket.capacity();
+                server_state.tx_packets_gameplay_chat_clients.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             }
         }
     });

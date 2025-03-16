@@ -14,12 +14,13 @@ pub fn start_service(
     mut rx_cc_client_game : tokio::sync::mpsc::Receiver<ChatCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, u8, Vec<u8>)>> //faction-data 0 means global
+    tx_packets_gameplay_chat_clients: tokio::sync::mpsc::Sender<Vec<(u64, u8, u32, Vec<u8>)>> //faction-data 0 means global
 ) 
 -> Receiver<ChatEntry>
 {
 
-    let (tx_ce_gameplay_webservice, rx_ce_gameplay_webservice) = tokio::sync::mpsc::channel::<ChatEntry>(100);
+    let (tx_ce_chat_webservice, rx_ce_chat_webservice) = tokio::sync::mpsc::channel::<ChatEntry>(100);
+    server_state.tx_ce_chat_webservice.store(tx_ce_chat_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
     //message commands -------------------------------------
     let chat_commands = Vec::<ChatCommand>::new();
@@ -67,7 +68,7 @@ pub fn start_service(
                 map.clone(),
                 server_state.clone(),
                 chat_commands_processor_lock.clone(),
-                &tx_ce_gameplay_webservice,
+                &tx_ce_chat_webservice,
                 &mut chat_summary,
                 ).await;
 
@@ -75,15 +76,16 @@ pub fn start_service(
             // separar por faccion.
             //empaquetar mensajes por faccion.
 
-            for (faction, faction_summary) in chat_summary.iter().enumerate()
+            for (faction, faction_chat) in chat_summary.iter().enumerate()
             {
-                if faction_summary.len() > 0 
+                if faction_chat.len() > 0 
                 {
-                    let packages = chat_data_packer::create_data_packets(faction as u8, faction_summary, &mut packet_number);
+                    let packages = chat_data_packer::create_data_packets(faction as u8, faction_chat, &mut packet_number);
                     // the data that will be sent to each client is not copied.
-                    let capacity = tx_bytes_game_socket.capacity();
-                    server_state.tx_bytes_gameplay_socket.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-                    tx_bytes_game_socket.send(packages).await.unwrap();
+                    tx_packets_gameplay_chat_clients.send(packages).await.unwrap();
+
+                    let capacity = tx_packets_gameplay_chat_clients.capacity();
+                    server_state.tx_packets_gameplay_chat_clients.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
                 }
             }
 
@@ -94,5 +96,5 @@ pub fn start_service(
         }
     });
 
-    rx_ce_gameplay_webservice
+    rx_ce_chat_webservice
 }

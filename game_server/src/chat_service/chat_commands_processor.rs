@@ -6,9 +6,9 @@ use crate::{chat::{ChatCommand, chat_entry::ChatEntry}, map::GameMap, ServerStat
 
 pub async fn process_chat_commands (
     _map : Arc<GameMap>,
-    _server_state: Arc<ServerState>,
+    server_state: Arc<ServerState>,
     chat_commands_processor_lock : Arc<Mutex<Vec<ChatCommand>>>,
-    tx_ce_gameplay_webservice : &Sender<ChatEntry>,
+    tx_ce_chat_webservice : &Sender<ChatEntry>,
     chat_summary : &mut [Vec<ChatEntry>; 10],
 )
 {
@@ -28,9 +28,9 @@ pub async fn process_chat_commands (
                 message_length: chat_command.message_length,
                 message: chat_command.message 
             };
-            let _send_result = tx_ce_gameplay_webservice.send(chat_entry.clone()).await;
+            let _send_result = tx_ce_chat_webservice.send(chat_entry.clone()).await;
+            server_state.tx_ce_chat_webservice.store(tx_ce_chat_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             chat_summary[chat_command.faction as usize].push(chat_entry);
-            cli_log::info!("added chat entry");
         }
     }
     chat_commands_data.clear();

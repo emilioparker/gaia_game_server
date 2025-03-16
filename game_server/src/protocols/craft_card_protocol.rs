@@ -13,7 +13,7 @@ use flate2::write::ZlibEncoder;
 pub async fn process_request(
     _player_id: u16,
     player_address : std::net::SocketAddr, 
-    generic_channel_tx : &Sender<GenericCommand>,
+    tx_gc_clients_gameplay : &Sender<GenericCommand>,
     data : &[u8; 508],
     map : Arc<GameMap>)
 {
@@ -46,7 +46,7 @@ pub async fn process_request(
             drop(player_entities); // we drop the lock asap, we can do what we want later.
 
             let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, version);
-            generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+            tx_gc_clients_gameplay.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
         }
     }
     else 

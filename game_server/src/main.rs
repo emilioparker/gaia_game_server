@@ -35,7 +35,7 @@ use game_server::map::GameMap;
 use game_server::map::map_entity::MAP_ENTITY_SIZE;
 use game_server::map::map_entity::MapEntity;
 use game_server::map::tetrahedron_id::TetrahedronId;
-use game_server::real_time_service;
+use game_server::clients_service;
 use game_server::web_service;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
@@ -95,16 +95,28 @@ async fn run_server(tx: Sender<AppData>)
 
     let server_state = Arc::new(ServerState
     {
-        tx_mc_client_gameplay: AtomicU16::new(0),
-        tx_moc_client_gameplay: AtomicU16::new(0),
-        tx_pc_client_gameplay: AtomicU16::new(0),
-        tx_tc_client_gameplay: AtomicU16::new(0),
-        tx_cc_client_gameplay: AtomicU16::new(0),
-        tx_bytes_gameplay_socket: AtomicU16::new(0),
+        tx_gc_clients_gameplay: AtomicU16::new(0),
+        tx_mc_clients_gameplay: AtomicU16::new(0),
+        tx_moc_clients_gameplay: AtomicU16::new(0),
+        tx_pc_clients_gameplay: AtomicU16::new(0),
+        tx_tc_clients_gameplay: AtomicU16::new(0),
+        tx_cc_clients_gameplay: AtomicU16::new(0),
+        tx_packets_gameplay_chat_clients: AtomicU16::new(0),
+
         tx_me_gameplay_longterm:AtomicU16::new(0),
         tx_me_gameplay_webservice:AtomicU16::new(0),
         tx_moe_gameplay_webservice:AtomicU16::new(0),
         tx_pe_gameplay_longterm:AtomicU16::new(0),
+        tx_mc_webservice_gameplay: AtomicU16::new(0),
+        tx_te_gameplay_longterm: AtomicU16::new(0),
+        tx_te_gameplay_webservice: AtomicU16::new(0),
+
+        tx_ce_chat_webservice: AtomicU16::new(0),
+
+        tx_saved_longterm_webservice: AtomicU16::new(0),
+
+        tx_te_saved_longterm_webservice: AtomicU16::new(0),
+
         online_players:AtomicU32::new(0),
         total_players:AtomicU32::new(0),
         received_packets: AtomicU64::new(0),
@@ -112,6 +124,7 @@ async fn run_server(tx: Sender<AppData>)
         sent_udp_packets: AtomicU64::new(0),
         sent_game_packets: AtomicU64::new(0),
         sent_bytes: AtomicU64::new(0),
+
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
@@ -214,12 +227,11 @@ async fn run_server(tx: Sender<AppData>)
                 rx_pc_client_gameplay, 
                 rx_tc_client_gameplay ,
                 rx_cc_client_gameplay ,
-                tx_bytes_gameplay_socket,
-            ) =  real_time_service::start_server(
+                tx_packets_gameplay_chat_clients,
+            ) =  clients_service::start_server(
                 working_game_map_reference.clone(), 
                 server_state.clone());
                 
-            server_state.tx_bytes_gameplay_socket.store(tx_bytes_gameplay_socket.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
@@ -235,19 +247,20 @@ async fn run_server(tx: Sender<AppData>)
                 rx_tc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),
-                tx_bytes_gameplay_socket.clone());
+                tx_packets_gameplay_chat_clients.clone());
 
                 
             let rx_ce_gameplay_webservice = chat_service::start_service(
                 rx_cc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),
-                tx_bytes_gameplay_socket);
+                tx_packets_gameplay_chat_clients);
 
             // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
             let rx_me_saved_longterm_web= long_term_storage_service::world_service::start_server(
                 rx_me_gameplay_longterm,
                 storage_game_map_reference.clone(), 
+                server_state.clone(),
                 db_client.clone()
             );
 
@@ -261,6 +274,7 @@ async fn run_server(tx: Sender<AppData>)
             let rx_te_saved_longterm_web = long_term_storage_service::towers_service::start_server(
                 rx_te_gameplay_longterm,
                 storage_game_map_reference.clone(), 
+                server_state.clone(),
                 db_client.clone()
             );
             

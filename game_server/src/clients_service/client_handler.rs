@@ -49,13 +49,13 @@ pub async fn spawn_client_process(
     from_address : std::net::SocketAddr, 
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    channel_generic_tx : mpsc::Sender<GenericCommand>,
+    tx_gc_clients_gameplay : mpsc::Sender<GenericCommand>,
     channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
-    channel_map_action_tx : mpsc::Sender<MapCommand>,
-    channel_mob_action_tx : mpsc::Sender<MobCommand>,
-    channel_action_tx : mpsc::Sender<CharacterCommand>,
-    channel_tower_action_tx : mpsc::Sender<TowerCommand>,
-    channel_chat_action_tx : mpsc::Sender<ChatCommand>,
+    tx_mc_clients_gameplay : mpsc::Sender<MapCommand>,
+    tx_moc_clients_gameplay : mpsc::Sender<MobCommand>,
+    tx_pc_clients_gameplay : mpsc::Sender<CharacterCommand>,
+    tx_tc_clients_gameplay : mpsc::Sender<TowerCommand>,
+    tx_cc_clients_gameplay : mpsc::Sender<ChatCommand>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508],
     packet_size: usize)
@@ -82,12 +82,12 @@ pub async fn spawn_client_process(
             map.clone(),
             &server_state,
             missing_packets.clone(),
-            &channel_generic_tx,
-            &channel_action_tx, 
-            &channel_map_action_tx,
-            &channel_mob_action_tx,
-            &channel_tower_action_tx,
-            &channel_chat_action_tx,
+            &tx_gc_clients_gameplay,
+            &tx_pc_clients_gameplay, 
+            &tx_mc_clients_gameplay,
+            &tx_moc_clients_gameplay,
+            &tx_tc_clients_gameplay,
+            &tx_cc_clients_gameplay,
         ).await;
 
         let mut child_buff = [0u8; 508];
@@ -113,12 +113,12 @@ pub async fn spawn_client_process(
                                 map.clone(),
                                 &server_state,
                                 missing_packets.clone(),
-                                &channel_generic_tx,
-                                &channel_action_tx, 
-                                &channel_map_action_tx,
-                                &channel_mob_action_tx,
-                                &channel_tower_action_tx,
-                                &channel_chat_action_tx,
+                                &tx_gc_clients_gameplay,
+                                &tx_pc_clients_gameplay, 
+                                &tx_mc_clients_gameplay,
+                                &tx_moc_clients_gameplay,
+                                &tx_tc_clients_gameplay,
+                                &tx_cc_clients_gameplay,
                             ).await;
                         }
                         Err(error) => 
@@ -137,7 +137,7 @@ pub async fn spawn_client_process(
         }
 
         // before disconnecting, we set action to 0, to indicate that the player is not active
-        disconnect_protocol::process(player_id, &channel_action_tx).await;
+        disconnect_protocol::process(player_id, &tx_pc_clients_gameplay).await;
 
         // if we are here, this task expired and we need to remove the key from the hashset
         channel_tx.send((from_address, session_id)).await.unwrap();

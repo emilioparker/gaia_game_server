@@ -40,23 +40,27 @@ pub fn start_server(
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    Sender<Vec<(u64,u8,Vec<u8>)>>
+    Sender<Vec<(u64,u8,u32,Vec<u8>)>>
 ) // packet number, faction, data
 {
-    let (tx_bytes_client_socket, mut rx_bytes_client_socket) = tokio::sync::mpsc::channel::<GenericCommand>(1000);
-    let (tx_mc_client_statesys, rx_mc_client_statesys) = tokio::sync::mpsc::channel::<MapCommand>(1000);
-    let (tx_moc_client_statesys, rx_moc_client_statesys) = tokio::sync::mpsc::channel::<MobCommand>(1000);
-    let (tx_bytes_statesys_socket, mut rx_bytes_state_socket ) = tokio::sync::mpsc::channel::<Vec<(u64, u8, Vec<u8>)>>(1000);
-    let (tx_pc_client_statesys, rx_pc_client_statesys) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
-    let (tx_tc_client_statesys, rx_tc_client_statesys) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
-    let (tx_cc_client_statesys, rx_cc_client_statesys) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
+    let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = tokio::sync::mpsc::channel::<GenericCommand>(1000);
+    let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = tokio::sync::mpsc::channel::<MapCommand>(1000);
+    let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = tokio::sync::mpsc::channel::<MobCommand>(1000);
+    let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
+    let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
+    let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = tokio::sync::mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(1000);
 
-    server_state.tx_mc_client_gameplay.store(tx_mc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_pc_client_gameplay.store(tx_pc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_tc_client_gameplay.store(tx_tc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_cc_client_gameplay.store(tx_cc_client_statesys.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_gc_clients_gameplay.store(tx_gc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_mc_clients_gameplay.store(tx_mc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_moc_clients_gameplay.store(tx_moc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_pc_clients_gameplay.store(tx_pc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_tc_clients_gameplay.store(tx_tc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_cc_clients_gameplay.store(tx_cc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    server_state.tx_packets_gameplay_chat_clients.store(tx_packets_gameplay_chat_clients.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
 
     let packet_builder_server_state = server_state.clone();
+    let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
     let client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
     let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
@@ -100,7 +104,7 @@ pub fn start_server(
     {
         loop 
         {
-            if let Some(command) = rx_bytes_client_socket.recv().await 
+            if let Some(command) = rx_gc_clients_gameplay.recv().await 
             {
                 let result = send_directly_udp_socket.try_send_to(&command.data, command.player_address);
                 match result 
@@ -115,6 +119,10 @@ pub fn start_server(
                     },
                     Err(_) => cli_log::info!("error sending specific data through socket"),
                 }
+
+                generic_packet_builder_server_state.sent_bytes.fetch_add(command.data.len() as u64, std::sync::atomic::Ordering::Relaxed);
+                generic_packet_builder_server_state.sent_udp_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
+                generic_packet_builder_server_state.sent_game_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
             }
         }
     });
@@ -124,16 +132,17 @@ pub fn start_server(
         loop 
         {
             // there are two sources of packets, chat and game. Each one has a differente packet id.
-            if let Some(packet_list) = rx_bytes_state_socket.recv().await 
+            if let Some(packet_list) = rx_packets_gameplay_chat_clients.recv().await 
             {
-                let mut first_client = true;
+                // let mut first_client = true;
                 let mut sent_bytes : u64 = 0;
+                let mut sent_game_packets : u64 = 0;
+                let mut sent_udp_packets : u64 = 0;
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
-                    for (_packet_id, faction, data) in packet_list.iter()
+                    for (_packet_id, faction, game_packets, data) in packet_list.iter()
                     {
-                        sent_bytes += data.len() as u64;
                         // cli_log::info!("sending packet with id {packet_id}");
                         if client.1.0 == 0u16 
                         {
@@ -145,6 +154,9 @@ pub fn start_server(
                         // todo: only send data if client is correctly validated, add state to clients_data
                         if client.1.1 == *faction || *faction == 0
                         {
+                            sent_bytes += data.len() as u64;
+                            sent_udp_packets += 1;
+                            sent_game_packets += *game_packets as u64;
                             let result = send_udp_socket.try_send_to(data, client.0.clone());
                             match result 
                             {
@@ -192,25 +204,24 @@ pub fn start_server(
                         // }
                     }
 
-                    if first_client
-                    {
-                        first_client = false;
-                        packet_builder_server_state.sent_bytes.fetch_add(sent_bytes, std::sync::atomic::Ordering::Relaxed);
-                    }
+                    packet_builder_server_state.sent_bytes.fetch_add(sent_bytes, std::sync::atomic::Ordering::Relaxed);
+                    packet_builder_server_state.sent_udp_packets.fetch_add(sent_udp_packets, std::sync::atomic::Ordering::Relaxed);
+                    packet_builder_server_state.sent_game_packets.fetch_add(sent_game_packets, std::sync::atomic::Ordering::Relaxed);
                 }
 
-                for packet in packet_list.into_iter()
-                {
-                    // only global packets are stored. global is 0 in the faction field
-                    if packet.1 == 0 
-                    {
-                        previous_packages.push_front(packet);
-                        if previous_packages.len() > 100
-                        {
-                            let _pop_result = previous_packages.pop_back();
-                        }
-                    }
-                }
+                // code used to recover packets, not used due to performance issues
+                // for packet in packet_list.into_iter()
+                // {
+                //     // only global packets are stored. global is 0 in the faction field
+                //     if packet.1 == 0 
+                //     {
+                //         previous_packages.push_front(packet);
+                //         if previous_packages.len() > 100
+                //         {
+                //             let _pop_result = previous_packages.pop_back();
+                //         }
+                //     }
+                // }
                 // cli_log::info!("storing packages {}", previous_packages.len());
             }
         }
@@ -272,13 +283,13 @@ pub fn start_server(
                                     from_address, 
                                     map.clone(),
                                     server_state.clone(),
-                                    tx_bytes_client_socket.clone(),
+                                    tx_gc_clients_gameplay.clone(),
                                     tx_addr_client_realtime.clone(), 
-                                    tx_mc_client_statesys.clone(), 
-                                    tx_moc_client_statesys.clone(), 
-                                    tx_pc_client_statesys.clone(), 
-                                    tx_tc_client_statesys.clone(), 
-                                    tx_cc_client_statesys.clone(), 
+                                    tx_mc_clients_gameplay.clone(), 
+                                    tx_moc_clients_gameplay.clone(), 
+                                    tx_pc_clients_gameplay.clone(), 
+                                    tx_tc_clients_gameplay.clone(), 
+                                    tx_cc_clients_gameplay.clone(), 
                                     updater_shared_player_missing_packets.clone(),
                                     buf_udp,
                                     packet_size
@@ -320,12 +331,12 @@ pub fn start_server(
     });
 
     (
-        rx_mc_client_statesys,
-        rx_moc_client_statesys,
-        rx_pc_client_statesys,
-        rx_tc_client_statesys,
-        rx_cc_client_statesys,
-        tx_bytes_statesys_socket
+        rx_mc_clients_gameplay,
+        rx_moc_clients_gameplay,
+        rx_pc_clients_gameplay,
+        rx_tc_clients_gameplay,
+        rx_cc_clients_gameplay,
+        tx_packets_gameplay_chat_clients
     )
 }
 
