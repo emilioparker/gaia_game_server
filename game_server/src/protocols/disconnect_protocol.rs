@@ -1,7 +1,7 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
+use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo}, gaia_mpsc::GaiaSender};
 
-pub async fn process(player_id:u16, channel_player_tx : &Sender<CharacterCommand>)
+pub async fn process(player_id:u16, channel_player_tx : &GaiaSender<CharacterCommand>)
 {
     let command = CharacterCommand
     {

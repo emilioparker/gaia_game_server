@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::BATTLE_MOB_MOB}, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::BATTLE_MOB_MOB}, gaia_mpsc::GaiaSender, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 
@@ -8,8 +8,8 @@ pub async fn process_tower_commands (
     map : Arc<GameMap>,
     _server_state: Arc<ServerState>,
     tower_commands_processor_lock : Arc<Mutex<Vec<TowerCommand>>>,
-    _tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    _tx_te_gameplay_webservice : &Sender<TowerEntity>,
+    _tx_te_gameplay_longterm : &GaiaSender<TowerEntity>,
+    _tx_te_gameplay_webservice : &GaiaSender<TowerEntity>,
     _towers_summary : &mut Vec<TowerEntity>,
     player_attacks_summary : &mut  Vec<Attack>,
     delayed_tower_commands_lock : Arc<Mutex<Vec<(u64, TowerCommand)>>>
@@ -96,8 +96,8 @@ pub async fn process_tower_commands (
 pub async fn process_delayed_tower_commands (
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    tx_te_gameplay_webservice : &Sender<TowerEntity>,
+    tx_te_gameplay_longterm : &GaiaSender<TowerEntity>,
+    tx_te_gameplay_webservice : &GaiaSender<TowerEntity>,
     // tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     towers_summary : &mut Vec<TowerEntity>,
     _players_summary : &mut Vec<CharacterEntity>,
@@ -145,8 +145,6 @@ pub async fn process_delayed_tower_commands (
                         }
 
                         updated_tower.version += 1;
-
-                        crate::gameplay_service::utils::report_tower_process_capacity(&tx_te_gameplay_longterm, server_state.clone());
 
                         // sending the updated tile somewhere.
                         tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();

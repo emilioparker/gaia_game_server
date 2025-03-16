@@ -3,10 +3,11 @@ use std::sync::Arc;
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
 use crate::character::character_presentation::CharacterPresentation;
+use crate::gaia_mpsc::GaiaSender;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::clients_service::DataType;
-use crate::ServerState;
+use crate::{gaia_mpsc, ServerChannels, ServerState};
 use crate::character::character_command::{CharacterCommand, CharacterMovement};
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
@@ -38,7 +39,7 @@ pub fn start_service(
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: tokio::sync::mpsc::Sender<Vec<(u64, u8, u32, Vec<u8>)>>
+    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u32, Vec<u8>)>>
 ) 
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
@@ -46,27 +47,19 @@ pub fn start_service(
     Receiver<CharacterEntity>, 
     Receiver<TowerEntity>, 
     Receiver<TowerEntity>, 
-    Sender<MapCommand>) 
+    GaiaSender<MapCommand>) 
 {
 
     // we don't need this for the battle service because we don't store it in the db, at least for the moment.
 
     // we can receive map commands from the web client.. or at least used to be able.
-    let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = tokio::sync::mpsc::channel::<MapCommand>(200);
-    let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = tokio::sync::mpsc::channel::<MapEntity>(1000);
-    let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = tokio::sync::mpsc::channel::<MapEntity>(1000);
-    let (tx_moe_gameplay_webservice, rx_moe_gameplay_webservice) = tokio::sync::mpsc::channel::<MobEntity>(1000);
-    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = tokio::sync::mpsc::channel::<CharacterEntity>(1000);
-    let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = tokio::sync::mpsc::channel::<TowerEntity>(100);
-    let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = tokio::sync::mpsc::channel::<TowerEntity>(100);
-
-    server_state.tx_mc_webservice_gameplay.store(tx_mc_webservice_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_me_gameplay_longterm.store(tx_me_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_me_gameplay_webservice.store(tx_me_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_moe_gameplay_webservice.store(tx_moe_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_pe_gameplay_longterm.store(tx_pe_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_te_gameplay_longterm.store(tx_te_gameplay_longterm.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_te_gameplay_webservice.store(tx_te_gameplay_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = gaia_mpsc::channel::<MapCommand>(200, ServerChannels::TX_MC_WEBSERVICE_GAMEPLAY, server_state.clone());
+    let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = gaia_mpsc::channel::<MapEntity>(1000, ServerChannels::TX_ME_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = gaia_mpsc::channel::<MapEntity>(1000, ServerChannels::TX_ME_GAMEPLAY_WEBSERVICE, server_state.clone());
+    let (tx_moe_gameplay_webservice, rx_moe_gameplay_webservice) = gaia_mpsc::channel::<MobEntity>(1000, ServerChannels::TX_MOE_GAMEPLAY_WEBSERVICE, server_state.clone());
+    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = gaia_mpsc::channel::<CharacterEntity>(1000, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_WEBSERVICE, server_state.clone());
 
     //players
     //player commands -------------------------------------
@@ -543,9 +536,6 @@ pub fn start_service(
             if packets.len() > 0 
             {
                 tx_bytes_game_socket.send(packets).await.unwrap();
-
-                let capacity = tx_bytes_game_socket.capacity();
-                server_state.tx_packets_gameplay_chat_clients.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             }
         }
     });

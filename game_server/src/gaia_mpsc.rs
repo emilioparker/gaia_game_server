@@ -31,7 +31,7 @@ pub struct GaiaSender<T>
 
 impl<T> GaiaSender<T> 
 {
-    pub async fn send_data(&self, data: T) -> Result<(), SendError<T>> 
+    pub async fn send(&self, data: T) -> Result<(), SendError<T>> 
     {
         let capacity = self.sender.capacity();
         self.server_state.channels[&self.channel].store(capacity as u16, std::sync::atomic::Ordering::Relaxed);

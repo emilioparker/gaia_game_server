@@ -1,15 +1,15 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use rand::rngs::StdRng;
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_inventory::InventoryItem, definitions::definitions_container::Definitions, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_inventory::InventoryItem, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
 use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
 
 pub async fn process_mob_commands (
     map : Arc<GameMap>,
     current_time : u64,
     server_state: Arc<ServerState>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_commands_processor_lock : Arc<Mutex<Vec<MobCommand>>>,
     delayed_mob_commands_lock : Arc<Mutex<Vec<(u64, MobCommand)>>>,
     mobs_summary : &mut Vec<MobEntity>,
@@ -198,8 +198,8 @@ pub async fn process_delayed_mob_commands (
     map : Arc<GameMap>,
     current_time : u64,
     server_state: Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
@@ -271,7 +271,7 @@ pub async fn process_delayed_mob_commands (
 pub async fn spawn_mob(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     // tx_me_gameplay_longterm : &Sender<MapEntity>,
     // tx_me_gameplay_webservice : &Sender<MapEntity>,
     mobs_summary : &mut Vec<MobEntity>,
@@ -340,7 +340,7 @@ pub async fn spawn_mob(
 pub async fn control_mob(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     tile_id: TetrahedronId,
     current_time : u64,
@@ -380,9 +380,6 @@ pub async fn control_mob(
         *mob = updated_mob.clone();
         drop(mobs);
 
-        let capacity = tx_moe_gameplay_webservice.capacity();
-        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-
         // sending the updated tile somewhere.
         tx_moe_gameplay_webservice.send(updated_mob.clone()).await.unwrap();
     }
@@ -391,7 +388,7 @@ pub async fn cast_mob_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     card_id: u32,
@@ -452,10 +449,6 @@ pub async fn cast_mob_from_mob(
 
         tx_moe_gameplay_webservice.send(mob_caster_stored).await.unwrap();
         tx_moe_gameplay_webservice.send(mob_target_stored).await.unwrap();
-
-        // metrics
-        let capacity = tx_moe_gameplay_webservice.capacity();
-        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -463,8 +456,8 @@ pub async fn cast_mob_from_character(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
@@ -592,13 +585,6 @@ pub async fn cast_mob_from_character(
 
         tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
         tx_moe_gameplay_webservice.send(defender_stored).await.unwrap();
-
-        // metrics
-        let capacity = tx_moe_gameplay_webservice.capacity();
-        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-
-        let capacity = tx_pe_gameplay_longterm.capacity();
-        server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -607,8 +593,8 @@ pub async fn cast_character_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
@@ -676,13 +662,6 @@ pub async fn cast_character_from_mob(
 
         tx_pe_gameplay_longterm.send(defender_stored).await.unwrap();
         tx_moe_gameplay_webservice.send(attacker_stored).await.unwrap();
-
-        // metrics
-        let capacity = tx_moe_gameplay_webservice.capacity();
-        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-
-        let capacity = tx_pe_gameplay_longterm.capacity();
-        server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -690,7 +669,7 @@ pub async fn check_buffs(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
-    tx_moe_gameplay_webservice : &Sender<MobEntity>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     mob_id: TetrahedronId,
 )
@@ -716,11 +695,6 @@ pub async fn check_buffs(
         drop(mobs);
 
         mobs_summary.push(mob_copy.clone());
-
-        // metrics
-        let capacity = tx_moe_gameplay_webservice.capacity();
-        server_state.tx_moe_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-
         tx_moe_gameplay_webservice.send(mob_copy).await.unwrap();
     }
 }

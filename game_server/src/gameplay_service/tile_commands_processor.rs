@@ -1,8 +1,7 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::attack::Attack, character::{character_entity::CharacterEntity, character_inventory::InventoryItem, character_reward::CharacterReward}, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, GameMap}, ServerState};
+use crate::{ability_user::attack::Attack, character::{character_entity::CharacterEntity, character_inventory::InventoryItem, character_reward::CharacterReward}, gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
-use super::utils::{report_map_process_capacity};
 
 
 pub async fn process_tile_commands (
@@ -10,9 +9,9 @@ pub async fn process_tile_commands (
     server_state: Arc<ServerState>,
     current_time : u64,
     tile_commands_processor_lock : Arc<Mutex<Vec<MapCommand>>>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_rewards_summary : &mut Vec<CharacterReward>,
@@ -130,9 +129,9 @@ pub async fn process_tile_commands (
 pub async fn process_delayed_tile_commands (
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_rewards_summary : &mut Vec<CharacterReward>,
@@ -179,8 +178,8 @@ pub async fn process_delayed_tile_commands (
 pub async fn touch(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     tile_id: TetrahedronId
 )
@@ -191,16 +190,15 @@ pub async fn touch(
     {
         tiles_summary.push(tile.clone());
         drop(tiles);
-        report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
     }
 }
 
 pub async fn extract_resource(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_rewards_summary : &mut Vec<CharacterReward>,
@@ -231,8 +229,6 @@ pub async fn extract_resource(
             *tile = updated_tile.clone();
             drop(tiles);
 
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
-
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
             tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
@@ -250,8 +246,6 @@ pub async fn extract_resource(
             tiles_summary.push(updated_tile.clone());
             *tile = updated_tile.clone();
             drop(tiles);
-
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
 
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
@@ -305,8 +299,8 @@ pub async fn extract_resource(
 pub async fn lay_foundation(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     player_id:u16,
     tile_id: TetrahedronId,
@@ -343,8 +337,6 @@ pub async fn lay_foundation(
             *tile = updated_tile.clone();
             drop(tiles);
 
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
-
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
             tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
@@ -360,8 +352,8 @@ pub async fn lay_foundation(
 pub async fn build_structure(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     tile_id: TetrahedronId,
     increment: u16
@@ -380,8 +372,6 @@ pub async fn build_structure(
             tiles_summary.push(updated_tile.clone());
             *tile = updated_tile.clone();
             drop(tiles);
-
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
 
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
@@ -402,7 +392,7 @@ pub async fn build_structure(
 pub async fn attack_walker(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16
 )
@@ -438,8 +428,8 @@ pub async fn attack_walker(
 pub async fn move_mob(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     tile_id: TetrahedronId,
     new_tile_id: TetrahedronId,
@@ -479,8 +469,6 @@ pub async fn move_mob(
             *tile = updated_tile.clone();
             drop(tiles);
 
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
-
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
             tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
@@ -497,8 +485,8 @@ pub async fn move_mob(
 pub async fn lay_wall_foundation(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
+    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     prop:u32,
     faction:u8,
@@ -527,8 +515,6 @@ pub async fn lay_wall_foundation(
             tiles_summary.push(updated_tile.clone());
             *tile = updated_tile.clone();
             drop(tiles);
-
-            report_map_process_capacity(&tx_me_gameplay_longterm,&tx_me_gameplay_webservice, &server_state);
 
             // sending the updated tile somewhere.
             tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();

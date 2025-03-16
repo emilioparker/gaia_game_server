@@ -93,29 +93,6 @@ pub fn heal<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
 //     players_summary.push(player_entity.clone());
 // }
 
-pub fn report_map_process_capacity(
-    tx_me_gameplay_longterm : &Sender<MapEntity>,
-    tx_me_gameplay_webservice : &Sender<MapEntity>,
-    server_state : &Arc<ServerState>
-){
-    let capacity = tx_me_gameplay_longterm.capacity();
-    server_state.tx_me_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    let capacity = tx_me_gameplay_webservice.capacity();
-    server_state.tx_me_gameplay_webservice.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-}
-
-pub fn report_tower_process_capacity(
-    tx_te_gameplay_longterm : &Sender<TowerEntity>,
-    // tx_me_gameplay_webservice : &Sender<TowerEntity>,
-    server_state : Arc<ServerState>
-){
-    let capacity = tx_te_gameplay_longterm.capacity();
-    server_state.tx_me_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    // let capacity = tx_te_gameplay_webservice.capacity();
-    // server_state.tx_me_gameplay_webservice.store(capacity, std::sync::atomic::Ordering::Relaxed);
-}
-
-
 
 pub fn get_tile_commands_to_execute(current_time : u64, delayed_tile_commands_guard : &mut Vec<(u64, MapCommand)>) -> Vec<MapCommand>
 {

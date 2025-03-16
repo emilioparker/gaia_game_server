@@ -1,11 +1,11 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{tower::{TowerCommand, TowerCommandInfo}, map::tetrahedron_id::TetrahedronId};
+use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, tower::{TowerCommand, TowerCommandInfo}};
 
 
 pub async fn process(
      data : &[u8; 508],
-    channel_tower_tx : &Sender<TowerCommand>)
+    channel_tower_tx : &GaiaSender<TowerCommand>)
 {
         let mut start = 1;
         let mut end = start + 8;

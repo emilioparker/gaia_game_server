@@ -50,12 +50,12 @@ pub async fn spawn_client_process(
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     tx_gc_clients_gameplay : gaia_mpsc::GaiaSender<GenericCommand>,
-    channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
-    tx_mc_clients_gameplay : mpsc::Sender<MapCommand>,
-    tx_moc_clients_gameplay : mpsc::Sender<MobCommand>,
-    tx_pc_clients_gameplay : mpsc::Sender<CharacterCommand>,
-    tx_tc_clients_gameplay : mpsc::Sender<TowerCommand>,
-    tx_cc_clients_gameplay : mpsc::Sender<ChatCommand>,
+    diconnected_channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
+    tx_mc_clients_gameplay : gaia_mpsc::GaiaSender<MapCommand>,
+    tx_moc_clients_gameplay : gaia_mpsc::GaiaSender<MobCommand>,
+    tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<CharacterCommand>,
+    tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
+    tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508],
     packet_size: usize)
@@ -140,7 +140,7 @@ pub async fn spawn_client_process(
         disconnect_protocol::process(player_id, &tx_pc_clients_gameplay).await;
 
         // if we are here, this task expired and we need to remove the key from the hashset
-        channel_tx.send((from_address, session_id)).await.unwrap();
+        diconnected_channel_tx.send((from_address, session_id)).await.unwrap();
 
     });
     // borrowed_socket

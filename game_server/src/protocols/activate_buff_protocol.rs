@@ -1,10 +1,10 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
+use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo}, gaia_mpsc::GaiaSender};
 
 
-pub async fn process(data : &[u8; 508],  channel_player_tx : &Sender<CharacterCommand>)
+pub async fn process(data : &[u8; 508],  channel_player_tx : &GaiaSender<CharacterCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;

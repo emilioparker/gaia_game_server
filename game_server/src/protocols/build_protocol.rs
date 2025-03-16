@@ -1,11 +1,11 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId};
+use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}};
 
 
 pub async fn process(
      data : &[u8; 508],
-    channel_map_tx : &Sender<MapCommand>)
+    channel_map_tx : &GaiaSender<MapCommand>)
 {
         let mut start = 1;
         let mut end = start + 8;

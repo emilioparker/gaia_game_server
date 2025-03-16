@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ServerState;
+use crate::{gaia_mpsc, ServerState};
 use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
@@ -14,13 +14,12 @@ pub fn start_service(
     mut rx_cc_client_game : tokio::sync::mpsc::Receiver<ChatCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_packets_gameplay_chat_clients: tokio::sync::mpsc::Sender<Vec<(u64, u8, u32, Vec<u8>)>> //faction-data 0 means global
+    tx_packets_gameplay_chat_clients: gaia_mpsc::GaiaSender<Vec<(u64, u8, u32, Vec<u8>)>> //faction-data 0 means global
 ) 
 -> Receiver<ChatEntry>
 {
 
-    let (tx_ce_chat_webservice, rx_ce_chat_webservice) = tokio::sync::mpsc::channel::<ChatEntry>(100);
-    server_state.tx_ce_chat_webservice.store(tx_ce_chat_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    let (tx_ce_chat_webservice, rx_ce_chat_webservice) = gaia_mpsc::channel::<ChatEntry>(100, crate::ServerChannels::TX_CE_CHAT_WEBSERVICE, server_state.clone());
 
     //message commands -------------------------------------
     let chat_commands = Vec::<ChatCommand>::new();
@@ -83,9 +82,6 @@ pub fn start_service(
                     let packages = chat_data_packer::create_data_packets(faction as u8, faction_chat, &mut packet_number);
                     // the data that will be sent to each client is not copied.
                     tx_packets_gameplay_chat_clients.send(packages).await.unwrap();
-
-                    let capacity = tx_packets_gameplay_chat_clients.capacity();
-                    server_state.tx_packets_gameplay_chat_clients.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
                 }
             }
 

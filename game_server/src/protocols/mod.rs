@@ -90,11 +90,11 @@ pub async fn route_packet(
     server_state: &Arc<ServerState>,
     missing_packets: Arc<HashMap<u16, [AtomicU64;10]>>,
     tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
-    tx_pc_clients_gameplay: &Sender<CharacterCommand>,
-    tx_mc_clients_gameplay: &Sender<MapCommand>,
-    tx_moc_clients_gameplay: &Sender<MobCommand>,
-    tx_tc_clients_gameplay: &Sender<TowerCommand>,
-    tx_cc_clients_gameplay: &Sender<ChatCommand>
+    tx_pc_clients_gameplay: &GaiaSender<CharacterCommand>,
+    tx_mc_clients_gameplay: &GaiaSender<MapCommand>,
+    tx_moc_clients_gameplay: &GaiaSender<MobCommand>,
+    tx_tc_clients_gameplay: &GaiaSender<TowerCommand>,
+    tx_cc_clients_gameplay: &GaiaSender<ChatCommand>
 ){
 
     server_state.received_packets.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -105,71 +105,45 @@ pub async fn route_packet(
             ping_protocol::process_ping(player_address, tx_gc_clients_gameplay, data).await;
         },
         Some(protocol) if *protocol == Protocol::SellItem as u8 => {
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             sell_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::BuyItem as u8 => {
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             buy_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::UseItem as u8 => {
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             use_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::EquipItem as u8 => {
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             equip_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
             inventory_request_protocol::process_request(player_id, player_address, tx_gc_clients_gameplay, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
-            let capacity = tx_mc_clients_gameplay.capacity();
-            server_state.tx_mc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             layfoundation_protocol::process_construction(data, tx_mc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => {
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store( capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             movement_protocol::process_movement(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => {
-            let capacity = tx_mc_clients_gameplay.capacity();
-            server_state.tx_mc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             resource_extraction_protocol::process(data, tx_mc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::Build as u8 => {
-            let capacity = tx_mc_clients_gameplay.capacity();
-            server_state.tx_mc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             build_protocol::process(data, tx_mc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::MobAttacksWalker as u8 => { // used by mobs and towers.
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             mob_attacks_character_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::SpawnMob as u8 => {
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             spawn_mob_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::MobMoves as u8 => {
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             mob_moves_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ControlMob as u8 => {
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             claim_mob_ownership::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::AttackMob as u8 => {
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             cast_mob_from_character_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::MissingPackets as u8 => {
@@ -178,75 +152,51 @@ pub async fn route_packet(
             // missing_packages_protocol::process_request(player_id, data, missing_packets);
         },
         Some(protocol) if *protocol == Protocol::AttackTower as u8 => {
-            let capacity = tx_tc_clients_gameplay.capacity();
-            server_state.tx_tc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             attack_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
-            let capacity = tx_tc_clients_gameplay.capacity();
-            server_state.tx_tc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             repair_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
-            let capacity = tx_tc_clients_gameplay.capacity();
-            server_state.tx_tc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             repair_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ChatMessage as u8 => {
-            let capacity = tx_cc_clients_gameplay.capacity();
-            server_state.tx_cc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             chat_message_protocol::process(data, tx_cc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::BuildWall as u8 => {
-            let capacity = tx_mc_clients_gameplay.capacity();
-            server_state.tx_mc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             lay_wall_foundation_protocol::process_construction(data, tx_mc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::Respawn as u8 => {
             cli_log::info!("--------------------- process respawn");
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             respawn_protocol::process_respawn(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
             cli_log::info!("--------------------- process character action");
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             action_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::Greet as u8 => 
         {
             cli_log::info!("--------------------- process greet");
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             greet_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ActivateBuff as u8 => 
         {
             cli_log::info!("--------------------- process buff");
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             activate_buff_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAttacksCharacter as u8 => 
         {
             cli_log::info!("--------------------- process character attack");
-            let capacity = tx_pc_clients_gameplay.capacity();
-            server_state.tx_pc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             character_attacks_character_protocol::process(data, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::TouchMob as u8 => 
         {
             cli_log::info!("--------------------- process touch mob");
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             touch_mob_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CastMobFromMob as u8 => 
         {
             cli_log::info!("--------------------- process touch mob");
-            let capacity = tx_moc_clients_gameplay.capacity();
-            server_state.tx_moc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             cast_mob_from_mob_protocol::process(data, tx_moc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CraftCard as u8 => 

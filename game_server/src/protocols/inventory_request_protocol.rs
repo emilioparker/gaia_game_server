@@ -52,7 +52,7 @@ pub async fn process_request(
 
     // we pay the price of cloning, but just because compressing might be costly.
     let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, inventory_version);
-    generic_channel_tx.send_data(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
 }
 
 pub fn pack_inventory(

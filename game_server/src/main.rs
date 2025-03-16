@@ -106,28 +106,6 @@ async fn run_server(tx: Sender<AppData>)
     let server_state = Arc::new(ServerState
     {
         channels: channels_status,
-        tx_gc_clients_gameplay: AtomicU16::new(0),
-        tx_mc_clients_gameplay: AtomicU16::new(0),
-        tx_moc_clients_gameplay: AtomicU16::new(0),
-        tx_pc_clients_gameplay: AtomicU16::new(0),
-        tx_tc_clients_gameplay: AtomicU16::new(0),
-        tx_cc_clients_gameplay: AtomicU16::new(0),
-        tx_packets_gameplay_chat_clients: AtomicU16::new(0),
-
-        tx_me_gameplay_longterm:AtomicU16::new(0),
-        tx_me_gameplay_webservice:AtomicU16::new(0),
-        tx_moe_gameplay_webservice:AtomicU16::new(0),
-        tx_pe_gameplay_longterm:AtomicU16::new(0),
-        tx_mc_webservice_gameplay: AtomicU16::new(0),
-        tx_te_gameplay_longterm: AtomicU16::new(0),
-        tx_te_gameplay_webservice: AtomicU16::new(0),
-
-        tx_ce_chat_webservice: AtomicU16::new(0),
-
-        tx_saved_longterm_webservice: AtomicU16::new(0),
-
-        tx_te_saved_longterm_webservice: AtomicU16::new(0),
-
         online_players:AtomicU32::new(0),
         total_players:AtomicU32::new(0),
         received_packets: AtomicU64::new(0),

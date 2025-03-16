@@ -47,7 +47,7 @@ pub async fn process_request(
             drop(player_entities); // we drop the lock asap, we can do what we want later.
 
             let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, version);
-            tx_gc_clients_gameplay.send_data(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+            tx_gc_clients_gameplay.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
         }
     }
     else 

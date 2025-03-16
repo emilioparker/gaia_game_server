@@ -1,11 +1,11 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement};
+use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement}, gaia_mpsc::GaiaSender};
 
 
 pub async fn process(
      data : &[u8; 508],
-    channel_tx : &Sender<CharacterCommand>)
+    channel_tx : &GaiaSender<CharacterCommand>)
 {
     //1 - protocolo 1 bytes
     //2 - id 8 bytes

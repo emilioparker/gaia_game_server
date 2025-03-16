@@ -1,14 +1,14 @@
 use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, Mutex};
 
-use crate::{chat::{ChatCommand, chat_entry::ChatEntry}, map::GameMap, ServerState};
+use crate::{chat::{chat_entry::ChatEntry, ChatCommand}, gaia_mpsc::GaiaSender, map::GameMap, ServerState};
 
 
 pub async fn process_chat_commands (
     _map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     chat_commands_processor_lock : Arc<Mutex<Vec<ChatCommand>>>,
-    tx_ce_chat_webservice : &Sender<ChatEntry>,
+    tx_ce_chat_webservice : &GaiaSender<ChatEntry>,
     chat_summary : &mut [Vec<ChatEntry>; 10],
 )
 {
@@ -29,7 +29,6 @@ pub async fn process_chat_commands (
                 message: chat_command.message 
             };
             let _send_result = tx_ce_chat_webservice.send(chat_entry.clone()).await;
-            server_state.tx_ce_chat_webservice.store(tx_ce_chat_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             chat_summary[chat_command.faction as usize].push(chat_entry);
         }
     }

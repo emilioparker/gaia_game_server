@@ -1,13 +1,13 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::character::character_command::{CharacterCommand, CharacterCommandInfo};
+use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo}, gaia_mpsc::GaiaSender};
 
 
 // we cant do the same is inventory request, because selling modifies the faction inventory and we need to propagate those changes.
 
 pub async fn process(
      data : &[u8; 508],
-    channel_player_tx : &Sender<CharacterCommand>)
+    channel_player_tx : &GaiaSender<CharacterCommand>)
 {
         let mut start = 1;
         let mut end = start + 8;

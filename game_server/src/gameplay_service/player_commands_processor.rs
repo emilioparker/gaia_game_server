@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward, character_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward, character_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -8,7 +8,7 @@ pub async fn process_player_commands (
     server_state: Arc<ServerState>,
     current_time : u64,
     player_commands_processor_lock : Arc<Mutex<Vec<CharacterCommand>>>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     players_presentation_summary : &mut Vec<CharacterPresentation>,
     attacks_summary : &mut  Vec<Attack>,
@@ -141,7 +141,7 @@ pub async fn process_delayed_player_commands(
     map : Arc<GameMap>,
     current_time : u64,
     server_state: Arc<ServerState>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     rewards_summary : &mut Vec<CharacterReward>,
@@ -182,7 +182,7 @@ pub async fn process_delayed_player_commands(
 
 pub async fn use_item(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
     player_id: u16,
@@ -241,7 +241,7 @@ pub async fn use_item(
 
 pub async fn equip_item(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
     inventory_type : u8,
@@ -290,7 +290,7 @@ pub async fn equip_item(
 
 pub async fn buy_item(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
     inventory_type: u8,
@@ -409,7 +409,7 @@ pub async fn buy_item(
 
 pub async fn sell_item(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     item_id : u32,
     inventory_type : u8,
@@ -525,7 +525,7 @@ pub async fn sell_item(
 
 pub async fn respawn(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
     respawn_tile_id: TetrahedronId)
@@ -557,7 +557,7 @@ pub async fn respawn(
 
 pub async fn move_character(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
     pos: TetrahedronId,
@@ -597,7 +597,7 @@ pub async fn move_character(
 pub async fn set_action(
     map : &Arc<GameMap>,
     current_time : u64,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     player_id: u16,
     action : u8
@@ -653,7 +653,7 @@ pub async fn greet(
 pub async fn activate_buff(
     map : &Arc<GameMap>,
     current_time : u64,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     players_summary : &mut Vec<CharacterEntity>,
     card_id : u32,
     player_id: u16)
@@ -707,7 +707,7 @@ pub async fn attack_character(
     map : &Arc<GameMap>,
     current_time: u64,
     server_state: &Arc<ServerState>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     characters_rewards_summary : &mut Vec<CharacterReward>,
@@ -797,17 +797,12 @@ pub async fn attack_character(
 
         tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
         tx_pe_gameplay_longterm.send(defender_stored).await.unwrap();
-
-        // metrics
-
-        let capacity = tx_pe_gameplay_longterm.capacity();
-        server_state.tx_pe_gameplay_longterm.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
 pub async fn disconnect(
     map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
     characters_summary : &mut Vec<CharacterEntity>,
     character_id: u16)
 {

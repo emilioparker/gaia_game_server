@@ -6,6 +6,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 
 use map::GameMap;
+use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 pub mod protocols;
@@ -58,33 +59,6 @@ pub enum ServerChannels
 pub struct ServerState 
 {
     pub channels : HashMap<ServerChannels, AtomicU16>,
-    // client service
-    pub tx_gc_clients_gameplay: AtomicU16,
-    pub tx_mc_clients_gameplay: AtomicU16,
-    pub tx_pc_clients_gameplay: AtomicU16,
-    pub tx_tc_clients_gameplay: AtomicU16,
-    pub tx_cc_clients_gameplay: AtomicU16,
-    pub tx_moc_clients_gameplay: AtomicU16,
-    pub tx_moe_gameplay_webservice:AtomicU16,
-    pub tx_packets_gameplay_chat_clients: AtomicU16,
-
-    // gameplay service
-    pub tx_mc_webservice_gameplay: AtomicU16,
-    pub tx_me_gameplay_longterm:AtomicU16,
-    pub tx_me_gameplay_webservice:AtomicU16,
-    pub tx_pe_gameplay_longterm:AtomicU16,
-    pub tx_te_gameplay_longterm:AtomicU16,
-    pub tx_te_gameplay_webservice:AtomicU16,
-
-    // chat service
-    pub tx_ce_chat_webservice:AtomicU16,
-
-    // long term serv
-    pub tx_saved_longterm_webservice:AtomicU16,
-
-    // towers service
-    pub tx_te_saved_longterm_webservice: AtomicU16,
-
     pub received_packets:AtomicU64,
     pub received_bytes:AtomicU64,
     pub online_players: AtomicU32,
@@ -99,20 +73,18 @@ impl ServerState
     pub fn get_stats(&self) -> [u16; 10]
     {
         let order = std::sync::atomic::Ordering::Relaxed;
-        let stats :[u16; 10] = [0;10];
-        // [
-        //     // self.tx_gc_client_gameplay.load(order),
-        //     self.tx_mc_clients_gameplay.load(order),
-        //     self.tx_pc_clients_gameplay.load(order),
-        //     self.tx_tc_clients_gameplay.load(order),
-        //     self.tx_cc_clients_gameplay.load(order),
-        //     self.tx_packets_gameplay_chat_clients.load(order),
-        //     self.tx_me_gameplay_longterm.load(order),
-        //     self.tx_me_gameplay_webservice.load(order),
-        //     self.tx_pe_gameplay_longterm.load(order),
-        //     self.online_players.load(order) as f32 as u16,
-        //     self.total_players.load(order) as f32 as u16
-        // ];
+        let mut stats :[u16; 10] = [0;10];
+
+        for (i, channel) in ServerChannels::iter().enumerate()
+        {
+            if i >= 10
+            {
+                break;
+            }
+
+            let capacity = self.channels[&channel].load(order);
+            stats[i] = capacity;
+        }
 
         stats
     }
@@ -122,13 +94,13 @@ impl ServerState
         let mut buffer = [0u8; SERVER_STATE_SIZE];
         let mut offset = 0;
 
-        // for stat in stats
-        // {
-        //     let tx_mc_client_gameplay_stat = u16::to_le_bytes(*stat); // 2 bytes
-        //     let end = offset + 2; 
-        //     buffer[offset..end].copy_from_slice(&tx_mc_client_gameplay_stat);
-        //     offset = end;
-        // }
+        for stat in stats
+        {
+            let tx_mc_client_gameplay_stat = u16::to_le_bytes(*stat); // 2 bytes
+            let end = offset + 2; 
+            buffer[offset..end].copy_from_slice(&tx_mc_client_gameplay_stat);
+            offset = end;
+        }
         buffer
     }
 

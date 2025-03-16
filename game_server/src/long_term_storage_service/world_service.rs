@@ -8,7 +8,7 @@ use crate::long_term_storage_service::db_world::StoredWorld;
 use crate::map::GameMap;
 use crate::map::map_entity::{MapEntity};
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::ServerState;
+use crate::{gaia_mpsc, ServerState};
 use bson::doc;
 use bson::oid::ObjectId;
 use mongodb::Client;
@@ -151,8 +151,7 @@ pub fn start_server(
 ) 
 -> Receiver<u32>
 {
-    let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = tokio::sync::mpsc::channel::<u32>(10);
-    server_state.tx_saved_longterm_webservice.store(tx_saved_longterm_webservice.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = gaia_mpsc::channel::<u32>(10, crate::ServerChannels::TX_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
 
     let modified_regions = HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));

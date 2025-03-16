@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::collections::HashMap;
+use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::{gaia_mpsc, ServerChannels, ServerState};
@@ -40,23 +41,16 @@ pub fn start_server(
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    Sender<Vec<(u64,u8,u32,Vec<u8>)>>
+    GaiaSender<Vec<(u64,u8,u32,Vec<u8>)>>
 ) // packet number, faction, data
 {
     let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(1000, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
-    let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = tokio::sync::mpsc::channel::<MapCommand>(1000);
-    let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = tokio::sync::mpsc::channel::<MobCommand>(1000);
-    let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = tokio::sync::mpsc::channel::<CharacterCommand>(1000);
-    let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = tokio::sync::mpsc::channel::<TowerCommand>(1000);
-    let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = tokio::sync::mpsc::channel::<ChatCommand>(1000);
-    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = tokio::sync::mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(1000);
-
-    server_state.tx_mc_clients_gameplay.store(tx_mc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_moc_clients_gameplay.store(tx_moc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_pc_clients_gameplay.store(tx_pc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_tc_clients_gameplay.store(tx_tc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_cc_clients_gameplay.store(tx_cc_clients_gameplay.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
-    server_state.tx_packets_gameplay_chat_clients.store(tx_packets_gameplay_chat_clients.capacity() as f32 as u16, std::sync::atomic::Ordering::Relaxed);
+    let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = gaia_mpsc::channel::<MapCommand>(1000, ServerChannels::TX_MC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = gaia_mpsc::channel::<MobCommand>(1000, ServerChannels::TX_MOC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<CharacterCommand>(1000, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(1000, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(1000, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(1000, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
