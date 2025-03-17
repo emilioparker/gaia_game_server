@@ -44,13 +44,13 @@ pub fn start_server(
     GaiaSender<Vec<(u64,u8,u32,Vec<u8>)>>
 ) // packet number, faction, data
 {
-    let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(1000, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
-    let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = gaia_mpsc::channel::<MapCommand>(1000, ServerChannels::TX_MC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = gaia_mpsc::channel::<MobCommand>(1000, ServerChannels::TX_MOC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<CharacterCommand>(1000, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(1000, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(1000, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(1000, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
+    let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(100, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
+    let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = gaia_mpsc::channel::<MapCommand>(100, ServerChannels::TX_MC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = gaia_mpsc::channel::<MobCommand>(100, ServerChannels::TX_MOC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<CharacterCommand>(100, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(100, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(100, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();

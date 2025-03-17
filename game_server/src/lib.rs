@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use map::GameMap;
 use strum::IntoEnumIterator;
+use strum_macros::Display;
 use strum_macros::EnumIter;
+use strum_macros::EnumString;
 
 pub mod protocols;
 pub mod gameplay_service;
@@ -34,7 +36,7 @@ pub struct AppData
 
 pub const SERVER_STATE_SIZE: usize = 20;
 
-#[derive(PartialEq, Eq, Hash, Clone, EnumIter)]
+#[derive(PartialEq, Eq, Hash, Clone, EnumIter, EnumString, Display)]
 pub enum ServerChannels 
 {
     TX_GC_ClIENTS_GAMEPLAY,

@@ -202,7 +202,6 @@ async fn run_server(tx: Sender<AppData>)
         }
     }
 
-
     match (working_game_map, storage_game_map) {
         (Some(working_game_map), Some(storage_game_map)) =>
         {

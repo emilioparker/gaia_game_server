@@ -117,7 +117,7 @@ pub fn start_server(
     -> Receiver<bool>
     {
 
-    let (tx_te_saved_longterm_webservice, rx_te_saved_longterm_webservice) = gaia_mpsc::channel::<bool>(10, crate::ServerChannels::TX_TE_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
+    let (tx_te_saved_longterm_webservice, rx_te_saved_longterm_webservice) = gaia_mpsc::channel::<bool>(100, crate::ServerChannels::TX_TE_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
 
     let modified_towers = HashSet::<TetrahedronId>::new();
     let modified_towers_reference = Arc::new(Mutex::new(modified_towers));

@@ -151,7 +151,7 @@ pub fn start_server(
 ) 
 -> Receiver<u32>
 {
-    let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = gaia_mpsc::channel::<u32>(10, crate::ServerChannels::TX_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
+    let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = gaia_mpsc::channel::<u32>(100, crate::ServerChannels::TX_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
 
     let modified_regions = HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));

@@ -53,11 +53,11 @@ pub fn start_service(
     // we don't need this for the battle service because we don't store it in the db, at least for the moment.
 
     // we can receive map commands from the web client.. or at least used to be able.
-    let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = gaia_mpsc::channel::<MapCommand>(200, ServerChannels::TX_MC_WEBSERVICE_GAMEPLAY, server_state.clone());
-    let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = gaia_mpsc::channel::<MapEntity>(1000, ServerChannels::TX_ME_GAMEPLAY_LONGTERM, server_state.clone());
-    let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = gaia_mpsc::channel::<MapEntity>(1000, ServerChannels::TX_ME_GAMEPLAY_WEBSERVICE, server_state.clone());
-    let (tx_moe_gameplay_webservice, rx_moe_gameplay_webservice) = gaia_mpsc::channel::<MobEntity>(1000, ServerChannels::TX_MOE_GAMEPLAY_WEBSERVICE, server_state.clone());
-    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = gaia_mpsc::channel::<CharacterEntity>(1000, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_mc_webservice_gameplay, mut _rx_mc_webservice_gameplay ) = gaia_mpsc::channel::<MapCommand>(100, ServerChannels::TX_MC_WEBSERVICE_GAMEPLAY, server_state.clone());
+    let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = gaia_mpsc::channel::<MapEntity>(100, ServerChannels::TX_ME_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = gaia_mpsc::channel::<MapEntity>(100, ServerChannels::TX_ME_GAMEPLAY_WEBSERVICE, server_state.clone());
+    let (tx_moe_gameplay_webservice, rx_moe_gameplay_webservice) = gaia_mpsc::channel::<MobEntity>(100, ServerChannels::TX_MOE_GAMEPLAY_WEBSERVICE, server_state.clone());
+    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = gaia_mpsc::channel::<CharacterEntity>(100, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_WEBSERVICE, server_state.clone());
 

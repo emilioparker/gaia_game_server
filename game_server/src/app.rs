@@ -1,11 +1,15 @@
-use std::{env::consts, time::Duration};
+use std::{cmp::max, env::consts, time::Duration};
 
 use crossterm::{event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers}, terminal};
 use ratatui::{
     layout::{Constraint, Direction, Layout}, style::{Color, Style, Stylize}, symbols::{block, border}, text::Line, widgets::{Bar, BarChart, BarGroup, Block, Borders, Paragraph, Sparkline, Widget}, DefaultTerminal, Frame
 };
+use strum::IntoEnumIterator;
+use strum_macros::{EnumString, Display};
 
-use crate::AppData;
+
+
+use crate::{AppData, ServerChannels};
 
 pub struct App {
     pub running: bool,
@@ -218,7 +222,7 @@ impl App {
         let input_inner_layout = Layout::default()
             .direction(ratatui::layout::Direction::Vertical)
             .constraints(vec![
-                Constraint::Length(1), Constraint::Length(5), Constraint::Length(18), Constraint::Min(0)
+                Constraint::Length(1), Constraint::Length(5), Constraint::Min(0)
             ])
             .split(input_layout);
 
@@ -233,18 +237,31 @@ impl App {
         
         frame.render_widget(input_sparkline, input_inner_layout[1]);
         
+        // pipes layout
+
+        let channels_data : Vec<Bar> = ServerChannels::iter().map(|channel|
+        {
+            let capacity = self.app_data.game_status.channels[&channel].load(std::sync::atomic::Ordering::Relaxed) as u64;
+            let bar = Bar::default()
+            .value(100 - capacity)
+            .label(Line::from(channel.to_string()));
+            bar
+
+        }).collect();
 
         let bar_chart = BarChart::default()
-            .block(Block::bordered().title("pipes"))
+            .block(Block::bordered().title("pipes load"))
             .bar_width(1)
             .direction(Direction::Horizontal)
             .bar_style(Style::new().green().on_white())
             .value_style(Style::new().black())
             .label_style(Style::new().white())
             .bar_gap(1)
-            .data(&[("gameplay", 0), ("B1", 2), ("B2", 4), ("B3", 3)])
+            .data(BarGroup::default().bars(&channels_data))
+            .max(100);
+            // .data(&[("gameplay", 0), ("B1", 2), ("B2", 4), ("B3", 3)])
             // .data(BarGroup::default().bars(&[Bar::default().value(10), Bar::default().value(20)]))
-            .max(10);
+
 
 
         frame.render_widget(bar_chart, input_inner_layout[2]);
@@ -282,23 +299,6 @@ impl App {
             .style(Style::default().fg(Color::Green));
         
         frame.render_widget(output_sparkline, output_inner_layout[1]);
-
-        // let bottom_output_spark_line_title = Line::from(vec![
-        //     "Out Per Player: ".into(),
-        //     format!("{:.2} UDP p/s", self.sent_udp_packages_per_second).blue().bold(),
-        //     "  ".into(),
-        //     format!("{:.2} Game p/s", self.sent_game_packets_per_second).blue().bold(),
-        //     "  ".into(),
-        //     Self::format_bytes_per_second(self.sent_bytes_per_second).blue().bold()
-        // ]);
-
-        // let bottom_block =  Paragraph:: new(bottom_output_spark_line_title).centered().block(Block::new().borders(Borders::TOP | Borders::BOTTOM));
-        // frame.render_widget(bottom_block, output_inner_layout[2]);
-
-
-
-
-
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
