@@ -9,6 +9,7 @@ use super::{character_card_inventory::CardItem, character_inventory::InventoryIt
 pub const CHARACTER_ENTITY_SIZE: usize = 50;
 
 pub const DASH_FLAG : u8 = 0b00000001;
+pub const CHAT_FLAG : u8 = 0b00000010;
 
 #[derive(Debug)]
 #[derive(Clone)]

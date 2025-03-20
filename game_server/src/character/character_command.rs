@@ -10,6 +10,8 @@ pub const BUILD_ACTION: u8 = 6;
 pub const TOUCH: u8 = 7;
 pub const CAST: u8 = 8;
 pub const STRUGGLE: u8 = 9;
+pub const TYPING: u8 = 10;
+pub const NOT_TYPING: u8 = 11;
 
 //    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
 #[derive(Debug, Clone)]

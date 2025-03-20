@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward, character_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, character::{character_card_inventory::CardItem, character_command::{self, CharacterCommand, CharacterCommandInfo, CharacterMovement}, character_entity::{self, CharacterEntity, CHAT_FLAG, DASH_FLAG}, character_inventory::InventoryItem, character_presentation::CharacterPresentation, character_reward::CharacterReward, character_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_player_commands (
@@ -614,7 +614,22 @@ pub async fn set_action(
         {
             action = player_entity.action;
         }
+        else if action == character_command::TYPING
+        {
+            action = player_entity.action;
+            player_entity.set_flag(CHAT_FLAG, true);
+        }
+        else if action == character_command::NOT_TYPING
+        {
+            action = player_entity.action;
+            player_entity.set_flag(CHAT_FLAG, false);
+        }
+        else
+        {
+            player_entity.set_flag(CHAT_FLAG, false);
+        }
 
+        // cli_log::info!("flags {}", player_entity.flags);
         player_entity.action = action;
         player_entity.version += 1;
 
