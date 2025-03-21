@@ -13,6 +13,8 @@ use crate::{AppData, ServerChannels};
 
 pub struct App {
     pub running: bool,
+    pub sleeping: bool,
+    wake_up_timestamp: u64,
     last_check: u64,
     // receive
     last_received_udp_packages:u64,
@@ -47,7 +49,10 @@ impl App {
     pub fn new(data: AppData) -> Self 
     // pub fn new() -> Self 
     {
-        Self { running: true,
+        Self { 
+            running: true,
+            sleeping: false,
+            wake_up_timestamp:0,
             last_check:0,
             last_received_udp_packages:0,
             last_received_bytes:0,
@@ -71,79 +76,133 @@ impl App {
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<(), AppError> {
         self.running = true;
-        while self.running {
+
+        let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        let current_time_in_millis = current_time.as_millis() as u64;
+        self.wake_up_timestamp = current_time_in_millis;
+
+        while self.running 
+        {
             // cli_log::info!("running!: {}", 0);
-            
-            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
-            let current_time_in_millis = current_time.as_millis() as u64;
-
-            let time_span = current_time_in_millis - self.last_check;
-            if time_span > 1000
+            if self.sleeping
             {
-                self.last_check = current_time_in_millis;
-
-                // online players
-                self.online_players = self.app_data.game_status.online_players.load(std::sync::atomic::Ordering::Relaxed);
-
-                //----------------------------------- IN
-                // received packets
-                let count = self.app_data.game_status.received_packets.load(std::sync::atomic::Ordering::Relaxed);
-                let received_packets_since_last_check = (count - self.last_received_udp_packages) as f32;
-                self.last_received_udp_packages = count;
-                self.received_udp_packages_per_second = received_packets_since_last_check / (time_span as f32 / 1000f32);
-
-                // received bytes
-                let bytes = self.app_data.game_status.received_bytes.load(std::sync::atomic::Ordering::Relaxed);
-                let last_received_bytes_since_last_check = bytes - self.last_received_bytes;
-                self.last_received_bytes = bytes;
-                self.received_bytes_per_second = last_received_bytes_since_last_check as f32 / (time_span as f32 / 1000f32);
-
-                // storing bytes received in circular array
-                self.received_bytes_graph_data.rotate_right(1);
-                self.received_bytes_graph_data[0] = last_received_bytes_since_last_check;
-                let max =  self.received_bytes_graph_data.iter().max().map(|v| *v);
-                self.received_bytes_graph_max =  max.unwrap_or(0);
-
-                //----------------------------------- OUT
-                // sent packets
-                let count = self.app_data.game_status.sent_udp_packets.load(std::sync::atomic::Ordering::Relaxed);
-                let sent_udp_packets_since_last_check = (count - self.last_sent_udp_packages) as f32;
-                self.last_sent_udp_packages = count;
-                self.sent_udp_packages_per_second = sent_udp_packets_since_last_check / (time_span as f32 / 1000f32);
-
-                // sent game packets
-                let count = self.app_data.game_status.sent_game_packets.load(std::sync::atomic::Ordering::Relaxed);
-                let sent_game_packets_since_last_check = (count - self.last_sent_game_packages) as f32;
-                self.last_sent_game_packages = count;
-                self.sent_game_packets_per_second = sent_game_packets_since_last_check / (time_span as f32 / 1000f32);
-
-                // sent bytes
-                let bytes = self.app_data.game_status.sent_bytes.load(std::sync::atomic::Ordering::Relaxed);
-                let last_sent_bytes_since_last_check = bytes - self.last_sent_bytes;
-                self.last_sent_bytes = bytes;
-                self.sent_bytes_per_second = last_sent_bytes_since_last_check as f32 / (time_span as f32 / 1000f32);
-
-                // storing bytes sent in circular array
-                self.sent_bytes_graph_data.rotate_right(1);
-                self.sent_bytes_graph_data[0] = last_sent_bytes_since_last_check;
-                let max =  self.sent_bytes_graph_data.iter().max().map(|v| *v);
-                self.sent_bytes_graph_max =  max.unwrap_or(0);
-
-            }
-
-            terminal.draw(|frame| self.draw(frame));
-            // cli_log::info!("running2!: {}", 0);
-            if let Ok(poll_result) =  event::poll(Duration::from_millis(100))
-            {
-                if poll_result
+                terminal.draw(|frame| self.draw_sleep_state(frame));
+                if let Ok(poll_result) =  event::poll(Duration::from_millis(1000))
                 {
-                    self.handle_crossterm_events();
+                    if poll_result
+                    {
+                        self.handle_crossterm_events();
+                    }
+                }
+            }
+            else 
+            {
+                let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+                let current_time_in_millis = current_time.as_millis() as u64;
+
+                if (current_time_in_millis - self.wake_up_timestamp) > 900000 // 15 min
+                {
+                    self.sleeping = true;
+                }
+
+                let time_span = current_time_in_millis - self.last_check;
+                if time_span > 1000
+                {
+                    self.last_check = current_time_in_millis;
+
+                    // online players
+                    self.online_players = self.app_data.game_status.online_players.load(std::sync::atomic::Ordering::Relaxed);
+
+                    //----------------------------------- IN
+                    // received packets
+                    let count = self.app_data.game_status.received_packets.load(std::sync::atomic::Ordering::Relaxed);
+                    let received_packets_since_last_check = (count - self.last_received_udp_packages) as f32;
+                    self.last_received_udp_packages = count;
+                    self.received_udp_packages_per_second = received_packets_since_last_check / (time_span as f32 / 1000f32);
+
+                    // received bytes
+                    let bytes = self.app_data.game_status.received_bytes.load(std::sync::atomic::Ordering::Relaxed);
+                    let last_received_bytes_since_last_check = bytes - self.last_received_bytes;
+                    self.last_received_bytes = bytes;
+                    self.received_bytes_per_second = last_received_bytes_since_last_check as f32 / (time_span as f32 / 1000f32);
+
+                    // storing bytes received in circular array
+                    self.received_bytes_graph_data.rotate_right(1);
+                    self.received_bytes_graph_data[0] = last_received_bytes_since_last_check;
+                    let max =  self.received_bytes_graph_data.iter().max().map(|v| *v);
+                    self.received_bytes_graph_max =  max.unwrap_or(0);
+
+                    //----------------------------------- OUT
+                    // sent packets
+                    let count = self.app_data.game_status.sent_udp_packets.load(std::sync::atomic::Ordering::Relaxed);
+                    let sent_udp_packets_since_last_check = (count - self.last_sent_udp_packages) as f32;
+                    self.last_sent_udp_packages = count;
+                    self.sent_udp_packages_per_second = sent_udp_packets_since_last_check / (time_span as f32 / 1000f32);
+
+                    // sent game packets
+                    let count = self.app_data.game_status.sent_game_packets.load(std::sync::atomic::Ordering::Relaxed);
+                    let sent_game_packets_since_last_check = (count - self.last_sent_game_packages) as f32;
+                    self.last_sent_game_packages = count;
+                    self.sent_game_packets_per_second = sent_game_packets_since_last_check / (time_span as f32 / 1000f32);
+
+                    // sent bytes
+                    let bytes = self.app_data.game_status.sent_bytes.load(std::sync::atomic::Ordering::Relaxed);
+                    let last_sent_bytes_since_last_check = bytes - self.last_sent_bytes;
+                    self.last_sent_bytes = bytes;
+                    self.sent_bytes_per_second = last_sent_bytes_since_last_check as f32 / (time_span as f32 / 1000f32);
+
+                    // storing bytes sent in circular array
+                    self.sent_bytes_graph_data.rotate_right(1);
+                    self.sent_bytes_graph_data[0] = last_sent_bytes_since_last_check;
+                    let max =  self.sent_bytes_graph_data.iter().max().map(|v| *v);
+                    self.sent_bytes_graph_max =  max.unwrap_or(0);
+
+                }
+
+                terminal.draw(|frame| self.draw(frame));
+                // cli_log::info!("running2!: {}", 0);
+                if let Ok(poll_result) =  event::poll(Duration::from_millis(100))
+                {
+                    if poll_result
+                    {
+                        self.handle_crossterm_events();
+                    }
                 }
             }
         }
         Ok(())
     }
 
+    fn draw_sleep_state(&mut self, frame: &mut Frame) 
+    {
+        let main_layout = Layout::default()
+        .direction(ratatui::layout::Direction::Vertical)
+        .constraints(vec![
+            Constraint::Length(1),
+            Constraint::Min(1),
+            Constraint::Length(1)
+        ]).split(frame.area());
+
+        let title = Line::from(format!("Gaia Game Server is sleeping, press A to wake up"))
+            .bold()
+            .blue()
+            .centered();
+
+        let title_block = Paragraph::new(title);
+        frame.render_widget(title_block, main_layout[1]);
+
+        let instructions = Line::from(vec![
+            " Sleep ".into(),
+            "<S>".blue().bold(),
+            " Awake ".into(),
+            "<A>".blue().bold(),
+            " Quit ".into(),
+            "<Q> ".blue().bold(),
+        ]);
+
+        let instructions_block = Paragraph::new(instructions).centered();
+        frame.render_widget(instructions_block, main_layout[2]);
+    }
     /// Renders the user interface.
     ///
     /// This is where you add new widgets. See the following resources for more information:
@@ -170,10 +229,10 @@ impl App {
         frame.render_widget(title_block, main_layout[0]);
 
         let instructions = Line::from(vec![
-            " Decrement ".into(),
-            "<Left>".blue().bold(),
-            " Increment ".into(),
-            "<Right>".blue().bold(),
+            " Sleep ".into(),
+            "<S>".blue().bold(),
+            " Awake ".into(),
+            "<A>".blue().bold(),
             " Quit ".into(),
             "<Q> ".blue().bold(),
         ]);
@@ -323,42 +382,30 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
         match (key.modifiers, key.code) {
-            (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
-            // Add other key handlers here.
+            (_, KeyCode::Esc | KeyCode::Char('q')) => self.quit(),
+            (_, KeyCode::Char('s')) => self.sleep_tui(),
+            (_, KeyCode::Char('a')) => self.awake_tui(),
             _ => {}
         }
     }
 
-    // /// Create a horizontal bar chart from the temperatures data.
-    // fn horizontal_barchart(temperatures: &[u8]) -> BarChart {
-    //     let bars: Vec<Bar> = temperatures
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(hour, value)| horizontal_bar(value))
-    //         .collect();
-    //     let title = Line::from("Weather (Horizontal)").centered();
-    //     BarChart::default()
-    //         .block(Block::new().title(title))
-    //         .data(BarGroup::default().bars(&bars))
-    //         .bar_width(1)
-    //         .bar_gap(0)
-    //         .direction(Direction::Horizontal)
-    // }
-
-    // fn horizontal_bar(amount: &u8) -> Bar {
-    //     let style = Style::new().fg(Color::Yellow);
-    //     Bar::default()
-    //         .value(u64::from(*amount))
-    //         .label(Line::from(format!("InBarLabel")))
-    //         .text_value(format!("{amount:>3}°"))
-    //         .style(style)
-    //         .value_style(style.reversed())
-    // }
-
     /// Set running to false to quit the application.
-    fn quit(&mut self) {
+    fn quit(&mut self) 
+    {
         self.running = false;
+    }
+
+    fn sleep_tui(&mut self)
+    {
+        self.sleeping = true;
+    }
+
+    fn awake_tui(&mut self)
+    {
+        self.sleeping = false;
+        let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        let current_time_in_millis = current_time.as_millis() as u64;
+        self.wake_up_timestamp = current_time_in_millis;
     }
 
 
