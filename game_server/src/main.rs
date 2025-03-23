@@ -425,20 +425,23 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
 
 fn load_regions_data_into_game_map(
     regions_stored_data : &HashMap<TetrahedronId, StoredRegion>
-) -> Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)> {
-
+) 
+-> Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)> 
+{
     let mut regions_data = Vec::<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>::new();
 
     let mut count = 0;
     let mut region_count = 0;
     let region_total = regions_stored_data.len();
 
-    for region in regions_stored_data.iter(){
+    for region in regions_stored_data.iter()
+    {
         region_count += 1;
         // cli_log::info!("decoding region progress {region_count}/{region_total} tiles {count}");
 
         let region_object_id = region.1.id.clone();
-        let binary_data: Vec<u8> = match region.1.compressed_data.clone() {
+        let binary_data: Vec<u8> = match region.1.compressed_data.clone() 
+        {
             bson::Bson::Binary(binary) => binary.bytes,
             _ => panic!("Expected Bson::Binary"),
         };

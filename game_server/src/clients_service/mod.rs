@@ -68,30 +68,30 @@ pub fn start_server(
     let mut previous_packages : VecDeque<(u64, u8, Vec<u8>)> = VecDeque::new();
 
     // let mut missing_packages_record = []
-    let mut player_missing_packets = HashMap::<u16, [AtomicU64;10]>::new();
+    // let mut player_missing_packets = HashMap::<u16, [AtomicU64;10]>::new();
 
-    let mut i:u16 = 0;
+    // let mut i:u16 = 0;
 
-    while i < u16::MAX {
-        i = i + 1;
-        let data = [
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-            AtomicU64::new(0),
-        ];
-        player_missing_packets.insert(i, data);
-    }
+    // while i < u16::MAX {
+    //     i = i + 1;
+    //     let data = [
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //         AtomicU64::new(0),
+    //     ];
+    //     player_missing_packets.insert(i, data);
+    // }
 
-    let shared_player_missing_packets = Arc::new(player_missing_packets);
-    let _executer_shared_player_missing_packets = shared_player_missing_packets.clone();
-    let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
+    // let shared_player_missing_packets = Arc::new(player_missing_packets);
+    // let _executer_shared_player_missing_packets = shared_player_missing_packets.clone();
+    // let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
 
     tokio::spawn(async move 
     {
@@ -283,7 +283,7 @@ pub fn start_server(
                                     tx_pc_clients_gameplay.clone(), 
                                     tx_tc_clients_gameplay.clone(), 
                                     tx_cc_clients_gameplay.clone(), 
-                                    updater_shared_player_missing_packets.clone(),
+                                    // updater_shared_player_missing_packets.clone(),
                                     buf_udp,
                                     packet_size
                                 ).await;

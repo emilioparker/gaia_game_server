@@ -88,7 +88,7 @@ pub async fn route_packet(
     packet_size: usize,
     map : Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    missing_packets: Arc<HashMap<u16, [AtomicU64;10]>>,
+    // missing_packets: Arc<HashMap<u16, [AtomicU64;10]>>,
     tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
     tx_pc_clients_gameplay: &GaiaSender<CharacterCommand>,
     tx_mc_clients_gameplay: &GaiaSender<MapCommand>,

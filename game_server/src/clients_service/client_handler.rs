@@ -56,7 +56,7 @@ pub async fn spawn_client_process(
     tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<CharacterCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
-    missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
+    // missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
     initial_data : [u8; 508],
     packet_size: usize)
 {
@@ -81,7 +81,7 @@ pub async fn spawn_client_process(
             packet_size,
             map.clone(),
             &server_state,
-            missing_packets.clone(),
+            // missing_packets.clone(),
             &tx_gc_clients_gameplay,
             &tx_pc_clients_gameplay, 
             &tx_mc_clients_gameplay,
@@ -112,7 +112,7 @@ pub async fn spawn_client_process(
                                 packet_size,
                                 map.clone(),
                                 &server_state,
-                                missing_packets.clone(),
+                                // missing_packets.clone(),
                                 &tx_gc_clients_gameplay,
                                 &tx_pc_clients_gameplay, 
                                 &tx_mc_clients_gameplay,
