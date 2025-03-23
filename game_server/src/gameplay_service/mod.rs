@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::vec;
 
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
@@ -31,6 +32,15 @@ pub mod chat_commands_processor;
 pub mod mob_commands_processor;
 pub mod generic_command;
 
+struct PacketsData
+{
+    region:u8,
+    packet_number: u64,
+    packets: Vec<(u64, u8, u8, u32, Vec<u8>)>,
+    buffer: [u8;5000],
+    game_packets_count : u32,
+    offset : usize,
+}
 
 pub fn start_service(
     mut rx_pc_client_game : tokio::sync::mpsc::Receiver<CharacterCommand>,
@@ -39,7 +49,7 @@ pub fn start_service(
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u32, Vec<u8>)>>
+    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u8, u32, Vec<u8>)>>
 ) 
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
@@ -164,9 +174,8 @@ pub fn start_service(
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
     {
-        let mut buffer = [0u8; 5000];
-
-        let mut packet_number = 1u64;
+        // let mut buffer = [0u8; 5000];
+        // let mut packet_number = 1u64;
         let mut server_status_deliver_count = 0u32;
 
         let mut players_summary = Vec::new();
@@ -180,9 +189,23 @@ pub fn start_service(
 
         let mut previous_time : u64 = 0;
 
+        let mut packets_data : Vec<PacketsData> = Vec::new();             
+        for (i, region_id) in map.definitions.regions.iter().enumerate()
+        {
+            packets_data.push(PacketsData 
+            {
+                region: i as u8,
+                packet_number: 0,
+                packets: Vec::new(),
+                buffer: [0u8; 5000],
+                game_packets_count: 0,
+                offset: 0,
+            });
+        }
+
         loop 
         {
-            let mut packets = Vec::new();
+            // let mut packets = Vec::new();
             interval.tick().await;
 
             server_status_deliver_count += 1;
@@ -349,9 +372,10 @@ pub fn start_service(
 
             previous_time = current_time_in_millis;
 
-            let mut game_packets_count : u32 = 0;
-            let mut offset : usize;
-            offset = data_packer::init_data_packet(&mut buffer, &mut packet_number);
+            let mut region_packets_data = packets_data.get_mut(0).unwrap();
+
+            region_packets_data.game_packets_count = 0;
+            region_packets_data.offset = data_packer::init_data_packet(&mut region_packets_data);
 
             let len = tiles_summary.len();
             if len > 0
@@ -364,11 +388,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = MapEntity::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType:: TileState,
                     &chunk,
                     chunk_size);
@@ -380,11 +400,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = TowerEntity::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::TowerState,
                     &chunk,
                     chunk_size);
@@ -396,11 +412,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterPresentation::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::PlayerPresentation,
                     &chunk,
                     chunk_size);
@@ -412,11 +424,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterReward::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::PlayerReward,
                     &chunk,
                     chunk_size);
@@ -433,11 +441,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterEntity::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::PlayerState,
                     &chunk,
                     chunk_size);
@@ -456,11 +460,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = Attack::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    region_packets_data,
                     DataType::Attack,
                     &chunk,
                     chunk_size);
@@ -477,11 +477,7 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = AttackResult::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::AttackDetails,
                     &chunk,
                     chunk_size);
@@ -498,17 +494,13 @@ pub fn start_service(
                 let chunk = d.to_bytes();
                 let chunk_size = MobEntity::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::MobStatus,
                     &chunk,
                     chunk_size);
             });
 
-            server_status_deliver_count += packets.len() as u32;
+            server_status_deliver_count += region_packets_data.packets.len() as u32;
             if server_status_deliver_count > 50
             {
                 server_status_deliver_count = 0;
@@ -517,25 +509,23 @@ pub fn start_service(
                 let chunk = ServerState::stats_to_bytes(&stats); //20
                 let chunk_size = ServerState::get_size();
                 data_packer::build_data_packet(
-                    &mut packet_number,
-                    &mut buffer,
-                    &mut packets,
-                    &mut offset,
-                    &mut game_packets_count,
+                    &mut region_packets_data,
                     DataType::ServerStatus,
                     &chunk,
                     chunk_size);
             }
 
-            if offset > 0
+            if region_packets_data.offset > 0
             {
-                let encoded_data = data_packer::encode_packet(&mut buffer, offset);
-                packets.push((packet_number, 0, game_packets_count, encoded_data));
+                let encoded_data = data_packer::encode_packet(&mut region_packets_data.buffer, region_packets_data.offset);
+                region_packets_data.packets.push((region_packets_data.packet_number, 0, 0, region_packets_data.game_packets_count, encoded_data));
             }
 
-            if packets.len() > 0 
+            if region_packets_data.packets.len() > 0 
             {
-                tx_bytes_game_socket.send(packets).await.unwrap();
+                let mut temp_vec = Vec::new();
+                std::mem::swap(&mut region_packets_data.packets, &mut temp_vec);
+                tx_bytes_game_socket.send(temp_vec).await.unwrap();
             }
         }
     });

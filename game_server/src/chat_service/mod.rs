@@ -14,7 +14,7 @@ pub fn start_service(
     mut rx_cc_client_game : tokio::sync::mpsc::Receiver<ChatCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_packets_gameplay_chat_clients: gaia_mpsc::GaiaSender<Vec<(u64, u8, u32, Vec<u8>)>> //faction-data 0 means global
+    tx_packets_gameplay_chat_clients: gaia_mpsc::GaiaSender<Vec<(u64, u8, u8, u32, Vec<u8>)>> //faction-data 0 means global
 ) 
 -> Receiver<ChatEntry>
 {

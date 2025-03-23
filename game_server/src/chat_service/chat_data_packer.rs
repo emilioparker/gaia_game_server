@@ -7,7 +7,7 @@ use std::time::SystemTime;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
-pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : &mut u64) -> Vec<(u64, u8, u32, Vec<u8>)> 
+pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : &mut u64) -> Vec<(u64, u8, u8, u32, Vec<u8>)> 
 {
     *packet_number = 0u64;
     // cli_log::info!("{packet_number} -A");
@@ -33,7 +33,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
     let mut stored_states:u8 = 0;
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
-    let mut packets = Vec::<(u64, u8, u32, Vec<u8>)>::new();
+    let mut packets = Vec::<(u64, u8, u8, u32, Vec<u8>)>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
     // cli_log::info!("data to send {}" , data.len());
@@ -48,7 +48,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
             encoder.write_all(buffer.as_slice()).unwrap();
             let compressed_bytes = encoder.reset(Vec::new()).unwrap();
             // cli_log::info!("compressed {} vs normal {}", compressed_bytes.len(), buffer.len());
-            packets.push((0, faction, stored_states as u32, compressed_bytes)); // this is a copy!
+            packets.push((0, faction, 0, stored_states as u32, compressed_bytes)); // this is a copy!
 
             start = 1;
             stored_states = 0;
@@ -103,7 +103,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
         // cli_log::info!("{:#04X?}", buffer);
 
         // cli_log::info!("decoded data: {}", (buffer == *decoded_data_array));
-        packets.push((0, faction, stored_states as u32, compressed_bytes)); // this is a copy!
+        packets.push((0, faction, 0, stored_states as u32, compressed_bytes)); // this is a copy!
     }
 
     // let all_data : Vec<u8> = packets.iter().flat_map(|d| d.clone()).collect();

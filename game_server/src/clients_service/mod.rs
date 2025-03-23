@@ -41,8 +41,8 @@ pub fn start_server(
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    GaiaSender<Vec<(u64,u8,u32,Vec<u8>)>>
-) // packet number, faction, data
+    GaiaSender<Vec<(u64,u8,u8,u32,Vec<u8>)>>
+) // packet number, faction, region, gamepackets,data
 {
     let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(100, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
     let (tx_mc_clients_gameplay, rx_mc_clients_gameplay) = gaia_mpsc::channel::<MapCommand>(100, ServerChannels::TX_MC_CLIENTS_GAMEPLAY, server_state.clone());
@@ -50,7 +50,7 @@ pub fn start_server(
     let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<CharacterCommand>(100, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(100, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(100, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u8, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
@@ -134,7 +134,7 @@ pub fn start_server(
                 let mut clients_data = server_send_to_clients_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
-                    for (_packet_id, faction, game_packets, data) in packet_list.iter()
+                    for (_packet_id, faction, region, game_packets, data) in packet_list.iter()
                     {
                         // cli_log::info!("sending packet with id {packet_id}");
                         if client.1.0 == 0u16 

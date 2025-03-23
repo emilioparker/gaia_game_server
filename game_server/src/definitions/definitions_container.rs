@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::buffs::buff;
+use crate::{buffs::buff, map::tetrahedron_id::TetrahedronId};
 
 use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData, tower_difficulty::TowerDifficulty, weapons::Weapon};
 
@@ -8,6 +8,7 @@ use super::{buffs_data::BuffData, card::Card, character_progression::CharacterPr
 #[derive(Debug, Clone)]
 pub struct Definitions
 {
+    pub regions: [TetrahedronId; 321],
     pub character_progression : Vec<CharacterProgression>,
     pub mob_progression : Vec<MobProgression>,
     pub props : Vec<PropData>,

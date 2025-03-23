@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
+use game_server::get_region_ids;
 use strum;
 
 use cli_log::init_cli_log;
@@ -390,6 +391,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
 
     let definitions = Definitions 
     {
+        regions: get_region_ids(),
         character_progression : character_result.0,
         props : props_result.0,
         mob_progression : mob_progression_result.0,

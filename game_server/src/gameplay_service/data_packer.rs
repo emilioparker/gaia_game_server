@@ -17,21 +17,21 @@ use std::time::SystemTime;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
-pub fn init_data_packet(
-    buffer : &mut [u8;5000],
-    packet_number : &mut u64)
+use super::PacketsData;
+
+pub fn init_data_packet(packets_data : &mut PacketsData)
     -> usize
 {
-    *packet_number += 1u64;
+    packets_data.packet_number += 1u64;
     // cli_log::info!("{packet_number} -A");
 
     let mut start: usize = 1;
-    buffer[0] = crate::protocols::Protocol::GlobalState as u8;
+    packets_data.buffer[0] = crate::protocols::Protocol::GlobalState as u8;
 
-    let packet_number_bytes = u64::to_le_bytes(*packet_number); // 8 bytes
+    let packet_number_bytes = u64::to_le_bytes(packets_data.packet_number); // 8 bytes
 
     let end: usize = start + 8;
-    buffer[start..end].copy_from_slice(&packet_number_bytes);
+    packets_data.buffer[start..end].copy_from_slice(&packet_number_bytes);
     start = end;
 
     let result = std::time::SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
@@ -39,32 +39,28 @@ pub fn init_data_packet(
     let current_time_bytes = u32::to_le_bytes(current_time.unwrap()); // 4 bytes
  
     let end: usize = start + 4;
-    buffer[start..end].copy_from_slice(&current_time_bytes);
+    packets_data.buffer[start..end].copy_from_slice(&current_time_bytes);
     start = end;
 
     start
 }
 
 pub fn build_data_packet(
-    packet_number : &mut u64,
-    buffer : &mut [u8;5000],
-    packets : &mut Vec<(u64,u8,u32,Vec<u8>)>,
-    offset: &mut usize,
-    game_packets_count: &mut u32,
+    regions_packets_data: &mut PacketsData,
     data_type: DataType,
     chunk : &[u8],
     chunk_size: usize)
 {
-    if *offset + chunk_size + 1 > 5000
+    if regions_packets_data.offset + chunk_size + 1 > 5000
     {
         // this means we already have some data
-        let encoded_data = encode_packet(buffer, *offset);
-        packets.push((*packet_number, 0, *game_packets_count, encoded_data));
-        *offset = init_data_packet( buffer, packet_number);
-        *game_packets_count = 0;
+        let encoded_data = encode_packet(&mut regions_packets_data.buffer, regions_packets_data.offset);
+        regions_packets_data.packets.push((regions_packets_data.packet_number, 0, 0, regions_packets_data.game_packets_count, encoded_data));
+        regions_packets_data.offset = init_data_packet(regions_packets_data);
+        regions_packets_data.game_packets_count = 0;
     }
 
-    add_to_data_packet(buffer, offset, game_packets_count, data_type, chunk_size, &chunk);
+    add_to_data_packet(&mut regions_packets_data.buffer, &mut regions_packets_data.offset, &mut regions_packets_data.game_packets_count, data_type, chunk_size, &chunk);
 }
 
 pub fn add_to_data_packet(
