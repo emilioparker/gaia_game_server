@@ -303,6 +303,7 @@ impl App {
             let capacity = self.app_data.game_status.channels[&channel].load(std::sync::atomic::Ordering::Relaxed) as u64;
             let bar = Bar::default()
             .value(100 - capacity)
+            // .value(25)
             .label(Line::from(channel.to_string()));
             bar
 
@@ -312,7 +313,7 @@ impl App {
             .block(Block::bordered().title("pipes load"))
             .bar_width(1)
             .direction(Direction::Horizontal)
-            .bar_style(Style::new().green().on_white())
+            .bar_style(Style::new().white().on_dark_gray())
             .value_style(Style::new().black())
             .label_style(Style::new().white())
             .bar_gap(1)
@@ -344,7 +345,13 @@ impl App {
         let output_inner_layout = Layout::default()
             .direction(ratatui::layout::Direction::Vertical)
             .constraints(vec![
-                Constraint::Length(1), Constraint::Length(5), Constraint::Length(3),  Constraint::Min(1)
+                Constraint::Length(1), // space for block
+                Constraint::Length(5), // sparkline
+                Constraint::Length(1), // title
+                Constraint::Length(3), // map storage data
+                Constraint::Length(3), // characters storage data
+                Constraint::Length(3), // towers storage data
+                Constraint::Min(1)// remaining
             ])
             .split(output_layout);
 
@@ -358,6 +365,65 @@ impl App {
             .style(Style::default().fg(Color::Green));
         
         frame.render_widget(output_sparkline, output_inner_layout[1]);
+
+        // long term title
+
+        let line = Line::from("-----long term storage details-----").centered();
+        frame.render_widget(line, output_inner_layout[2]);
+
+        let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        let current_time_in_millis = current_time.as_millis() as u64;
+
+        //map
+        let pending_tiles = self.app_data.game_status.pending_regions_to_save.load(std::sync::atomic::Ordering::Relaxed);
+        let last_map_entities_save_timestamp = self.app_data.game_status.last_regions_save_timestamp.load(std::sync::atomic::Ordering::Relaxed);
+        let time_since_last_save = ((current_time_in_millis - last_map_entities_save_timestamp) as f32 / 1000.0) as u32;
+        let saved_tiles = self.app_data.game_status.saved_regions.load(std::sync::atomic::Ordering::Relaxed);
+
+        let map_storage_details_line = Line::from(vec![
+            "Pending Regions: ".into(),
+            format!("{}", pending_tiles).blue().bold(),
+            "  Time: ".into(),
+            format!("{} seconds", time_since_last_save).blue().bold(),
+            "  Saved: ".into(),
+            format!("{saved_tiles}").blue().bold()
+        ]);
+        let paragraph = Paragraph::new(map_storage_details_line).block(Block::bordered());
+        frame.render_widget(paragraph, output_inner_layout[3]);
+
+        //characters
+        let pending_characters = self.app_data.game_status.pending_character_entities_to_save.load(std::sync::atomic::Ordering::Relaxed);
+        let last_characters_entities_save_timestamp = self.app_data.game_status.last_character_entities_save_timestamp.load(std::sync::atomic::Ordering::Relaxed);
+        let time_since_last_save = ((current_time_in_millis - last_characters_entities_save_timestamp) as f32 / 1000.0) as u32;
+        let saved_heroes= self.app_data.game_status.saved_character_entities.load(std::sync::atomic::Ordering::Relaxed);
+
+        let hero_storage_details_line = Line::from(vec![
+            "Pending Heroes: ".into(),
+            format!("{}", pending_characters).blue().bold(),
+            "  Time: ".into(),
+            format!("{} seconds", time_since_last_save).blue().bold(),
+            "  Saved: ".into(),
+            format!("{saved_heroes}").blue().bold()
+        ]);
+        let paragraph = Paragraph::new(hero_storage_details_line).block(Block::bordered());
+        frame.render_widget(paragraph, output_inner_layout[4]);
+
+        //towers
+        let pending_towers= self.app_data.game_status.pending_tower_entities_to_save.load(std::sync::atomic::Ordering::Relaxed);
+        let last_tower_entities_save_timestamp = self.app_data.game_status.last_tower_entities_save_timestamp.load(std::sync::atomic::Ordering::Relaxed);
+        let time_since_last_save = ((current_time_in_millis - last_tower_entities_save_timestamp) as f32 / 1000.0) as u32;
+        let saved_towers = self.app_data.game_status.saved_character_entities.load(std::sync::atomic::Ordering::Relaxed);
+        let tower_storage_details_line = Line::from(vec![
+            "Pending Towers: ".into(),
+            format!("{}", pending_towers).blue().bold(),
+            "  Time: ".into(),
+            format!("{} seconds", time_since_last_save).blue().bold(),
+            "  Saved: ".into(),
+            format!("{saved_towers}").blue().bold()
+        ]);
+        let paragraph = Paragraph::new(tower_storage_details_line).block(Block::bordered());
+        frame.render_widget(paragraph, output_inner_layout[5]);
+
     }
 
     /// Reads the crossterm events and updates the state of [`App`].

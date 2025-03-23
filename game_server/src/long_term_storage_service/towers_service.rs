@@ -128,11 +128,15 @@ pub fn start_server(
     let map_reader = map.clone();
     let map_updater = map.clone();
 
+    let map_reader_server_state = server_state.clone();
+    let map_updater_server_state = server_state.clone();
 
     // we keep track of which towers have change in a hashset
     // we also save the changed players
-    tokio::spawn(async move {
-        loop {
+    tokio::spawn(async move 
+    {
+        loop 
+        {
             let message = rx_te_realtime_longterm.recv().await.unwrap();
             // cli_log::info!("player entity changed  with inventory ? {}" , message.inventory.len());
             let mut modified_towers = modified_towers_update_lock.lock().await;
@@ -141,23 +145,36 @@ pub fn start_server(
             let mut towers_guard = map_updater.towers.lock().await;
 
             let old = towers_guard.get(&message.tetrahedron_id);
-            match old {
-                Some(_previous_record) => {
+            match old 
+            {
+                Some(_previous_record) => 
+                {
                     towers_guard.insert(message.tetrahedron_id.clone(), message);
                 }
-                _ => {
+                _ => 
+                {
                    towers_guard.insert(message.tetrahedron_id.clone(), message);
                 }
             }
             // we need to save into the hashmap and then save to a file.
+
+            map_updater_server_state.pending_tower_entities_to_save.store(towers_guard.len() as u32, std::sync::atomic::Ordering::Relaxed);
         }
     });
 
     // after a few seconds we try to save all changes to the database.
-    tokio::spawn(async move {
-        loop {
+    tokio::spawn(async move 
+    {
+        // init
+        let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        let current_time_in_millis = current_time.as_millis() as u64;
+        map_reader_server_state.last_tower_entities_save_timestamp.store(current_time_in_millis, std::sync::atomic::Ordering::Relaxed);
+
+        loop 
+        {
             tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
             let mut modified_tower_keys = modified_towers_reader_lock.lock().await;
+            let modified_towers = modified_tower_keys.len();
             let towers_guard = map_reader.towers.lock().await;
 
             let mut modified_tower_entities = Vec::<TowerEntity>::new();
@@ -203,6 +220,14 @@ pub fn start_server(
 
                 cli_log::info!("updated tower result {:?}", update_result);
             }
+
+            map_reader_server_state.saved_tower_entities.fetch_add(modified_towers as u32, std::sync::atomic::Ordering::Relaxed);
+            map_reader_server_state.pending_tower_entities_to_save.store(0, std::sync::atomic::Ordering::Relaxed);
+
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+            map_reader_server_state.last_tower_entities_save_timestamp.store(current_time_in_millis, std::sync::atomic::Ordering::Relaxed);
+
             let _result = tx_te_saved_longterm_webservice.send(true).await;
         }
     });

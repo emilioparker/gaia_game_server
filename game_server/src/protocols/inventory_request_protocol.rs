@@ -71,11 +71,11 @@ pub fn pack_inventory(
     let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &item_len_bytes).unwrap();
 
-    cli_log::info!("--- inventory length {}", inventory.len());
+    // cli_log::info!("--- inventory length {}", inventory.len());
 
     for item in inventory 
     {
-        cli_log::info!("---- item {:?}", item);
+        // cli_log::info!("---- item {:?}", item);
         let buffer = item.to_bytes();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }
@@ -84,10 +84,10 @@ pub fn pack_inventory(
     let card_inventory_len_bytes = u32::to_le_bytes(card_inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &card_inventory_len_bytes).unwrap();
 
-    cli_log::info!("--- inventory length {}", card_inventory.len());
+    // cli_log::info!("--- inventory length {}", card_inventory.len());
     for item in card_inventory 
     {
-        cli_log::info!("---- card {:?}", item);
+        // cli_log::info!("---- card {:?}", item);
         let buffer = item.to_bytes();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }
@@ -96,10 +96,10 @@ pub fn pack_inventory(
     let weapon_inventory_len_bytes = u32::to_le_bytes(weapon_inventory.len() as u32);
     std::io::Write::write_all(&mut encoder, &weapon_inventory_len_bytes).unwrap();
 
-    cli_log::info!("--- weapon inventory length {}", weapon_inventory.len());
+    // cli_log::info!("--- weapon inventory length {}", weapon_inventory.len());
     for item in weapon_inventory 
     {
-        cli_log::info!("---- card {:?}", item);
+        // cli_log::info!("---- card {:?}", item);
         let buffer = item.to_bytes();
         std::io::Write::write_all(&mut encoder, &buffer).unwrap();
     }

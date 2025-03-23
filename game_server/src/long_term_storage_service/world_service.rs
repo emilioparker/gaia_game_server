@@ -19,8 +19,6 @@ use flate2::write::ZlibEncoder;
 use futures_util::stream::StreamExt;
 
 
-
-
 // data is compressed
 pub async fn preload_db(
     world_name : &str,
@@ -34,7 +32,8 @@ pub async fn preload_db(
 
     for region in regions_data
     {
-        let bson = bson::Bson::Binary(bson::Binary {
+        let bson = bson::Bson::Binary(bson::Binary 
+        {
             subtype: bson::spec::BinarySubtype::Generic,
             bytes: region.1,
         });
@@ -59,16 +58,17 @@ pub async fn preload_db(
 pub async fn get_regions_from_db(
     world_id : Option<ObjectId>,
     db_client : Client
-) -> HashMap<TetrahedronId, StoredRegion> {
+) -> HashMap<TetrahedronId, StoredRegion> 
+{
 
     let mut data = HashMap::<TetrahedronId, StoredRegion>::new();
-
     let data_collection: mongodb::Collection<StoredRegion> = db_client.database("game").collection::<StoredRegion>("regions");
 
     // Look up one document:
     let mut cursor = data_collection
     .find(
-        doc! {
+        doc! 
+        {
                 "world_id": world_id,
         },
         None,
@@ -93,17 +93,20 @@ pub async fn get_regions_from_db(
 pub async fn init_world_state( 
     world_name : &str,
     db_client : Client
-) -> Option<ObjectId> {
+) -> Option<ObjectId> 
+{
 
     let data_collection: mongodb::Collection<StoredWorld> = db_client.database("game").collection::<StoredWorld>("worlds");
 
     let mut current_time = 0;
     let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-    if let Ok(elapsed) = result {
+    if let Ok(elapsed) = result 
+    {
         current_time = elapsed.as_secs();
     }
 
-    let data = StoredWorld {
+    let data = StoredWorld 
+    {
         id : None,
         world_name : world_name.to_owned(),
         start_time: current_time,
@@ -114,10 +117,12 @@ pub async fn init_world_state(
     let insert_result = data_collection.insert_one(data, None).await.unwrap();
     cli_log::info!("{:?}", insert_result);
 
-    if let bson::Bson::ObjectId(id) = insert_result.inserted_id {
+    if let bson::Bson::ObjectId(id) = insert_result.inserted_id 
+    {
         Some(id)
     }
-    else {
+    else 
+    {
         None
     }
 }
@@ -126,7 +131,8 @@ pub async fn init_world_state(
 pub async fn check_world_state( 
     world_name : &str,
     db_client : Client
-) -> Option<StoredWorld> {
+) -> Option<StoredWorld> 
+{
 
     let data_collection: mongodb::Collection<StoredWorld> = db_client.database("game").collection::<StoredWorld>("worlds");
 
@@ -154,6 +160,9 @@ pub fn start_server(
     let (tx_saved_longterm_webservice, rx_me_tx_saved_longterm_webservice) = gaia_mpsc::channel::<u32>(100, crate::ServerChannels::TX_SAVED_LONGTERM_WEBSERVICE, server_state.clone());
 
     let modified_regions = HashSet::<TetrahedronId>::new();
+
+    // used only for tracking
+    let modified_tiles= HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));
 
     let modified_regions_update_lock = modified_regions_reference.clone();
@@ -162,12 +171,17 @@ pub fn start_server(
     let map_reader = map.clone();
     let map_updater = map.clone();
 
+    let map_reader_server_state = server_state.clone();
+    let map_updater_server_state = server_state.clone();
+
     // we keep track of what tiles have change in a hashset
     // we also save the changed tiles in the gamemap.
-    tokio::spawn(async move {
-        loop {
+    tokio::spawn(async move 
+    {
+        loop 
+        {
             let message = rx_me_realtime_longterm.recv().await.unwrap();
-            // cli_log::info!("got a tile changed {:?} ", message);
+            cli_log::info!("---got a tile changed {:?} ", message.id);
             let region_id = message.id.get_parent(7);
 
             let mut modified_regions = modified_regions_update_lock.lock().await;
@@ -177,30 +191,41 @@ pub fn start_server(
             let mut locked_tiles = region.lock().await;
 
             let old = locked_tiles.get(&message.id);
-            match old {
-                Some(_previous_record) => {
+            match old 
+            {
+                Some(_previous_record) => 
+                {
                     locked_tiles.insert(message.id.clone(), message);
                 }
-                _ => {
-                   locked_tiles.insert(message.id.clone(), message);
+                _ => 
+                {
+                    locked_tiles.insert(message.id.clone(), message);
                 }
             }
-            // we need to save into the hashmap and then save to a file.
+
+            map_updater_server_state.pending_regions_to_save.store(modified_regions.len() as u32, std::sync::atomic::Ordering::Relaxed);
         }
     });
 
     // after a few seconds we try to save all changes to the database.
-    tokio::spawn(async move {
-        loop {
+    tokio::spawn(async move 
+    {
+        // init
+        let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+        let current_time_in_millis = current_time.as_millis() as u64;
+        map_reader_server_state.last_regions_save_timestamp.store(current_time_in_millis, std::sync::atomic::Ordering::Relaxed);
+
+        loop 
+        {
             tokio::time::sleep(tokio::time::Duration::from_secs(300)).await; // every 5 minutes
             let mut modified_regions = modified_regions_reader_lock.lock().await;
 
             let mut stored_regions = Vec::<StoredRegion>:: new();
-            for region_id in modified_regions.iter(){
+            for region_id in modified_regions.iter()
+            {
                 cli_log::info!("this region was changed {}", region_id.to_string());
 
                 let region = map_reader.get_region(region_id);
-
                 let locked_tiles = region.lock().await;
 
                 let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
@@ -212,7 +237,6 @@ pub fn start_server(
                     let bytes = tile.1.to_bytes();
                     encoder.write_all(&bytes).unwrap();
                 }
-
 
                 let compressed_bytes = encoder.reset(Vec::new()).unwrap();
                 let bson = bson::Bson::Binary(bson::Binary {
@@ -232,11 +256,12 @@ pub fn start_server(
                 stored_regions.push(data);
             }
 
-            if modified_regions.len() > 0 {
+            if modified_regions.len() > 0 
+            {
                 let data_collection: mongodb::Collection<StoredRegion> = db_client.database("game").collection::<StoredRegion>("regions");
 
-                for region in stored_regions {
-                    
+                for region in stored_regions 
+                {
                     // Update the document:
                     let update_result = data_collection.update_one(
                         doc! {
@@ -256,6 +281,15 @@ pub fn start_server(
             let _result =  tx_saved_longterm_webservice.send(1).await;
 
             modified_regions.clear();
+
+            let pending = map_reader_server_state.pending_regions_to_save.load(std::sync::atomic::Ordering::Relaxed);
+            map_reader_server_state.saved_regions.fetch_add(pending, std::sync::atomic::Ordering::Relaxed);
+            map_reader_server_state.pending_regions_to_save.store(0, std::sync::atomic::Ordering::Relaxed);
+
+            let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+            let current_time_in_millis = current_time.as_millis() as u64;
+
+            map_reader_server_state.last_regions_save_timestamp.store(current_time_in_millis, std::sync::atomic::Ordering::Relaxed);
         }
     });
     rx_me_tx_saved_longterm_webservice

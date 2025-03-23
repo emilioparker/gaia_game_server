@@ -111,7 +111,7 @@ pub trait BuffUser
 
     fn removed_expired_buffs(&mut self, current_time_in_seconds:u32)
     {
-        cli_log::info!("--- removing expired buff");
+        // cli_log::info!("--- removing expired buff");
         self.get_buffs_mut()
         .retain(|b| 
             {

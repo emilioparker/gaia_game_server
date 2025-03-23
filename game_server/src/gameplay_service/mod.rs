@@ -488,10 +488,10 @@ pub fn start_service(
             });
 
             let len = mobs_summary.len();
-            if len > 0
-            {
-                cli_log::info!("--mobs {len}");
-            }
+            // if len > 0
+            // {
+            //     cli_log::info!("--mobs {len}");
+            // }
             mobs_summary.drain(..)
             .for_each(|d| 
             {

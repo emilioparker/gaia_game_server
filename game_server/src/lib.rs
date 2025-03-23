@@ -68,6 +68,18 @@ pub struct ServerState
     pub sent_game_packets:AtomicU64,
     pub sent_bytes:AtomicU64,
     pub total_players:AtomicU32,
+    // long term data.
+    pub pending_regions_to_save:AtomicU32,
+    pub saved_regions:AtomicU32,
+    pub last_regions_save_timestamp:AtomicU64,
+
+    pub pending_character_entities_to_save:AtomicU32,
+    pub saved_character_entities:AtomicU32,
+    pub last_character_entities_save_timestamp:AtomicU64,
+
+    pub pending_tower_entities_to_save:AtomicU32,
+    pub saved_tower_entities:AtomicU32,
+    pub last_tower_entities_save_timestamp:AtomicU64,
 }
 
 impl ServerState 

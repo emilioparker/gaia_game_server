@@ -606,7 +606,7 @@ pub async fn set_action(
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
 
-    cli_log::info!("set action {} {action}", player_id);
+    // cli_log::info!("set action {} {action}", player_id);
     if let Some(player_entity) = player_option 
     {
         let mut action = action;
@@ -673,7 +673,7 @@ pub async fn activate_buff(
     card_id : u32,
     player_id: u16)
 {
-    cli_log::info!("---- activate buff with card {card_id}");
+    // cli_log::info!("---- activate buff with card {card_id}");
     let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
     if let Some(player) = player_entities.get_mut(&player_id)
     {

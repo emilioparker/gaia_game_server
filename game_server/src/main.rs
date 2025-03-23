@@ -114,6 +114,20 @@ async fn run_server(tx: Sender<AppData>)
         sent_game_packets: AtomicU64::new(0),
         sent_bytes: AtomicU64::new(0),
 
+        //char
+        pending_character_entities_to_save: AtomicU32::new(0),
+        saved_character_entities: AtomicU32::new(0),
+        last_character_entities_save_timestamp: AtomicU64::new(0),
+
+        //map
+        pending_regions_to_save: AtomicU32::new(0),
+        saved_regions: AtomicU32::new(0),
+        last_regions_save_timestamp: AtomicU64::new(0),
+
+        //towers
+        pending_tower_entities_to_save: AtomicU32::new(0),
+        saved_tower_entities: AtomicU32::new(0),
+        last_tower_entities_save_timestamp: AtomicU64::new(0),
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
@@ -237,7 +251,6 @@ async fn run_server(tx: Sender<AppData>)
                 server_state.clone(),
                 tx_packets_gameplay_chat_clients.clone());
 
-                
             let rx_ce_gameplay_webservice = chat_service::start_service(
                 rx_cc_client_gameplay,
                 working_game_map_reference.clone(), 
@@ -255,6 +268,7 @@ async fn run_server(tx: Sender<AppData>)
             long_term_storage_service::characters_service::start_server(
                 rx_pe_gameplay_longterm,
                 storage_game_map_reference.clone(), 
+                server_state.clone(),
                 db_client.clone()
             );
 
@@ -300,23 +314,10 @@ async fn run_server(tx: Sender<AppData>)
     }
 
     cli_log::info!("Game server started correctly");
-    // let mut terminal = ratatui::init();
-    // let mut app_instance = app::App::new();
 
-
-    loop {
-        // assuming 30 fps.
-        // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    loop 
+    {
         main_loop.tick().await;
-        // cli_log::info!("tick");
-        // app_instance.run(&mut terminal);
-        // // log_mem(Level::Info);
-        // // app_instance.run2();
-        // // cli_log::info!("{:?}", server_state);
-        // if !app_instance.running
-        // {
-        //     break;
-        // }
     }
 
 }
@@ -504,7 +505,8 @@ async fn get_compressed_tiles_data_from_file(world_id : &str, region_id : String
 
     let mut towers_in_region = Vec::new();
 
-    loop {
+    loop 
+    {
         buffer.copy_from_slice(&tiles[start..end]);
         encoder.write_all(&buffer).unwrap();
         let tile = MapEntity::from_bytes(&buffer);
