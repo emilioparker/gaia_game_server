@@ -56,7 +56,7 @@ use tokio::sync::oneshot::Sender;
 fn main() {
 
     //GAME_SERVER_LOG=debug cargo run --release
-    init_cli_log!();
+    init_cli_log!("gaia");
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
