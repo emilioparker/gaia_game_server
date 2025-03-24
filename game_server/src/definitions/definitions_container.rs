@@ -8,7 +8,8 @@ use super::{buffs_data::BuffData, card::Card, character_progression::CharacterPr
 #[derive(Debug, Clone)]
 pub struct Definitions
 {
-    pub regions: [TetrahedronId; 321],
+    pub regions_by_code: [TetrahedronId; 321],
+    pub regions_by_id: HashMap<TetrahedronId, u16>,
     pub character_progression : Vec<CharacterProgression>,
     pub mob_progression : Vec<MobProgression>,
     pub props : Vec<PropData>,

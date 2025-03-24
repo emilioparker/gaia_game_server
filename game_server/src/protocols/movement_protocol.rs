@@ -1,10 +1,13 @@
+use std::{collections::HashMap, sync::{atomic::AtomicU16, Arc}};
+
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
 use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement}, gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId};
 
 
 pub async fn process_movement(
-     data : &[u8; 508],
+    data : &[u8; 508],
+    regions : &Arc<HashMap<u16, [AtomicU16;3]>>,
     channel_tx : &GaiaSender<CharacterCommand>)
 {
     //1 - protocolo 1 bytes
@@ -21,6 +24,18 @@ pub async fn process_movement(
 
     end = start + 1;
     let _faction = data[start];
+    start = end;
+
+    end = start + 2;
+    let region_1 = u16::from_le_bytes(data[start..end].try_into().unwrap());
+    start = end;
+
+    end = start + 2;
+    let region_2 = u16::from_le_bytes(data[start..end].try_into().unwrap());
+    start = end;
+
+    end = start + 2;
+    let region_3 = u16::from_le_bytes(data[start..end].try_into().unwrap());
     start = end;
 
     end = start + 6;
@@ -55,6 +70,11 @@ pub async fn process_movement(
     let dash = data[start];
     // start = end;
 
+    let player_regions = regions.get(&player_id).unwrap();
+    player_regions[0].store(region_1, std::sync::atomic::Ordering::Relaxed);
+    player_regions[1].store(region_2, std::sync::atomic::Ordering::Relaxed);
+    player_regions[2].store(region_3, std::sync::atomic::Ordering::Relaxed);
+
     let action = CharacterMovement 
     {
         player_id,
@@ -71,6 +91,8 @@ pub async fn process_movement(
         player_id,
         info: CharacterCommandInfo::Movement(action)
     };
+
+
 
     channel_tx.send(character_command).await.unwrap();
 }

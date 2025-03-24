@@ -150,8 +150,23 @@ pub fn get_faction_from_code(faction : u8) -> String
 }
 
 
+pub fn get_regions_by_id() -> HashMap<TetrahedronId, u16>
+{
+    let mut set = HashMap::new();
+    let ids = get_regions_by_code();
+    for (i,region) in ids.iter().enumerate()
+    {
+        if i == 0 
+        {
+            continue
+        }
+        set.insert(region.clone(), i as u16);
+    }
 
-pub fn get_region_ids() -> [TetrahedronId; 321]
+    set
+}
+
+pub fn get_regions_by_code() -> [TetrahedronId; 321]
 {
     let region_ids : [TetrahedronId;321] =
     [

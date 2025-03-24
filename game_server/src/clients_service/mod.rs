@@ -3,7 +3,7 @@ pub mod utils;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU16, AtomicU64};
 use std::collections::HashMap;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
@@ -41,7 +41,7 @@ pub fn start_server(
     Receiver<CharacterCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    GaiaSender<Vec<(u64,u8,u8,u32,Vec<u8>)>>
+    GaiaSender<Vec<(u64,u8,u16,u32,Vec<u8>)>>
 ) // packet number, faction, region, gamepackets,data
 {
     let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(100, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
@@ -50,7 +50,7 @@ pub fn start_server(
     let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<CharacterCommand>(100, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(100, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(100, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u8, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u16, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
@@ -67,31 +67,25 @@ pub fn start_server(
 
     let mut previous_packages : VecDeque<(u64, u8, Vec<u8>)> = VecDeque::new();
 
-    // let mut missing_packages_record = []
-    // let mut player_missing_packets = HashMap::<u16, [AtomicU64;10]>::new();
+    let mut player_regions_record = HashMap::<u16, [AtomicU16;3]>::new();
 
-    // let mut i:u16 = 0;
+    let mut i:u16 = 0;
 
-    // while i < u16::MAX {
-    //     i = i + 1;
-    //     let data = [
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //         AtomicU64::new(0),
-    //     ];
-    //     player_missing_packets.insert(i, data);
-    // }
+    while i < u16::MAX 
+    {
+        i = i + 1;
+        let data = 
+        [
+            AtomicU16::new(0),
+            AtomicU16::new(0),
+            AtomicU16::new(0),
+        ];
+        player_regions_record.insert(i, data);
+    }
 
-    // let shared_player_missing_packets = Arc::new(player_missing_packets);
-    // let _executer_shared_player_missing_packets = shared_player_missing_packets.clone();
-    // let updater_shared_player_missing_packets = shared_player_missing_packets.clone();
+    let shared_player_regions_record= Arc::new(player_regions_record);
+    let reader_shared_player_regions_record= shared_player_regions_record.clone();
+    let updater_shared_player_regions_record = reader_shared_player_regions_record.clone();
 
     tokio::spawn(async move 
     {
@@ -145,7 +139,16 @@ pub fn start_server(
                             // cli_log::info!("sending {}", packet_sequence_number);
                         }
                         // todo: only send data if client is correctly validated, add state to clients_data
-                        if client.1.1 == *faction || *faction == 0
+                        
+                        let client_regions = reader_shared_player_regions_record.get(&client.1.0).unwrap();
+                        let a = client_regions[0].load(std::sync::atomic::Ordering::Relaxed);
+                        let b = client_regions[1].load(std::sync::atomic::Ordering::Relaxed);
+                        let c = client_regions[2].load(std::sync::atomic::Ordering::Relaxed);
+
+                        // a = 0 makes us receive everything
+                        let is_in_region = *region == a || *region == b || *region == c || a == 0;
+
+                        if is_in_region && (client.1.1 == *faction || *faction == 0)
                         {
                             sent_bytes += data.len() as u64;
                             sent_udp_packets += 1;
@@ -220,9 +223,8 @@ pub fn start_server(
         }
     });
 
-    tokio::spawn(async move {
-
-        // let client_send_udp_socket = clients_send_udp_socket.clone();
+    tokio::spawn(async move 
+    {
         //use to communicate that the client disconnected
         let (tx_addr_client_realtime, mut rx_addr_client_realtime ) = tokio::sync::mpsc::channel::<(std::net::SocketAddr, u64)>(100);
 
@@ -283,7 +285,7 @@ pub fn start_server(
                                     tx_pc_clients_gameplay.clone(), 
                                     tx_tc_clients_gameplay.clone(), 
                                     tx_cc_clients_gameplay.clone(), 
-                                    // updater_shared_player_missing_packets.clone(),
+                                    updater_shared_player_regions_record.clone(),
                                     buf_udp,
                                     packet_size
                                 ).await;

@@ -51,6 +51,13 @@ pub fn build_data_packet(
     chunk : &[u8],
     chunk_size: usize)
 {
+    if !regions_packets_data.started
+    {
+        regions_packets_data.offset = init_data_packet(regions_packets_data);
+        regions_packets_data.game_packets_count = 0;
+        regions_packets_data.started = true;
+    }
+
     if regions_packets_data.offset + chunk_size + 1 > 5000
     {
         // this means we already have some data

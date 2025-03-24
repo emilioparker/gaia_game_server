@@ -18,7 +18,7 @@ pub async fn process_request(
     player_address : std::net::SocketAddr, 
     generic_channel_tx : &GaiaSender<GenericCommand>,
     data : &[u8; 508],
-    map : Arc<GameMap>)
+    map : &Arc<GameMap>)
 {
     cli_log::info!("---- inventory request");
     let start = 1;

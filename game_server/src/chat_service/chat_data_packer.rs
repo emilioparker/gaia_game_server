@@ -7,7 +7,7 @@ use std::time::SystemTime;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
-pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : &mut u64) -> Vec<(u64, u8, u8, u32, Vec<u8>)> 
+pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : &mut u64) -> Vec<(u64, u8, u16, u32, Vec<u8>)> 
 {
     *packet_number = 0u64;
     // cli_log::info!("{packet_number} -A");
@@ -33,7 +33,7 @@ pub fn create_data_packets(faction: u8, data : &Vec<ChatEntry>, packet_number : 
     let mut stored_states:u8 = 0;
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
-    let mut packets = Vec::<(u64, u8, u8, u32, Vec<u8>)>::new();
+    let mut packets = Vec::<(u64, u8, u16, u32, Vec<u8>)>::new();
     // this is interesting, this list is shared between threads/clients but since I only read it, it is fine.
 
     // cli_log::info!("data to send {}" , data.len());

@@ -32,11 +32,12 @@ pub mod chat_commands_processor;
 pub mod mob_commands_processor;
 pub mod generic_command;
 
-struct PacketsData
+pub struct PacketsData
 {
-    region:u8,
+    started:bool,
+    region:u16,
     packet_number: u64,
-    packets: Vec<(u64, u8, u8, u32, Vec<u8>)>,
+    packets: Vec<(u64, u8, u16, u32, Vec<u8>)>,
     buffer: [u8;5000],
     game_packets_count : u32,
     offset : usize,
@@ -49,7 +50,7 @@ pub fn start_service(
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u8, u32, Vec<u8>)>>
+    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u16, u32, Vec<u8>)>>
 ) 
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
@@ -190,11 +191,12 @@ pub fn start_service(
         let mut previous_time : u64 = 0;
 
         let mut packets_data : Vec<PacketsData> = Vec::new();             
-        for (i, region_id) in map.definitions.regions.iter().enumerate()
+        for (i, region_id) in map.definitions.regions_by_id.iter().enumerate()
         {
             packets_data.push(PacketsData 
             {
-                region: i as u8,
+                started: false,
+                region: i as u16,
                 packet_number: 0,
                 packets: Vec::new(),
                 buffer: [0u8; 5000],
@@ -366,25 +368,23 @@ pub fn start_service(
 
             if game_packages == 0 && (current_time_in_millis - previous_time) < 1000
             {
-                // cli_log::info!("--- skipping");
+                // cli_log::info!("--- skipping, no data to transmit");
                 continue;
             }
 
             previous_time = current_time_in_millis;
 
-            let mut region_packets_data = packets_data.get_mut(0).unwrap();
 
-            region_packets_data.game_packets_count = 0;
-            region_packets_data.offset = data_packer::init_data_packet(&mut region_packets_data);
-
-            let len = tiles_summary.len();
-            if len > 0
-            {
-                cli_log::info!("--tiles {len}");
-            }
+            // let len = tiles_summary.len();
+            // if len > 0
+            // {
+            //     cli_log::info!("--tiles {len}");
+            // }
             tiles_summary.drain(..)
             .for_each(|d| 
             {
+                let region = map.definitions.regions_by_id.get(&d.id.get_parent(7)).unwrap();
+                let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = MapEntity::get_size();
                 data_packer::build_data_packet(
@@ -397,6 +397,8 @@ pub fn start_service(
             towers_summary.drain(..)
             .for_each(|d| 
             {
+                let region = map.definitions.regions_by_id.get(&d.tetrahedron_id.get_parent(7)).unwrap();
+                let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = TowerEntity::get_size();
                 data_packer::build_data_packet(
@@ -409,6 +411,8 @@ pub fn start_service(
             players_presentation_summary.drain(..)
             .for_each(|d| 
             {
+                // presentation goes to everyone...
+                let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterPresentation::get_size();
                 data_packer::build_data_packet(
@@ -421,6 +425,7 @@ pub fn start_service(
             players_rewards_summary.drain(..)
             .for_each(|d| 
             {
+                let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterReward::get_size();
                 data_packer::build_data_packet(
@@ -438,6 +443,8 @@ pub fn start_service(
             players_summary.drain(..)
             .for_each(|d| 
             {
+                let region = map.definitions.regions_by_id.get(&d.position.get_parent(7)).unwrap();
+                let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = CharacterEntity::get_size();
                 data_packer::build_data_packet(
@@ -455,6 +462,7 @@ pub fn start_service(
             attacks_summary.drain(..)
             .for_each(|d| 
             {
+                let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let a = d.battle_type;
                 cli_log::info!("--- sending an attack summary {a}");
                 let chunk = d.to_bytes();
@@ -474,6 +482,7 @@ pub fn start_service(
             attack_details_summary.drain(..)
             .for_each(|d| 
             {
+                let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = AttackResult::get_size();
                 data_packer::build_data_packet(
@@ -483,7 +492,7 @@ pub fn start_service(
                     chunk_size);
             });
 
-            let len = mobs_summary.len();
+            // let len = mobs_summary.len();
             // if len > 0
             // {
             //     cli_log::info!("--mobs {len}");
@@ -491,6 +500,8 @@ pub fn start_service(
             mobs_summary.drain(..)
             .for_each(|d| 
             {
+                let region = map.definitions.regions_by_id.get(&d.tile_id.get_parent(7)).unwrap();
+                let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = MobEntity::get_size();
                 data_packer::build_data_packet(
@@ -500,7 +511,8 @@ pub fn start_service(
                     chunk_size);
             });
 
-            server_status_deliver_count += region_packets_data.packets.len() as u32;
+            let mut global_regions_packets_data = packets_data.get_mut(0).unwrap();
+            server_status_deliver_count += global_regions_packets_data.packets.len() as u32;
             if server_status_deliver_count > 50
             {
                 server_status_deliver_count = 0;
@@ -509,24 +521,33 @@ pub fn start_service(
                 let chunk = ServerState::stats_to_bytes(&stats); //20
                 let chunk_size = ServerState::get_size();
                 data_packer::build_data_packet(
-                    &mut region_packets_data,
+                    &mut global_regions_packets_data,
                     DataType::ServerStatus,
                     &chunk,
                     chunk_size);
             }
 
-            if region_packets_data.offset > 0
+
+            // cli_log::info!("---checking regions data packets");
+            for region_packets_data in packets_data.iter_mut()
             {
-                let encoded_data = data_packer::encode_packet(&mut region_packets_data.buffer, region_packets_data.offset);
-                region_packets_data.packets.push((region_packets_data.packet_number, 0, 0, region_packets_data.game_packets_count, encoded_data));
+                if region_packets_data.offset > 0
+                {
+                    let encoded_data = data_packer::encode_packet(&mut region_packets_data.buffer, region_packets_data.offset);
+                    region_packets_data.packets.push((region_packets_data.packet_number, 0, region_packets_data.region, region_packets_data.game_packets_count, encoded_data));
+                }
+
+                if region_packets_data.packets.len() > 0 
+                {
+                    cli_log::info!("--found packets for region {} size: {} game_packets: {}", region_packets_data.region, region_packets_data.packets.iter().len(), region_packets_data.game_packets_count);
+                    let mut temp_vec = Vec::new();
+                    std::mem::swap(&mut region_packets_data.packets, &mut temp_vec);
+                    tx_bytes_game_socket.send(temp_vec).await.unwrap();
+                    region_packets_data.started = false;
+                    region_packets_data.offset = 0;
+                }
             }
 
-            if region_packets_data.packets.len() > 0 
-            {
-                let mut temp_vec = Vec::new();
-                std::mem::swap(&mut region_packets_data.packets, &mut temp_vec);
-                tx_bytes_game_socket.send(temp_vec).await.unwrap();
-            }
         }
     });
 

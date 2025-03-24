@@ -30,10 +30,7 @@ pub mod craft_card_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::AtomicU64;
-
-use tokio::net::UdpSocket;
-use tokio::sync::mpsc::Sender;
+use std::sync::atomic::AtomicU16;
 
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
@@ -86,9 +83,9 @@ pub async fn route_packet(
     // socket: &UdpSocket,
     data : &[u8; 508],
     packet_size: usize,
-    map : Arc<GameMap>,
+    map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    // missing_packets: Arc<HashMap<u16, [AtomicU64;10]>>,
+    regions: &Arc<HashMap<u16, [AtomicU16;3]>>,
     tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
     tx_pc_clients_gameplay: &GaiaSender<CharacterCommand>,
     tx_mc_clients_gameplay: &GaiaSender<MapCommand>,
@@ -123,7 +120,7 @@ pub async fn route_packet(
             layfoundation_protocol::process_construction(data, tx_mc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => {
-            movement_protocol::process_movement(data, tx_pc_clients_gameplay).await;
+            movement_protocol::process_movement(data, regions, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => {
             resource_extraction_protocol::process(data, tx_mc_clients_gameplay).await;

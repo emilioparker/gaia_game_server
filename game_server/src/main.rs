@@ -1,13 +1,12 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
-use game_server::get_region_ids;
+use game_server::get_regions_by_code;
+use game_server::get_regions_by_id;
 use strum;
 
 use cli_log::init_cli_log;
@@ -391,7 +390,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
 
     let definitions = Definitions 
     {
-        regions: get_region_ids(),
+        regions_by_id: get_regions_by_id(),
+        regions_by_code: get_regions_by_code(),
         character_progression : character_result.0,
         props : props_result.0,
         mob_progression : mob_progression_result.0,
@@ -402,7 +402,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         mobs: mobs_result.0,
         buffs_by_code: buffs_result.0,
         buffs : buffs_hash,
-        weapons : weapons_result.0
+        weapons : weapons_result.0,
     };
 
     let definitions_data = DefinitionsData

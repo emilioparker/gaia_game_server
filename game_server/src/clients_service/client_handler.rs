@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicU16;
 use tokio::time;
 use tokio::time::Duration;
-use tokio::sync::{mpsc};
+use tokio::sync::mpsc;
 
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
@@ -56,7 +56,7 @@ pub async fn spawn_client_process(
     tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<CharacterCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
-    // missing_packets : Arc<HashMap<u16, [AtomicU64;10]>>,
+    regions : Arc<HashMap<u16, [AtomicU16;3]>>,
     initial_data : [u8; 508],
     packet_size: usize)
 {
@@ -70,18 +70,17 @@ pub async fn spawn_client_process(
 
 
     //messages from the client to the server, like an updated position
-    tokio::spawn(async move {
-        // we should try to get the player data at this point!
-
+    tokio::spawn(async move 
+    {
         //handle the first package
         protocols::route_packet(
             player_id,
             from_address,
             &initial_data, 
             packet_size,
-            map.clone(),
+            &map,
             &server_state,
-            // missing_packets.clone(),
+            &regions,
             &tx_gc_clients_gameplay,
             &tx_pc_clients_gameplay, 
             &tx_mc_clients_gameplay,
@@ -95,7 +94,8 @@ pub async fn spawn_client_process(
         {
             let socket_receive = socket_receiver.recv(&mut child_buff);
             let time_out = time::sleep(Duration::from_secs_f32(10.0)); 
-            tokio::select! {
+            tokio::select! 
+            {
                 result = socket_receive => 
                 {
                     // read the player id and the session id and drop if session id is different
@@ -110,9 +110,9 @@ pub async fn spawn_client_process(
                                 from_address,
                                 &child_buff, 
                                 packet_size,
-                                map.clone(),
+                                &map,
                                 &server_state,
-                                // missing_packets.clone(),
+                                &regions,
                                 &tx_gc_clients_gameplay,
                                 &tx_pc_clients_gameplay, 
                                 &tx_mc_clients_gameplay,
