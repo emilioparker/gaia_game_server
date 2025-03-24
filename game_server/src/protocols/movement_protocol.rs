@@ -75,6 +75,8 @@ pub async fn process_movement(
     player_regions[1].store(region_2, std::sync::atomic::Ordering::Relaxed);
     player_regions[2].store(region_3, std::sync::atomic::Ordering::Relaxed);
 
+    cli_log::info!("regions: {} {} {}", region_1, region_2, region_3);
+
     let action = CharacterMovement 
     {
         player_id,

@@ -165,7 +165,7 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == Protocol::Respawn as u8 => {
             cli_log::info!("--------------------- process respawn");
-            respawn_protocol::process_respawn(data, tx_pc_clients_gameplay).await;
+            respawn_protocol::process_respawn(data, regions, tx_pc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
             cli_log::info!("--------------------- process character action");

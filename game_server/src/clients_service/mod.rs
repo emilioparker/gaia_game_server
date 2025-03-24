@@ -146,7 +146,7 @@ pub fn start_server(
                         let c = client_regions[2].load(std::sync::atomic::Ordering::Relaxed);
 
                         // a = 0 makes us receive everything
-                        let is_in_region = *region == a || *region == b || *region == c || a == 0;
+                        let is_in_region = *region == a || *region == b || *region == c || a == 0 || *region == 0;
 
                         if is_in_region && (client.1.1 == *faction || *faction == 0)
                         {
