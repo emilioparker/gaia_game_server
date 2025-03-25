@@ -1,10 +1,10 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo}, gaia_mpsc::GaiaSender};
+use crate::{hero::hero_command::{HeroCommand, HeroCommandInfo}, gaia_mpsc::GaiaSender};
 
 
-pub async fn process(data : &[u8; 508],  channel_character_tx : &GaiaSender<CharacterCommand>)
+pub async fn process(data : &[u8; 508],  channel_character_tx : &GaiaSender<HeroCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;
@@ -39,8 +39,8 @@ pub async fn process(data : &[u8; 508],  channel_character_tx : &GaiaSender<Char
     let missed = data[start]; // 1 bytes
     // start = end;
 
-    let info = CharacterCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed);
-    let map_action = CharacterCommand { player_id, info };
+    let info = HeroCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed);
+    let map_action = HeroCommand { player_id, info };
     
     channel_character_tx.send(map_action).await.unwrap();
 }

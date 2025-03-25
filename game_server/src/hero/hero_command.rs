@@ -15,11 +15,11 @@ pub const NOT_TYPING: u8 = 11;
 
 //    let info = MapCommandInfo::AttackMob(player_id, card_id, required_time, active_effect);
 #[derive(Debug, Clone)]
-pub enum CharacterCommandInfo 
+pub enum HeroCommandInfo 
 {
     Touch(),
     Disconnect(),
-    Movement(CharacterMovement),
+    Movement(HeroMovement),
     Action(u8),
     AttackCharacter(u16, u32, u32, u8, u8), // other_character_id, card_id, required_time, effect
     Greet(),
@@ -32,14 +32,14 @@ pub enum CharacterCommandInfo
 }
 
 #[derive(Debug, Clone)]
-pub struct CharacterCommand 
+pub struct HeroCommand 
 {
     pub player_id : u16,
-    pub info : CharacterCommandInfo
+    pub info : HeroCommandInfo
 }
 
 #[derive(Debug, Clone)]
-pub struct CharacterMovement 
+pub struct HeroMovement 
 {
     pub player_id: u16,
     pub position: TetrahedronId,

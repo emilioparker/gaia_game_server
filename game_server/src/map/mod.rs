@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{mob::mob_instance::MobEntity, character::character_entity::CharacterEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
+use crate::{mob::mob_instance::MobEntity, hero::hero_entity::HeroEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -21,7 +21,7 @@ pub struct GameMap
     pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
-    pub character : Arc<Mutex<HashMap<u16, CharacterEntity>>>,
+    pub character : Arc<Mutex<HashMap<u16, HeroEntity>>>,
     pub towers : Arc<Mutex<HashMap<TetrahedronId, TowerEntity>>>,
 }
 
@@ -32,7 +32,7 @@ impl GameMap
         world_name: String,
         definitions: Definitions,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
-        players : HashMap<u16, CharacterEntity>,
+        players : HashMap<u16, HeroEntity>,
         towers : HashMap<TetrahedronId, TowerEntity>,
     ) -> GameMap
     {

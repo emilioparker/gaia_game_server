@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
-use crate::character::character_card_inventory::CardItem;
-use crate::character::character_inventory::InventoryItem;
-use crate::character::character_weapon_inventory::WeaponItem;
+use crate::hero::hero_card_inventory::CardItem;
+use crate::hero::hero_inventory::InventoryItem;
+use crate::hero::hero_weapon_inventory::WeaponItem;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
-use crate::character::character_command::{CharacterCommand, CharacterMovement};
+use crate::hero::hero_command::{HeroCommand, HeroMovement};
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 

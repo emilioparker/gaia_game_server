@@ -1,10 +1,10 @@
 pub mod db_region;
 pub mod db_world;
-pub mod db_character;
+pub mod db_hero;
 pub mod db_player;
 pub mod db_tower;
 pub mod world_service;
-pub mod characters_service;
+pub mod heroes_service;
 pub mod towers_service;
 
 

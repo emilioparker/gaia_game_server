@@ -4,22 +4,22 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
 
-use super::{character_card_inventory::CardItem, character_inventory::InventoryItem, character_weapon_inventory::WeaponItem};
+use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_weapon_inventory::WeaponItem};
 
-pub const CHARACTER_ENTITY_SIZE: usize = 50;
+pub const HERO_ENTITY_SIZE: usize = 50;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct CharacterEntity 
+pub struct HeroEntity 
 {
     pub object_id: Option<ObjectId>,
     pub player_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
-    pub character_name: String,
-    pub character_id: u16, // 2 bytes
+    pub hero_name: String,
+    pub hero_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub position: TetrahedronId, // 6 bytes
 
@@ -82,16 +82,16 @@ pub enum ItemType
     Equipment = 2
 }
 
-impl CharacterEntity 
+impl HeroEntity 
 {
-    pub fn to_bytes(&self) -> [u8;CHARACTER_ENTITY_SIZE] 
+    pub fn to_bytes(&self) -> [u8;HERO_ENTITY_SIZE] 
     {
-        let mut buffer = [0u8; CHARACTER_ENTITY_SIZE];
+        let mut buffer = [0u8; HERO_ENTITY_SIZE];
         let mut offset = 0;
         let mut end;
 
         end = offset + 2;
-        let player_id_bytes = u16::to_le_bytes(self.character_id); // 2 bytes
+        let player_id_bytes = u16::to_le_bytes(self.hero_id); // 2 bytes
         buffer[..end].copy_from_slice(&player_id_bytes);
         offset = end;
 
@@ -235,12 +235,12 @@ impl CharacterEntity
 
     pub fn get_size() -> usize 
     {
-        CHARACTER_ENTITY_SIZE
+        HERO_ENTITY_SIZE
     }
 
 }
 
-impl Hash for CharacterEntity 
+impl Hash for HeroEntity 
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) 
     {
@@ -248,7 +248,7 @@ impl Hash for CharacterEntity
     }
 }
 
-impl BuffUser for CharacterEntity 
+impl BuffUser for HeroEntity 
 {
     fn get_buffs_mut(&mut self) -> &mut Vec<crate::buffs::buff::Buff> 
     {
@@ -271,7 +271,7 @@ impl BuffUser for CharacterEntity
     }
 }
 
-impl AbilityUser for CharacterEntity
+impl AbilityUser for HeroEntity
 {
     fn get_health(&self) -> u16 
     {
@@ -292,7 +292,7 @@ impl AbilityUser for CharacterEntity
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 
     {
         let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
-        let stat = CharacterEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
+        let stat = HeroEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
         let added_strength : f32 = self.buffs.iter().map(|b| 
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
@@ -315,7 +315,7 @@ impl AbilityUser for CharacterEntity
     
     fn get_total_defense(&self, definition: &Definitions) -> u16 
     {
-        let stat = CharacterEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
+        let stat = HeroEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
         let added_defense : f32 = self.buffs.iter().map(|b| 
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
@@ -341,9 +341,9 @@ mod tests
     use std::num::Wrapping;
 
 
-    use crate::{character::{character_entity::CHARACTER_ENTITY_SIZE, character_inventory::CHARACTER_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
+    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
 
-    use super::CharacterEntity;
+    use super::HeroEntity;
 
 
     #[test]
@@ -390,13 +390,13 @@ mod tests
     #[test]
     fn test_add_inventory_item()
     {
-        let mut entity = CharacterEntity
+        let mut entity = HeroEntity
         {
             object_id: None,
             player_id: None,
             version:1,
-            character_name: "a".to_owned(),
-            character_id: 1234,
+            hero_name: "a".to_owned(),
+            hero_id: 1234,
             faction:0,
             action: 0,
             flags:0,
@@ -445,19 +445,19 @@ mod tests
         let item = super::InventoryItem { item_id: 1, equipped: 1, amount: 1 };
         let buffer = item.to_bytes();
 
-        assert!(buffer.len() == CHARACTER_INVENTORY_ITEM_SIZE);
+        assert!(buffer.len() == HERO_INVENTORY_ITEM_SIZE);
     }
 
     #[test]
     fn test_encode_character()
     {
 
-        let char = CharacterEntity{
+        let char = HeroEntity{
             object_id: None,
             player_id: None,
             version: 1,
-            character_name: "Park".to_string(),
-            character_id: 2,
+            hero_name: "Park".to_string(),
+            hero_id: 2,
             faction: 0,
             position: TetrahedronId::default(),
             second_position: TetrahedronId::default(), 
@@ -489,6 +489,6 @@ mod tests
         let buffer = char.to_bytes();
         cli_log::info!("{:?}", buffer);
 
-        assert!(buffer.len() == CHARACTER_ENTITY_SIZE);
+        assert!(buffer.len() == HERO_ENTITY_SIZE);
     }
 }

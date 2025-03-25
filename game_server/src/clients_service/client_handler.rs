@@ -13,10 +13,10 @@ use crate::ability_user::attack_result::AttackResult;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
-use crate::character::character_command::{CharacterCommand, CharacterMovement};
-use crate::character::character_entity::CharacterEntity;
-use crate::character::character_presentation::CharacterPresentation;
-use crate::character::character_reward::CharacterReward;
+use crate::hero::hero_command::{HeroCommand, HeroMovement};
+use crate::hero::hero_entity::HeroEntity;
+use crate::hero::hero_presentation::HeroPresentation;
+use crate::hero::hero_reward::HeroReward;
 use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;
@@ -30,9 +30,9 @@ use crate::{gaia_mpsc, protocols, ServerState};
 #[derive(Debug)]
 pub enum StateUpdate 
 {
-    PlayerState(CharacterEntity),
-    PlayerGreetings(CharacterPresentation), 
-    Rewards(CharacterReward),
+    PlayerState(HeroEntity),
+    PlayerGreetings(HeroPresentation), 
+    Rewards(HeroReward),
     TileState(MapEntity),
     TowerState(TowerEntity),
     AttackState(Attack),
@@ -53,7 +53,7 @@ pub async fn spawn_client_process(
     diconnected_channel_tx : mpsc::Sender<(std::net::SocketAddr, u64)>,
     tx_mc_clients_gameplay : gaia_mpsc::GaiaSender<MapCommand>,
     tx_moc_clients_gameplay : gaia_mpsc::GaiaSender<MobCommand>,
-    tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<CharacterCommand>,
+    tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<HeroCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>,

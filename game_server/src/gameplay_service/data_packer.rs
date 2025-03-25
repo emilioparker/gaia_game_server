@@ -2,9 +2,9 @@ use crate::ability_user::attack::ATTACK_SIZE;
 use crate::ability_user::attack_result::ATTACK_RESULT_SIZE;
 use crate::mob::mob_instance::{self, MOB_ENTITY_SIZE};
 use crate::{SERVER_STATE_SIZE, ServerState};
-use crate::character::character_entity::CHARACTER_ENTITY_SIZE;
-use crate::character::character_presentation::CHARACTER_PRESENTATION_SIZE;
-use crate::character::character_reward::{CHARACTER_REWARD_SIZE, self};
+use crate::hero::hero_entity::HERO_ENTITY_SIZE;
+use crate::hero::hero_presentation::HERO_PRESENTATION_SIZE;
+use crate::hero::hero_reward::{HERO_REWARD_SIZE, self};
 use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
 use crate::map::map_entity::{MAP_ENTITY_SIZE, MapEntity};
 use crate::clients_service::DataType;
@@ -139,11 +139,11 @@ pub fn create_data_packets_deprecated(data : &Vec<StateUpdate>, packet_number : 
     {
         let required_space = match state_update
         {
-            StateUpdate::PlayerState(_) => CHARACTER_ENTITY_SIZE as u32 + 1,
+            StateUpdate::PlayerState(_) => HERO_ENTITY_SIZE as u32 + 1,
             StateUpdate::TileState(_) => MAP_ENTITY_SIZE as u32 + 1,
-            StateUpdate::PlayerGreetings(_) => CHARACTER_PRESENTATION_SIZE as u32 + 1,
+            StateUpdate::PlayerGreetings(_) => HERO_PRESENTATION_SIZE as u32 + 1,
             StateUpdate::AttackState(_) => ATTACK_SIZE as u32 + 1,
-            StateUpdate::Rewards(_) =>CHARACTER_REWARD_SIZE as u32 + 1,
+            StateUpdate::Rewards(_) =>HERO_REWARD_SIZE as u32 + 1,
             StateUpdate::TowerState(_) => TOWER_ENTITY_SIZE as u32 + 1,
             StateUpdate::ChatMessage(_) => CHAT_ENTRY_SIZE as u32 + 1,
             StateUpdate::ServerStatus(_) => SERVER_STATE_SIZE as u32 + 1,
@@ -190,9 +190,9 @@ pub fn create_data_packets_deprecated(data : &Vec<StateUpdate>, packet_number : 
                 start += 1;
 
                 let player_state_bytes = player_state.to_bytes(); //44
-                let next = start + CHARACTER_ENTITY_SIZE;
+                let next = start + HERO_ENTITY_SIZE;
                 buffer[start..next].copy_from_slice(&player_state_bytes);
-                stored_bytes = stored_bytes + CHARACTER_ENTITY_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + HERO_ENTITY_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -214,9 +214,9 @@ pub fn create_data_packets_deprecated(data : &Vec<StateUpdate>, packet_number : 
                 start += 1;
 
                 let presentation_bytes = presentation.to_bytes(); //28
-                let next = start + CHARACTER_PRESENTATION_SIZE;
+                let next = start + HERO_PRESENTATION_SIZE;
                 buffer[start..next].copy_from_slice(&presentation_bytes);
-                stored_bytes = stored_bytes + CHARACTER_PRESENTATION_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + HERO_PRESENTATION_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },
@@ -250,9 +250,9 @@ pub fn create_data_packets_deprecated(data : &Vec<StateUpdate>, packet_number : 
                 start += 1;
 
                 let reward_bytes = player_reward.to_bytes(); //16 bytes
-                let next = start + character_reward::CHARACTER_REWARD_SIZE;
+                let next = start + hero_reward::HERO_REWARD_SIZE;
                 buffer[start..next].copy_from_slice(&reward_bytes);
-                stored_bytes = stored_bytes + character_reward::CHARACTER_REWARD_SIZE as u32 + 1;
+                stored_bytes = stored_bytes + hero_reward::HERO_REWARD_SIZE as u32 + 1;
                 stored_states = stored_states + 1;
                 start = next;
             },

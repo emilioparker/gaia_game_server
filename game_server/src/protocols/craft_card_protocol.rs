@@ -6,7 +6,7 @@ use tokio::sync::mpsc::Sender;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
-use crate::character::character_command::{CharacterCommand, CharacterMovement};
+use crate::hero::hero_command::{HeroCommand, HeroMovement};
 use crate::protocols::inventory_request_protocol::pack_inventory;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;

@@ -14,7 +14,7 @@ use strum_macros::EnumString;
 
 pub mod protocols;
 pub mod gameplay_service;
-pub mod character;
+pub mod hero;
 pub mod map;
 pub mod web_service;
 pub mod clients_service;

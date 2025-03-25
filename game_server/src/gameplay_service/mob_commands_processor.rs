@@ -1,21 +1,21 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use rand::rngs::StdRng;
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, character::character_inventory::InventoryItem, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
-use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, hero::hero_inventory::InventoryItem, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_instance::MobEntity}, ServerState};
+use crate::hero::{hero_entity::HeroEntity, hero_reward::HeroReward};
 
 pub async fn process_mob_commands (
     map : Arc<GameMap>,
     current_time : u64,
     server_state: Arc<ServerState>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_commands_processor_lock : Arc<Mutex<Vec<MobCommand>>>,
     delayed_mob_commands_lock : Arc<Mutex<Vec<(u64, MobCommand)>>>,
     mobs_summary : &mut Vec<MobEntity>,
-    characters_summary : &mut  Vec<CharacterEntity>,
+    characters_summary : &mut  Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
-    rewards_summary : &mut  Vec<CharacterReward>,
+    rewards_summary : &mut  Vec<HeroReward>,
     attacks_summary : &mut  Vec<Attack>,
 )
 {
@@ -199,11 +199,11 @@ pub async fn process_delayed_mob_commands (
     current_time : u64,
     server_state: Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    characters_summary : &mut Vec<CharacterEntity>,
+    characters_summary : &mut Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
-    rewards_summary : &mut Vec<CharacterReward>,
+    rewards_summary : &mut Vec<HeroReward>,
     delayed_mob_commands_to_execute : Vec<MobCommand>
 )
 {
@@ -457,11 +457,11 @@ pub async fn cast_mob_from_character(
     current_time : u64,
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    characters_summary : &mut Vec<CharacterEntity>,
+    characters_summary : &mut Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
-    characters_rewards_summary : &mut Vec<CharacterReward>,
+    characters_rewards_summary : &mut Vec<HeroReward>,
     card_id: u32,
     character_id:u16,
     mob_id: TetrahedronId,
@@ -469,7 +469,7 @@ pub async fn cast_mob_from_character(
 )
 {
     cli_log::info!("----- attack mob ");
-    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let character_attacker_option = character_entities.get(&character_id);
 
     let mob_region = map.get_mob_region_from_child(&mob_id);
@@ -482,7 +482,7 @@ pub async fn cast_mob_from_character(
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<CharacterEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<HeroEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;
@@ -526,7 +526,7 @@ pub async fn cast_mob_from_character(
 
                 attacker.add_inventory_item(reward);
 
-                characters_rewards_summary.push(CharacterReward
+                characters_rewards_summary.push(HeroReward
                 {
                     player_id: character_id,
                     item_id: shard_id,
@@ -535,7 +535,7 @@ pub async fn cast_mob_from_character(
                 });
             } 
 
-            characters_rewards_summary.push(CharacterReward
+            characters_rewards_summary.push(HeroReward
             {
                 player_id: character_id,
                 item_id: 2,
@@ -543,7 +543,7 @@ pub async fn cast_mob_from_character(
                 inventory_hash: attacker.inventory_version,
             });
 
-            characters_rewards_summary.push(CharacterReward
+            characters_rewards_summary.push(HeroReward
             {
                 player_id: character_id,
                 item_id: 5,
@@ -594,9 +594,9 @@ pub async fn cast_character_from_mob(
     current_time : u64,
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    characters_summary : &mut Vec<CharacterEntity>,
+    characters_summary : &mut Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     card_id: u32,
     character_id:u16,
@@ -605,7 +605,7 @@ pub async fn cast_character_from_mob(
 )
 {
     cli_log::info!("----- attack character ");
-    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let character_defender_option = character_entities.get(&character_id);
 
     let mob_region = map.get_mob_region_from_child(&mob_id);
@@ -618,7 +618,7 @@ pub async fn cast_character_from_mob(
     {
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
-        let result = super::utils::attack::<MobEntity, CharacterEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
+        let result = super::utils::attack::<MobEntity, HeroEntity>(&map.definitions, card_id, current_time_in_seconds, missed, &mut attacker, &mut defender);
 
         attacker.version += 1;
         defender.version += 1;

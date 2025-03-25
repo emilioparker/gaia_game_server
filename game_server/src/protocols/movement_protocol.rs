@@ -2,13 +2,13 @@ use std::{collections::HashMap, sync::{atomic::AtomicU16, Arc}};
 
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{character::character_command::{CharacterCommand, CharacterCommandInfo, CharacterMovement}, gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId};
+use crate::{hero::hero_command::{HeroCommand, HeroCommandInfo, HeroMovement}, gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId};
 
 
 pub async fn process_movement(
     data : &[u8; 508],
     regions : &Arc<HashMap<u16, [AtomicU16;3]>>,
-    channel_tx : &GaiaSender<CharacterCommand>)
+    channel_tx : &GaiaSender<HeroCommand>)
 {
     //1 - protocolo 1 bytes
     //2 - id 8 bytes
@@ -77,7 +77,7 @@ pub async fn process_movement(
 
     cli_log::info!("regions: {} {} {}", region_1, region_2, region_3);
 
-    let action = CharacterMovement 
+    let action = HeroMovement 
     {
         player_id,
         position: position_tile_id,
@@ -88,10 +88,10 @@ pub async fn process_movement(
         dash: dash == 1
     };
 
-    let character_command = CharacterCommand
+    let character_command = HeroCommand
     {
         player_id,
-        info: CharacterCommandInfo::Movement(action)
+        info: HeroCommandInfo::Movement(action)
     };
 
 

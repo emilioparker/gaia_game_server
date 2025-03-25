@@ -13,7 +13,7 @@ use std::net::SocketAddr;
 use hyper::{Body, Response, Server, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
-use crate::character::character_inventory::InventoryItem;
+use crate::hero::hero_inventory::InventoryItem;
 use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
 use crate::definitions::definitions_container::DefinitionsData;
 use crate::map::GameMap;
@@ -23,7 +23,7 @@ use crate::mob::mob_instance::{MobEntity, MOB_ENTITY_SIZE};
 use crate::ServerState;
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 
-pub mod characters;
+pub mod heroes;
 pub mod map;
 pub mod towers;
 pub mod chat;
@@ -242,16 +242,16 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "temp_regions" => map::handle_temp_region_request(context, rest).await,
             "temp_mob_regions" => map::handle_temp_mob_region_request(context, rest).await,
             "definitions" => handle_definition_request(context, req).await,
-            "character_data" => characters::handle_characters_request(context).await,
-            "player_creation" => characters::handle_create_player(context, req).await,
-            "player_data" => characters::handle_player_request(context, req).await,
-            "character_creation" => characters::handle_create_character(context, req).await,
-            "join_with_character" => characters::handle_login_character(context, req).await,
+            "character_data" => heroes::handle_characters_request(context).await,
+            "player_creation" => heroes::handle_create_player(context, req).await,
+            "player_data" => heroes::handle_player_request(context, req).await,
+            "character_creation" => heroes::handle_create_character(context, req).await,
+            "join_with_character" => heroes::handle_login_character(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             // "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
-            "exchange_skill_points" => characters::exchange_skill_points(context, req).await,
+            "exchange_skill_points" => heroes::exchange_skill_points(context, req).await,
             "check_version" => handle_check_version(context, req).await,
             _ => {
                 let mut response = Response::new(Body::from(String::from("route not found")));

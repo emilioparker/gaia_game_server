@@ -1,7 +1,7 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
 use crate::{ability_user::{attack::Attack, attack_result::BATTLE_MOB_MOB}, gaia_mpsc::GaiaSender, map::GameMap, tower::{tower_entity::TowerEntity, TowerCommand, TowerCommandInfo}, ServerState};
-use crate::character::{character_entity::CharacterEntity, character_reward::CharacterReward};
+use crate::hero::{hero_entity::HeroEntity, hero_reward::HeroReward};
 
 
 pub async fn process_tower_commands (
@@ -35,7 +35,7 @@ pub async fn process_tower_commands (
                     TowerCommandInfo::RepairTower(player_id, repair_amount) => 
                     {
                         let mut updated_tower = tower.clone();
-                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
                         // we won't update the player, but might do it eventually. So I am paying the cost already.
                         let player_option = player_entities.get_mut(&player_id);
                         if let Some(player_entity) = player_option 
@@ -100,8 +100,8 @@ pub async fn process_delayed_tower_commands (
     tx_te_gameplay_webservice : &GaiaSender<TowerEntity>,
     // tx_pe_gameplay_longterm : &Sender<CharacterEntity>,
     towers_summary : &mut Vec<TowerEntity>,
-    _players_summary : &mut Vec<CharacterEntity>,
-    _players_rewards_summary : &mut Vec<CharacterReward>,
+    _players_summary : &mut Vec<HeroEntity>,
+    _players_rewards_summary : &mut Vec<HeroReward>,
     delayed_tower_commands_to_execute : Vec<TowerCommand>
 )
 {
@@ -125,7 +125,7 @@ pub async fn process_delayed_tower_commands (
                     {
                         cli_log::info!("Got a tower attack");
                         let mut updated_tower = tower.clone();
-                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
                         let player_option = player_entities.get_mut(&player_id);
                         let faction_damage = if let Some(player_entity) = player_option 
                             {

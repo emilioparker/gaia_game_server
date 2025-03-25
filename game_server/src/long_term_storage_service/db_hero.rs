@@ -1,11 +1,11 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::{buffs::buff::Buff, character::{character_card_inventory::CardItem, character_inventory::InventoryItem, character_weapon_inventory::WeaponItem}};
+use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_weapon_inventory::WeaponItem}};
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct StoredCharacter 
+pub struct StoredHero 
 {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,

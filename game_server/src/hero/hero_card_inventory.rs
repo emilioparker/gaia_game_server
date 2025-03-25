@@ -1,7 +1,7 @@
-use super::character_entity::CharacterEntity;
+use super::hero_entity::HeroEntity;
 
 
-pub const CHARACTER_CARD_INVENTORY_ITEM_SIZE: usize = 7;
+pub const HERO_CARD_INVENTORY_ITEM_SIZE: usize = 7;
 
 
 #[derive(Debug)]
@@ -15,10 +15,10 @@ pub struct CardItem
 
 impl CardItem 
 {
-    pub fn to_bytes(&self) -> [u8; CHARACTER_CARD_INVENTORY_ITEM_SIZE]
+    pub fn to_bytes(&self) -> [u8; HERO_CARD_INVENTORY_ITEM_SIZE]
     {
         let mut start = 0;
-        let mut buffer = [0u8;CHARACTER_CARD_INVENTORY_ITEM_SIZE];
+        let mut buffer = [0u8;HERO_CARD_INVENTORY_ITEM_SIZE];
         let card_id_bytes = u32::to_le_bytes(self.card_id); // 4 bytes
         let end = start + 4; 
         buffer[start..end].copy_from_slice(&card_id_bytes);
@@ -34,7 +34,7 @@ impl CardItem
     }
 }
 
-impl CharacterEntity
+impl HeroEntity
 {
 
     pub fn has_card(&self, id : u32) -> bool

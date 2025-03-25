@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::attack::Attack, character::{character_entity::CharacterEntity, character_inventory::InventoryItem, character_reward::CharacterReward}, gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, GameMap}, ServerState};
+use crate::{ability_user::attack::Attack, hero::{hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_reward::HeroReward}, gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo, MapEntity}, tetrahedron_id::TetrahedronId, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 
@@ -11,10 +11,10 @@ pub async fn process_tile_commands (
     tile_commands_processor_lock : Arc<Mutex<Vec<MapCommand>>>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     tiles_summary : &mut Vec<MapEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
-    players_rewards_summary : &mut Vec<CharacterReward>,
+    players_summary : &mut Vec<HeroEntity>,
+    players_rewards_summary : &mut Vec<HeroReward>,
     player_attacks_summary : &mut  Vec<Attack>,
     delayed_tile_commands_lock : Arc<Mutex<Vec<(u64, MapCommand)>>>
 )
@@ -131,10 +131,10 @@ pub async fn process_delayed_tile_commands (
     server_state: Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     tiles_summary : &mut Vec<MapEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
-    players_rewards_summary : &mut Vec<CharacterReward>,
+    players_summary : &mut Vec<HeroEntity>,
+    players_rewards_summary : &mut Vec<HeroReward>,
     delayed_tile_commands_to_execute : Vec<MapCommand>
 )
 {
@@ -198,10 +198,10 @@ pub async fn extract_resource(
     server_state: &Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     tiles_summary : &mut Vec<MapEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
-    players_rewards_summary : &mut Vec<CharacterReward>,
+    players_summary : &mut Vec<HeroEntity>,
+    players_rewards_summary : &mut Vec<HeroReward>,
     player_id:u16,
     tile_id: TetrahedronId,
     damage: u16
@@ -254,7 +254,7 @@ pub async fn extract_resource(
 
             if updated_tile.health == 0
             {
-                let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+                let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
                 let player_option = player_entities.get_mut(&player_id);
                 if let Some(player_entity) = player_option 
                 {
@@ -273,7 +273,7 @@ pub async fn extract_resource(
 
                     drop(player_entities);
                     // we should also give the player the reward
-                    let reward = CharacterReward 
+                    let reward = HeroReward 
                     {
                         player_id,
                         item_id: new_item.item_id,
@@ -323,7 +323,7 @@ pub async fn lay_foundation(
             updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
             updated_tile.prop = prop;
 
-            let player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+            let player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
 
             let player_option = player_entities.get(&player_id);
             if let Some(player_entity) = player_option {
@@ -392,13 +392,13 @@ pub async fn build_structure(
 pub async fn attack_walker(
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
-    tx_pe_gameplay_longterm : &GaiaSender<CharacterEntity>,
-    players_summary : &mut Vec<CharacterEntity>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    players_summary : &mut Vec<HeroEntity>,
     player_id: u16
 )
 {
     // drop(tiles);
-    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, CharacterEntity>> = map.character.lock().await;
+    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let player_option = player_entities.get_mut(&player_id);
     if let Some(player_entity) = player_option 
     {
@@ -408,7 +408,7 @@ pub async fn attack_walker(
             // && updated_tile.faction != player_entity.faction 
         {
             let result = player_entity.health - damage;
-            let updated_player_entity = CharacterEntity 
+            let updated_player_entity = HeroEntity 
             {
                 action: player_entity.action,
                 version: player_entity.version + 1,

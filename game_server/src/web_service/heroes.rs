@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{Request, Body, Response, http::Error, body, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{character::{character_entity::CharacterEntity, character_presentation::CharacterPresentation}, long_term_storage_service::{db_character::StoredCharacter, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId};
+use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId};
 
 use super::AppContext;
 
@@ -171,7 +171,7 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     let player_data = stored_player.unwrap();
     let stored_player_id = player_data.id;
 
-    let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
+    let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
     let mut characters_cursor = data_collection
     .find(
         bson::doc! {
@@ -290,7 +290,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     // }
 
 
-    let stored_character = StoredCharacter
+    let stored_character = StoredHero
     {
         id: None,
         player_id,
@@ -323,7 +323,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         buffs : Vec::new()
     };
 
-    let data_collection: mongodb::Collection<StoredCharacter> = context.db_client.database("game").collection::<StoredCharacter>("characters");
+    let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
     let result = data_collection.insert_one(stored_character, None).await.unwrap();
 
     let object_id: Option<ObjectId> = match result.inserted_id 
@@ -333,12 +333,12 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     };
 
     let initial_position_tile_id = TetrahedronId::from_string(initial_position);
-    let player_entity = CharacterEntity 
+    let player_entity = HeroEntity 
     {
         object_id,
         player_id,
-        character_name : data.character_name.clone(),
-        character_id: new_id,
+        hero_name : data.character_name.clone(),
+        hero_id: new_id,
         version:1,
         faction: data.faction as u8,
         action: 0,
@@ -383,7 +383,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let mut name_array = [0u32; 5];
     name_array.clone_from_slice(&name_data.as_slice()[0..5]);
 
-    let player_presentation = CharacterPresentation 
+    let player_presentation = HeroPresentation 
     {
         player_id: new_id,
         character_name: name_array,

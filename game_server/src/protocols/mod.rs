@@ -39,7 +39,7 @@ use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
-use crate::character::character_command::CharacterCommand;
+use crate::hero::hero_command::HeroCommand;
 use crate::tower::TowerCommand;
 
 
@@ -87,7 +87,7 @@ pub async fn route_packet(
     server_state: &Arc<ServerState>,
     regions: &Arc<HashMap<u16, [AtomicU16;3]>>,
     tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
-    tx_pc_clients_gameplay: &GaiaSender<CharacterCommand>,
+    tx_pc_clients_gameplay: &GaiaSender<HeroCommand>,
     tx_mc_clients_gameplay: &GaiaSender<MapCommand>,
     tx_moc_clients_gameplay: &GaiaSender<MobCommand>,
     tx_tc_clients_gameplay: &GaiaSender<TowerCommand>,

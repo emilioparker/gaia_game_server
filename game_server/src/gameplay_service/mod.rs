@@ -3,17 +3,17 @@ use std::vec;
 
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
-use crate::character::character_presentation::CharacterPresentation;
+use crate::hero::hero_presentation::HeroPresentation;
 use crate::gaia_mpsc::GaiaSender;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::clients_service::DataType;
 use crate::{gaia_mpsc, ServerChannels, ServerState};
-use crate::character::character_command::{CharacterCommand, CharacterMovement};
+use crate::hero::hero_command::{HeroCommand, HeroMovement};
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
-use crate::character::character_entity::CharacterEntity;
-use crate::character::character_reward::CharacterReward;
+use crate::hero::hero_entity::HeroEntity;
+use crate::hero::hero_reward::HeroReward;
 use crate::map::map_entity::MapEntity;
 use crate::clients_service::client_handler::StateUpdate;
 use crate::tower::TowerCommand;
@@ -25,7 +25,7 @@ use utils::get_mob_commands_to_execute;
 use self::utils::{get_tile_commands_to_execute, get_player_commands_to_execute, get_tower_commands_to_execute};
 pub mod data_packer;
 pub mod utils;
-pub mod player_commands_processor;
+pub mod hero_commands_processor;
 pub mod tile_commands_processor;
 pub mod tower_commands_processor;
 pub mod chat_commands_processor;
@@ -44,7 +44,7 @@ pub struct PacketsData
 }
 
 pub fn start_service(
-    mut rx_pc_client_game : tokio::sync::mpsc::Receiver<CharacterCommand>,
+    mut rx_hc_client_game : tokio::sync::mpsc::Receiver<HeroCommand>,
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     mut rx_moc_client_game : tokio::sync::mpsc::Receiver<MobCommand>,
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
@@ -55,7 +55,7 @@ pub fn start_service(
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
     Receiver<MobEntity>, 
-    Receiver<CharacterEntity>, 
+    Receiver<HeroEntity>, 
     Receiver<TowerEntity>, 
     Receiver<TowerEntity>, 
     GaiaSender<MapCommand>) 
@@ -68,13 +68,13 @@ pub fn start_service(
     let (tx_me_gameplay_longterm, rx_me_gameplay_longterm ) = gaia_mpsc::channel::<MapEntity>(100, ServerChannels::TX_ME_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_me_gameplay_webservice, rx_me_gameplay_webservice) = gaia_mpsc::channel::<MapEntity>(100, ServerChannels::TX_ME_GAMEPLAY_WEBSERVICE, server_state.clone());
     let (tx_moe_gameplay_webservice, rx_moe_gameplay_webservice) = gaia_mpsc::channel::<MobEntity>(100, ServerChannels::TX_MOE_GAMEPLAY_WEBSERVICE, server_state.clone());
-    let (tx_pe_gameplay_longterm, rx_pe_gameplay_longterm ) = gaia_mpsc::channel::<CharacterEntity>(100, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_he_gameplay_longterm, rx_he_gameplay_longterm ) = gaia_mpsc::channel::<HeroEntity>(100, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_WEBSERVICE, server_state.clone());
 
     //players
     //player commands -------------------------------------
-    let player_commands = Vec::<CharacterCommand>::new();
+    let player_commands = Vec::<HeroCommand>::new();
     let player_commands_mutex = Arc::new(Mutex::new(player_commands));
     let player_commands_processor_lock = player_commands_mutex.clone();
     let player_commands_agregator_lock = player_commands_mutex.clone();
@@ -103,7 +103,7 @@ pub fn start_service(
     let delayed_tile_commands_lock = delayed_tile_commands_mutex.clone();
 
     //delayed commands for attacks so they struck a bit later.
-    let delayed_player_commands = Vec::<(u64, CharacterCommand)>::new();
+    let delayed_player_commands = Vec::<(u64, HeroCommand)>::new();
     let delayed_player_commands_mutex = Arc::new(Mutex::new(delayed_player_commands));
     let delayed_player_commands_lock = delayed_player_commands_mutex.clone();
 
@@ -123,7 +123,7 @@ pub fn start_service(
     tokio::spawn(async move {
 
         loop {
-            let message = rx_pc_client_game.recv().await.unwrap();
+            let message = rx_hc_client_game.recv().await.unwrap();
 
             // cli_log::info!("got a player change data {}", message.player_id);
             // let mut current_time = 0;
@@ -175,16 +175,14 @@ pub fn start_service(
     // task that will perdiodically send dta to all clients
     tokio::spawn(async move 
     {
-        // let mut buffer = [0u8; 5000];
-        // let mut packet_number = 1u64;
         let mut server_status_deliver_count = 0u32;
 
-        let mut players_summary = Vec::new();
+        let mut heroes_summary = Vec::new();
         let mut attacks_summary = Vec::new();
         let mut attack_details_summary = Vec::new();
-        let mut players_presentation_summary = Vec::new();
+        let mut heroes_presentation_summary = Vec::new();
         let mut tiles_summary : Vec<MapEntity>= Vec::new();
-        let mut players_rewards_summary : Vec<CharacterReward>= Vec::new();
+        let mut heroes_rewards_summary : Vec<HeroReward>= Vec::new();
         let mut towers_summary : Vec<TowerEntity>= Vec::new();
         let mut mobs_summary : Vec<MobEntity>= Vec::new();
 
@@ -221,31 +219,31 @@ pub fn start_service(
             let delayed_player_commands_to_execute = get_player_commands_to_execute(current_time_in_millis, &mut delayed_player_commands_guards);
             drop(delayed_player_commands_guards);
 
-            player_commands_processor::process_delayed_player_commands(
+            hero_commands_processor::process_delayed_hero_commands(
                 map.clone(), 
                 current_time_in_millis,
                 server_state.clone(),
-                &tx_pe_gameplay_longterm, 
-                &mut players_summary, 
+                &tx_he_gameplay_longterm, 
+                &mut heroes_summary, 
                 &mut attack_details_summary, 
-                &mut players_rewards_summary, 
+                &mut heroes_rewards_summary, 
                 delayed_player_commands_to_execute
             ).await;
 
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
-            player_commands_processor::process_player_commands(
+            hero_commands_processor::process_hero_commands(
                 map.clone(), 
                 server_state.clone(),
                 current_time_in_millis,
                 player_commands_processor_lock.clone(),
-                &tx_pe_gameplay_longterm, 
-                &mut players_summary, 
-                &mut players_presentation_summary, 
+                &tx_he_gameplay_longterm, 
+                &mut heroes_summary, 
+                &mut heroes_presentation_summary, 
                 &mut attacks_summary, 
                 &mut attack_details_summary, 
-                &mut players_rewards_summary, 
+                &mut heroes_rewards_summary, 
                 delayed_player_commands_mutex.clone()).await;
 
 
@@ -263,10 +261,10 @@ pub fn start_service(
                 server_state.clone(),
                 &tx_me_gameplay_longterm,
                 &tx_me_gameplay_webservice,
-                &tx_pe_gameplay_longterm,
+                &tx_he_gameplay_longterm,
                 &mut tiles_summary,
-                &mut players_summary,
-                &mut players_rewards_summary,
+                &mut heroes_summary,
+                &mut heroes_rewards_summary,
                 delayed_tile_commands_to_execute).await;
 
             // drop(delayed_commands_lock);
@@ -281,10 +279,10 @@ pub fn start_service(
                 tile_commands_processor_lock.clone(),
                 &tx_me_gameplay_longterm,
                 &tx_me_gameplay_webservice,
-                &tx_pe_gameplay_longterm,
+                &tx_he_gameplay_longterm,
                 &mut tiles_summary,
-                &mut players_summary,
-                &mut players_rewards_summary,
+                &mut heroes_summary,
+                &mut heroes_rewards_summary,
                 &mut attacks_summary,
                 delayed_tile_commands_lock.clone()).await;
 
@@ -299,8 +297,8 @@ pub fn start_service(
                 &tx_te_gameplay_webservice,
                 // &tx_pe_gameplay_longterm,
                 &mut towers_summary,
-                &mut players_summary,
-                &mut players_rewards_summary,
+                &mut heroes_summary,
+                &mut heroes_rewards_summary,
                 delayed_tower_commands_to_execute).await;
 
             tower_commands_processor::process_tower_commands(
@@ -327,11 +325,11 @@ pub fn start_service(
                 current_time_in_millis,
                 server_state.clone(),
                 &tx_moe_gameplay_webservice,
-                &tx_pe_gameplay_longterm,
+                &tx_he_gameplay_longterm,
                 &mut mobs_summary,
-                &mut players_summary,
+                &mut heroes_summary,
                 &mut attack_details_summary,
-                &mut players_rewards_summary,
+                &mut heroes_rewards_summary,
                 delayed_mob_commands_to_execute).await;
 
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
@@ -341,14 +339,14 @@ pub fn start_service(
                 map.clone(),
                 current_time_in_millis,
                 server_state.clone(),
-                &tx_pe_gameplay_longterm,
+                &tx_he_gameplay_longterm,
                 &tx_moe_gameplay_webservice,
                 mob_commands_processor_lock.clone(),
                 delayed_mob_commands_lock.clone(),
                 &mut mobs_summary,
-                &mut players_summary,
+                &mut heroes_summary,
                 &mut attack_details_summary,
-                &mut players_rewards_summary,
+                &mut heroes_rewards_summary,
                 &mut attacks_summary,
                 ).await;
 
@@ -359,9 +357,9 @@ pub fn start_service(
             let game_packages= 
                 tiles_summary.len() +
                 towers_summary.len() +
-                players_presentation_summary.len() +
-                players_rewards_summary.len() +
-                players_summary.len() +
+                heroes_presentation_summary.len() +
+                heroes_rewards_summary.len() +
+                heroes_summary.len() +
                 attacks_summary.len() +
                 attack_details_summary.len() +
                 mobs_summary.len();
@@ -408,13 +406,13 @@ pub fn start_service(
                     chunk_size);
             });
 
-            players_presentation_summary.drain(..)
+            heroes_presentation_summary.drain(..)
             .for_each(|d| 
             {
                 // presentation goes to everyone...
                 let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let chunk = d.to_bytes();
-                let chunk_size = CharacterPresentation::get_size();
+                let chunk_size = HeroPresentation::get_size();
                 data_packer::build_data_packet(
                     &mut region_packets_data,
                     DataType::PlayerPresentation,
@@ -422,12 +420,12 @@ pub fn start_service(
                     chunk_size);
             });
 
-            players_rewards_summary.drain(..)
+            heroes_rewards_summary.drain(..)
             .for_each(|d| 
             {
                 let mut region_packets_data = packets_data.get_mut(0).unwrap();
                 let chunk = d.to_bytes();
-                let chunk_size = CharacterReward::get_size();
+                let chunk_size = HeroReward::get_size();
                 data_packer::build_data_packet(
                     &mut region_packets_data,
                     DataType::PlayerReward,
@@ -435,18 +433,18 @@ pub fn start_service(
                     chunk_size);
             });
 
-            let len = players_summary.len();
+            let len = heroes_summary.len();
             if len > 0
             {
                 cli_log::info!("--players {len}");
             }
-            players_summary.drain(..)
+            heroes_summary.drain(..)
             .for_each(|d| 
             {
                 let region = map.definitions.regions_by_id.get(&d.position.get_parent(7)).unwrap();
                 let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
-                let chunk_size = CharacterEntity::get_size();
+                let chunk_size = HeroEntity::get_size();
                 data_packer::build_data_packet(
                     &mut region_packets_data,
                     DataType::PlayerState,
@@ -555,7 +553,7 @@ pub fn start_service(
         rx_me_gameplay_longterm,
         rx_me_gameplay_webservice,
         rx_moe_gameplay_webservice,
-        rx_pe_gameplay_longterm,
+        rx_he_gameplay_longterm,
         rx_te_gameplay_longterm,
         rx_te_gameplay_webservice,
         tx_mc_webservice_gameplay

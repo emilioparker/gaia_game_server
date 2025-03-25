@@ -53,9 +53,9 @@ use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
 
 
-fn main() {
-
-    //GAME_SERVER_LOG=debug cargo run --release
+fn main() 
+{
+    //GAIA_LOG=debug cargo run --release
     init_cli_log!("gaia");
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -73,7 +73,6 @@ fn main() {
     cli_log::info!("running tui");
     runtime.block_on(run_tui(rx)); 
     cli_log::info!("--end--");
-
 }
 
 async fn run_tui(rx: Receiver<AppData>)
@@ -149,7 +148,7 @@ async fn run_server(tx: Sender<AppData>)
     if let Some(world) = world_state 
     {
         cli_log::info!("Load the world from db init at {}", world.start_time);
-        let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world.id, db_client.clone()).await;
+        let working_players = long_term_storage_service::heroes_service::get_heroes_from_db_by_world(world.id, db_client.clone()).await;
         //used and updated by the long storage system
         let storage_players = working_players.clone();
 
@@ -160,17 +159,17 @@ async fn run_server(tx: Sender<AppData>)
 
         for (_id, player) in &working_players
         {
-            let name_with_padding = format!("{: <5}", player.character_name);
+            let name_with_padding = format!("{: <5}", player.hero_name);
             let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
             let mut name_array = [0u32; 5];
             name_array.clone_from_slice(&name_data.as_slice()[0..5]);
 
-            let player_presentation = game_server::character::character_presentation::CharacterPresentation 
+            let player_presentation = game_server::hero::hero_presentation::HeroPresentation 
             {
-                player_id: player.character_id,
+                player_id: player.hero_id,
                 character_name: name_array,
             };
-            cli_log::info!("Adding player data {}", player.character_name);
+            cli_log::info!("Adding player data {}", player.hero_name);
 
             presentation_data_cache.extend(player_presentation.to_bytes());
         }
@@ -191,7 +190,7 @@ async fn run_server(tx: Sender<AppData>)
         if let Some(id) = world_id
         {
             cli_log::info!("Creating world with id {}", id);
-            let working_players = long_term_storage_service::characters_service::get_characters_from_db_by_world(world_id, db_client.clone()).await;
+            let working_players = long_term_storage_service::heroes_service::get_heroes_from_db_by_world(world_id, db_client.clone()).await;
             //used and updated by the long storage system
             let storage_players = working_players.clone();
 
@@ -226,7 +225,7 @@ async fn run_server(tx: Sender<AppData>)
             let (
                 rx_mc_client_gameplay,
                 rx_moc_client_gameplay, 
-                rx_pc_client_gameplay, 
+                rx_hc_client_gameplay, 
                 rx_tc_client_gameplay ,
                 rx_cc_client_gameplay ,
                 tx_packets_gameplay_chat_clients,
@@ -238,12 +237,12 @@ async fn run_server(tx: Sender<AppData>)
             let (rx_me_gameplay_longterm,
                 rx_me_gameplay_webservice,
                 rx_moe_gameplay_webservice,
-                rx_pe_gameplay_longterm,
+                rx_he_gameplay_longterm,
                 rx_te_gameplay_longterm,
                 rx_te_gameplay_webservice,
                 _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
-                rx_pc_client_gameplay,
+                rx_hc_client_gameplay,
                 rx_mc_client_gameplay,
                 rx_moc_client_gameplay,
                 rx_tc_client_gameplay,
@@ -265,8 +264,8 @@ async fn run_server(tx: Sender<AppData>)
                 db_client.clone()
             );
 
-            long_term_storage_service::characters_service::start_server(
-                rx_pe_gameplay_longterm,
+            long_term_storage_service::heroes_service::start_server(
+                rx_he_gameplay_longterm,
                 storage_game_map_reference.clone(), 
                 server_state.clone(),
                 db_client.clone()

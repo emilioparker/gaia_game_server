@@ -2,13 +2,13 @@
 use std::collections::{HashSet, HashMap};
 use std::sync::Arc;
 use crate::buffs::buff::{Buff, BuffUser};
-use crate::character::character_card_inventory::CardItem;
-use crate::character::character_inventory::InventoryItem;
-use crate::character::character_weapon_inventory::WeaponItem;
-use crate::long_term_storage_service::db_character::{StoredBuff, StoredCharacter, StoredInventoryItem};
+use crate::hero::hero_card_inventory::CardItem;
+use crate::hero::hero_inventory::InventoryItem;
+use crate::hero::hero_weapon_inventory::WeaponItem;
+use crate::long_term_storage_service::db_hero::{StoredBuff, StoredHero, StoredInventoryItem};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
-use crate::character::character_entity::CharacterEntity;
+use crate::hero::hero_entity::HeroEntity;
 use crate::ServerState;
 use bson::doc;
 use bson::oid::ObjectId;
@@ -18,15 +18,15 @@ use tokio::sync::mpsc::{Receiver};
 use futures_util::stream::StreamExt;
 
 
-pub async fn get_characters_from_db_by_world(
+pub async fn get_heroes_from_db_by_world(
     world_id : Option<ObjectId>,
     db_client : Client
-) -> HashMap<u16, CharacterEntity> {
-    cli_log::info!("get players from db using {:?}", world_id);
+) -> HashMap<u16, HeroEntity> {
+    cli_log::info!("get heroes from db using {:?}", world_id);
 
-    let mut data = HashMap::<u16, CharacterEntity>::new();
+    let mut data = HashMap::<u16, HeroEntity>::new();
 
-    let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("characters");
+    let data_collection: mongodb::Collection<StoredHero> = db_client.database("game").collection::<StoredHero>("characters");
 
     let mut cursor = data_collection
     .find(
@@ -70,9 +70,9 @@ pub async fn get_characters_from_db_by_world(
 
                 cli_log::info!("----- faction {}", doc.faction);
                 let pos = TetrahedronId::from_string(&doc.position);
-                let mut player =  CharacterEntity
+                let mut player =  HeroEntity
                 {
-                    character_id: doc.character_id,
+                    hero_id: doc.character_id,
                     player_id: doc.player_id,
                     version:doc.version,
                     faction: doc.faction,
@@ -84,7 +84,7 @@ pub async fn get_characters_from_db_by_world(
                     time:0,
                     action: doc.action,
                     flags: doc.flags,
-                    character_name: doc.character_name,
+                    hero_name: doc.character_name,
                     inventory,
                     card_inventory,
                     weapon_inventory,
@@ -121,7 +121,7 @@ pub async fn get_characters_from_db_by_world(
 }
 
 pub fn start_server(
-    mut rx_pe_realtime_longterm : Receiver<CharacterEntity>,
+    mut rx_he_realtime_longterm : Receiver<HeroEntity>,
     map : Arc<GameMap>,
     server_state : Arc<ServerState>,
     db_client : Client)
@@ -146,23 +146,23 @@ pub fn start_server(
     {
         loop 
         {
-            let message = rx_pe_realtime_longterm.recv().await.unwrap();
-            cli_log::info!("--player entity changed  with id {}" , message.character_id);
+            let message = rx_he_realtime_longterm.recv().await.unwrap();
+            cli_log::info!("--hero entity changed  with id {}" , message.hero_id);
             let mut modified_players = modified_players_update_lock.lock().await;
-            modified_players.insert(message.character_id.clone());
+            modified_players.insert(message.hero_id.clone());
 
             let mut locked_players = map_updater.character.lock().await;
 
-            let old = locked_players.get(&message.character_id);
+            let old = locked_players.get(&message.hero_id);
             match old 
             {
                 Some(_previous_record) => 
                 {
-                    locked_players.insert(message.character_id.clone(), message);
+                    locked_players.insert(message.hero_id.clone(), message);
                 }
                 _ => 
                 {
-                   locked_players.insert(message.character_id.clone(), message);
+                   locked_players.insert(message.hero_id.clone(), message);
                 }
             }
             map_updater_server_state.pending_character_entities_to_save.store(modified_players.len() as u32, std::sync::atomic::Ordering::Relaxed);
@@ -183,7 +183,7 @@ pub fn start_server(
             let modified_heroes = modified_player_keys.len();
             let locked_players = map_reader.character.lock().await;
 
-            let mut modified_player_entities = Vec::<CharacterEntity>::new();
+            let mut modified_player_entities = Vec::<HeroEntity>::new();
             for player_id in modified_player_keys.iter()
             {
                 cli_log::info!("this player was changed {}", player_id.to_string());
@@ -197,7 +197,7 @@ pub fn start_server(
             drop(modified_player_keys);
             drop(locked_players);
 
-            let data_collection: mongodb::Collection<StoredCharacter> = db_client.database("game").collection::<StoredCharacter>("characters");
+            let data_collection: mongodb::Collection<StoredHero> = db_client.database("game").collection::<StoredHero>("characters");
 
             for player in modified_player_entities 
             {

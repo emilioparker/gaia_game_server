@@ -1,10 +1,10 @@
 use rand::rngs::StdRng;
 
-use crate::{character::character_card_inventory::CardItem, definitions::{definitions_container::Definitions, Definition}};
+use crate::{hero::hero_card_inventory::CardItem, definitions::{definitions_container::Definitions, Definition}};
 
-use super::character_entity::CharacterEntity;
+use super::hero_entity::HeroEntity;
 
-pub const CHARACTER_INVENTORY_ITEM_SIZE: usize = 7;
+pub const HERO_INVENTORY_ITEM_SIZE: usize = 7;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -17,10 +17,10 @@ pub struct InventoryItem
 
 impl InventoryItem 
 {
-    pub fn to_bytes(&self) -> [u8; CHARACTER_INVENTORY_ITEM_SIZE]
+    pub fn to_bytes(&self) -> [u8; HERO_INVENTORY_ITEM_SIZE]
     {
         let mut start = 0;
-        let mut buffer = [0u8;CHARACTER_INVENTORY_ITEM_SIZE];
+        let mut buffer = [0u8;HERO_INVENTORY_ITEM_SIZE];
         let item_id_bytes = u32::to_le_bytes(self.item_id); // 4 bytes
         let end = start + 4; 
         buffer[start..end].copy_from_slice(&item_id_bytes);
@@ -36,7 +36,7 @@ impl InventoryItem
     }
 }
 
-impl CharacterEntity 
+impl HeroEntity 
 {
     pub fn has_inventory_item(&self, id : u32) -> bool
     {

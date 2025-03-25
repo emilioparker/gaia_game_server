@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::rngs::StdRng;
 use tokio::sync::mpsc::Sender;
 
-use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, character::{character_command::CharacterCommand, character_entity::{CharacterEntity}, character_reward::CharacterReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, web_service::characters::PlayerCreationRequest, ServerState};
+use crate::{ability_user::{attack_result::{BLOCKED_ATTACK_RESULT, MISSED_ATTACK_RESULT, NORMAL_ATTACK_RESULT}, AbilityUser}, buffs::buff::{BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, hero::{hero_command::HeroCommand, hero_entity::{HeroEntity}, hero_reward::HeroReward}, definitions::definitions_container::Definitions, map::map_entity::{MapCommand, MapEntity}, mob::mob_command::MobCommand, tower::{tower_entity::TowerEntity, TowerCommand}, web_service::heroes::PlayerCreationRequest, ServerState};
 
 
 pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
@@ -155,9 +155,9 @@ pub fn get_tower_commands_to_execute(current_time : u64, delayed_tower_commands_
 }
 
 
-pub fn get_player_commands_to_execute(current_time : u64, delayed_player_commands_guards : &mut Vec<(u64, CharacterCommand)>) -> Vec<CharacterCommand>
+pub fn get_player_commands_to_execute(current_time : u64, delayed_player_commands_guards : &mut Vec<(u64, HeroCommand)>) -> Vec<HeroCommand>
 {
-    let mut player_commands_to_execute = Vec::<CharacterCommand>::new();
+    let mut player_commands_to_execute = Vec::<HeroCommand>::new();
 
     // cli_log::info!("checking delayed plaeyr commands {}" , delayed_commands_lock.len());
     delayed_player_commands_guards.retain(|b| 

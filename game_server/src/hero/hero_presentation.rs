@@ -1,14 +1,17 @@
-pub const CHARACTER_PRESENTATION_SIZE: usize = 22;
+pub const HERO_PRESENTATION_SIZE: usize = 22;
 
 #[derive(Debug, Clone)]
-pub struct CharacterPresentation {
+pub struct HeroPresentation 
+{
     pub player_id: u16, // 2 bytes
     pub character_name: [u32;5], //20 bytes
 }
 
-impl CharacterPresentation {
+impl HeroPresentation 
+{
     // used by the test_client ignores the protocol byte.
-    pub fn to_bytes(&self) -> [u8;22] {
+    pub fn to_bytes(&self) -> [u8;22] 
+    {
         let mut buffer = [0u8; 22];
 
         let mut start : usize = 0;
@@ -31,7 +34,8 @@ impl CharacterPresentation {
         buffer
     }
 
-    pub fn from_bytes(data: &[u8;508]) -> Self {
+    pub fn from_bytes(data: &[u8;508]) -> Self 
+    {
 
         //1 - protocolo 1 bytes
         //2 - id 8 bytes
@@ -56,12 +60,12 @@ impl CharacterPresentation {
         end = start + 4;
         let e = decode_u32(data, &mut start, end);
 
-        CharacterPresentation { player_id, character_name: [a,b,c,d,e] }
+        HeroPresentation { player_id, character_name: [a,b,c,d,e] }
     }
 
     pub fn get_size() -> usize 
     {
-        CHARACTER_PRESENTATION_SIZE
+        HERO_PRESENTATION_SIZE
     }
 }
 
