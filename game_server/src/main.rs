@@ -70,6 +70,7 @@ fn main()
     let (tx, rx) = oneshot::channel();
     cli_log::info!("running server");
     runtime.spawn(run_server(tx)); 
+    // runtime.block_on(run_server(tx)); 
     cli_log::info!("running tui");
     runtime.block_on(run_tui(rx)); 
     cli_log::info!("--end--");

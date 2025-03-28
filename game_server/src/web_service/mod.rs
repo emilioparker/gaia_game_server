@@ -230,14 +230,16 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
 
 }
 
-async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>, Error> {
-
+async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>, Error> 
+{
     let uri = req.uri().to_string();
     let mut data = uri.split("/");
     data.next();
-    if let Some(route) = data.next() {
+    if let Some(route) = data.next() 
+    {
         let rest : Vec<&str> = data.collect();
-        match route {
+        match route 
+        {
             "region" => map::handle_region_request(context, rest).await,
             "temp_regions" => map::handle_temp_region_request(context, rest).await,
             "temp_mob_regions" => map::handle_temp_mob_region_request(context, rest).await,
@@ -245,22 +247,25 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "character_data" => heroes::handle_characters_request(context).await,
             "player_creation" => heroes::handle_create_player(context, req).await,
             "player_data" => heroes::handle_player_request(context, req).await,
-            "character_creation" => heroes::handle_create_character(context, req).await,
-            "join_with_character" => heroes::handle_login_character(context, req).await,
+            "hero_creation" => heroes::handle_create_hero(context, req).await,
+            "join_with_hero" => heroes::handle_login_with_hero(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
             // "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
             "exchange_skill_points" => heroes::exchange_skill_points(context, req).await,
             "check_version" => handle_check_version(context, req).await,
-            _ => {
+            _ => 
+            {
+                cli_log::warn!("route not found: {route}");
                 let mut response = Response::new(Body::from(String::from("route not found")));
                 *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
                 return Ok(response);
             }
         }
     }
-    else {
+    else 
+    {
         let mut response = Response::new(Body::from(String::from("missing route")));
         *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
         return Ok(response);

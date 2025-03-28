@@ -25,7 +25,7 @@ pub struct PlayerCreationResponse
 pub struct CharacterCreationRequest 
 {
     pub player_token: String,
-    pub character_name:String,
+    // pub character_name:String,
     pub faction:u32,
 }
 
@@ -46,8 +46,8 @@ pub struct Iteration
 {
     pub playing:bool,
     pub world_name:String,
-    pub character_id:u16,
-    pub character_name:String
+    pub hero_id:u16,
+    pub hero_name:String
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -59,17 +59,17 @@ pub struct PlayerDetailsResponse
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct JoinWithCharacterRequest 
+pub struct JoinWithHeroRequest 
 {
     pub player_token: String,
-    pub character_id:u16,
+    pub hero_id:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct JoinWithCharacterResponse 
+pub struct JoinWithHeroResponse 
 {
     pub session_id:u64,
-    pub character_id:u16,
+    pub hero_id:u16,
     pub faction:u8,
     pub position:String,
     pub vertex_id:i32,
@@ -123,7 +123,8 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
     let player_token = format!("token_{}", current_time.as_secs());
     cli_log::info!("got a {} as player token",player_token);
 
-    let stored_character = StoredPlayer{
+    let stored_character = StoredPlayer
+    {
         id: None,
         player_name: data.player_name,
         player_token: player_token.clone(),
@@ -136,7 +137,8 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
     //     _ => None,
     // };
 
-    let new_character = PlayerCreationResponse{
+    let new_character = PlayerCreationResponse
+    {
         player_token,
     };
 
@@ -174,7 +176,8 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
     let mut characters_cursor = data_collection
     .find(
-        bson::doc! {
+        bson::doc! 
+        {
                 "player_id": stored_player_id,
         },
         None,
@@ -186,12 +189,13 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     while let Some(result) = characters_cursor.next().await {
         match result 
         {
-            Ok(doc) => {
+            Ok(doc) => 
+            {
                 characters.push(Iteration {
                     playing: true, 
                     world_name: doc.world_name.clone(),
-                    character_id: doc.character_id,
-                    character_name: doc.character_name.to_string(),
+                    hero_id: doc.character_id,
+                    hero_name: doc.character_name.to_string(),
                     })
             },
             Err(error_details) => {
@@ -209,7 +213,8 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     //  I should be requesting all available worlds...
     let data_from_db = worlds_collection
     .find_one(
-        bson::doc! {
+        bson::doc! 
+        {
                 "world_name": context.storage_game_map.world_name.to_owned()
         },
         None,
@@ -220,7 +225,8 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
         active_worlds.push(w.world_name);
     }
 
-    let response_data = PlayerDetailsResponse {
+    let response_data = PlayerDetailsResponse 
+    {
         
         joined_worlds: characters,
         active_worlds,
@@ -232,8 +238,8 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     return Ok(response);
 }
 
-pub async fn handle_create_character(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> {
-
+pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+{
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: CharacterCreationRequest = serde_json::from_slice(&data).unwrap();
@@ -249,14 +255,15 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     ).await
     .unwrap();
 
-    let player_id = data_from_db.map(|p| p.id).flatten();
 
-    if player_id.is_none()
+    if data_from_db.is_none()
     {
         let mut response = Response::new(Body::from(String::from("player doesn't exist")));
         *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
         return Ok(response);
     }
+
+    let stored_player = data_from_db.unwrap();
 
     let generator = &context.working_game_map.id_generator;
     let new_id = generator.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -293,12 +300,12 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let stored_character = StoredHero
     {
         id: None,
-        player_id,
+        player_id: stored_player.id,
         version:1,
         world_id: context.working_game_map.world_id.clone(),
         world_name: context.working_game_map.world_name.clone(),
         character_id: new_id,
-        character_name: data.character_name.clone(),
+        character_name: stored_player.player_name.clone(),
         position:initial_position.to_owned(),
         vertex_id: -1,
         faction: data.faction as u8,
@@ -336,8 +343,8 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     let player_entity = HeroEntity 
     {
         object_id,
-        player_id,
-        hero_name : data.character_name.clone(),
+        player_id: stored_player.id,
+        hero_name : stored_player.player_name.clone(),
         hero_id: new_id,
         version:1,
         faction: data.faction as u8,
@@ -378,7 +385,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
 
     drop(players);
 
-    let name_with_padding = format!("{: <5}", data.character_name);
+    let name_with_padding = format!("{: <5}", stored_player.player_name);
     let name_data : Vec<u32> = name_with_padding.chars().into_iter().map(|c| c as u32).collect();
     let mut name_array = [0u32; 5];
     name_array.clone_from_slice(&name_data.as_slice()[0..5]);
@@ -389,7 +396,7 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
         character_name: name_array,
     };
     
-    cli_log::info!("Adding player data {}", data.character_name);
+    cli_log::info!("Adding player data {}", stored_player.player_name);
     let mut presentation_data_cache =  context.cached_presentation_data.lock().await;
     presentation_data_cache.extend(player_presentation.to_bytes());
 
@@ -404,18 +411,19 @@ pub async fn handle_create_character(context: AppContext, mut req: Request<Body>
     Ok(Response::new(Body::from(response)))
 }
 
-pub async fn handle_login_character(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
 
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
-    let data: JoinWithCharacterRequest = serde_json::from_slice(&data).unwrap();
+    let data: JoinWithHeroRequest = serde_json::from_slice(&data).unwrap();
     cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let data_from_db: Option<StoredPlayer> = data_collection
     .find_one(
-        bson::doc! {
+        bson::doc! 
+        {
                 "player_token": data.player_token.clone(),
         },
         None,
@@ -426,7 +434,8 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
     {
         player.player_token == data.player_token
     }
-    else {
+    else 
+    {
         false 
     };
 
@@ -439,7 +448,7 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
 
     let players = context.working_game_map.character.lock().await;
 
-    if let Some(player) = players.get(&data.character_id) 
+    if let Some(player) = players.get(&data.hero_id) 
     {
         cli_log::info!("player login {:?} vertex id {}", player, player.vertex_id);
 
@@ -450,8 +459,8 @@ pub async fn handle_login_character(context: AppContext, mut req: Request<Body>)
         let encoded_player_data = player.to_bytes();
         drop(players);
 
-        cli_log::info!("creating session id {} for {}", session_id, data.character_id);
-        let session = &context.working_game_map.logged_in_players[data.character_id as usize];
+        cli_log::info!("creating session id {} for {}", session_id, data.hero_id);
+        let session = &context.working_game_map.logged_in_players[data.hero_id as usize];
         session.store(session_id, std::sync::atomic::Ordering::Relaxed);
 
         let session_bytes = u64::to_le_bytes(session_id); // 8 bytes
