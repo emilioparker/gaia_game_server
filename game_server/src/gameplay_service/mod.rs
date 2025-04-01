@@ -537,7 +537,7 @@ pub fn start_service(
 
                 if region_packets_data.packets.len() > 0 
                 {
-                    cli_log::info!("--found packets for region {} size: {} game_packets: {}", region_packets_data.region, region_packets_data.packets.iter().len(), region_packets_data.game_packets_count);
+                    // cli_log::info!("--found packets for region {} size: {} game_packets: {}", region_packets_data.region, region_packets_data.packets.iter().len(), region_packets_data.game_packets_count);
                     let mut temp_vec = Vec::new();
                     std::mem::swap(&mut region_packets_data.packets, &mut temp_vec);
                     tx_bytes_game_socket.send(temp_vec).await.unwrap();
