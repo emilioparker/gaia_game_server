@@ -52,6 +52,7 @@ use tokio::sync::oneshot;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
 
+use std::panic::{set_hook, take_hook};
 
 fn main() 
 {
@@ -72,6 +73,7 @@ fn main()
     runtime.spawn(run_server(tx)); 
     // runtime.block_on(run_server(tx)); 
     cli_log::info!("running tui");
+    init_panic_hook();
     runtime.block_on(run_tui(rx)); 
     cli_log::info!("--end--");
 }
@@ -87,6 +89,23 @@ async fn run_tui(rx: Receiver<AppData>)
     // let terminal = ratatui::init();
     // let result = app::App::new().run(terminal);
     // ratatui::restore();
+}
+
+pub fn init_panic_hook() {
+    let original_hook = take_hook();
+    set_hook(Box::new(move |panic_info| 
+    {
+        // intentionally ignore errors here since we're already in a panic
+        let _ = restore_tui();
+        original_hook(panic_info);
+    }));
+}
+
+pub fn restore_tui() -> std::io::Result<()> 
+{
+    crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(std::io::stdout(), crossterm::terminal::LeaveAlternateScreen)?;
+    Ok(())
 }
 
 // #[tokio::main(worker_threads = 1)]

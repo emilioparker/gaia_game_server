@@ -40,7 +40,8 @@ pub async fn process(
             message[i] = letter;
         }
 
-        let chat_message = ChatCommand{
+        let chat_message = ChatCommand
+        {
             id: tile_id,
             faction,
             player_id,
