@@ -56,8 +56,9 @@ use std::panic::{set_hook, take_hook};
 
 fn main() 
 {
-    //GAIA_LOG=debug cargo run --release
     init_cli_log!("gaia");
+    init_panic_hook();
+    //GAIA_LOG=debug cargo run --release
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
@@ -68,14 +69,13 @@ fn main()
         .unwrap();
 
 
-    let (tx, rx) = oneshot::channel();
     cli_log::info!("running server");
+    let (tx, rx) = oneshot::channel();
     runtime.spawn(run_server(tx)); 
     // runtime.block_on(run_server(tx)); 
+
     cli_log::info!("running tui");
-    init_panic_hook();
     runtime.block_on(run_tui(rx)); 
-    cli_log::info!("--end--");
 }
 
 async fn run_tui(rx: Receiver<AppData>)
@@ -91,7 +91,8 @@ async fn run_tui(rx: Receiver<AppData>)
     // ratatui::restore();
 }
 
-pub fn init_panic_hook() {
+pub fn init_panic_hook() 
+{
     let original_hook = take_hook();
     set_hook(Box::new(move |panic_info| 
     {
@@ -112,10 +113,12 @@ pub fn restore_tui() -> std::io::Result<()>
 // #[tokio::main()]
 async fn run_server(tx: Sender<AppData>) 
 {
+    cli_log::info!("running server");
     let mut main_loop = tokio::time::interval(std::time::Duration::from_millis(50000));
 
     let definitions = load_definitions().await;
 
+    cli_log::info!("definitions loaded");
     let mut channels_status = HashMap::new();
     for channel in ServerChannels::iter() 
     {
@@ -159,6 +162,7 @@ async fn run_server(tx: Sender<AppData>)
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
 
+    cli_log::info!("checking world state");
     let world_state = long_term_storage_service::world_service::check_world_state(world_name, db_client.clone()).await;
 
 

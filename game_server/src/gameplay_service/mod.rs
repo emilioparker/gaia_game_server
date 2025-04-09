@@ -117,12 +117,13 @@ pub fn start_service(
     let delayed_mob_commands_mutex = Arc::new(Mutex::new(delayed_mob_commands));
     let delayed_mob_commands_lock = delayed_mob_commands_mutex.clone();
 
-    let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
 
     //task that will handle receiving state changes from clients and updating the global statestate.
-    tokio::spawn(async move {
-
-        loop {
+    tokio::spawn(async move 
+    {
+        loop 
+        {
             let message = rx_hc_client_game.recv().await.unwrap();
 
             // cli_log::info!("got a player change data {}", message.player_id);
@@ -139,7 +140,8 @@ pub fn start_service(
     });
 
     // task that gathers world changes comming from a client into a list.
-    tokio::spawn(async move {
+    tokio::spawn(async move 
+    {
         // let mut sequence_number:u64 = 101;
         loop 
         {
@@ -364,13 +366,12 @@ pub fn start_service(
                 attack_details_summary.len() +
                 mobs_summary.len();
 
-            if game_packages == 0 && (current_time_in_millis - previous_time) < 1000
-            {
-                // cli_log::info!("--- skipping, no data to transmit");
-                continue;
-            }
+            // if game_packages == 0 && (current_time_in_millis - previous_time) < 1000
+            // {
+            //     // cli_log::info!("--- skipping, no data to transmit");
+            //     continue;
+            // }
 
-            previous_time = current_time_in_millis;
 
 
             // let len = tiles_summary.len();
@@ -511,7 +512,7 @@ pub fn start_service(
 
             let mut global_regions_packets_data = packets_data.get_mut(0).unwrap();
             server_status_deliver_count += global_regions_packets_data.packets.len() as u32;
-            if server_status_deliver_count > 50
+            if server_status_deliver_count > 10 
             {
                 server_status_deliver_count = 0;
 
@@ -523,7 +524,14 @@ pub fn start_service(
                     DataType::ServerStatus,
                     &chunk,
                     chunk_size);
+
+                // let time_since_last_message =  current_time_in_millis - previous_time;
+                // cli_log::info!("---transmit since last status {}",time_since_last_message);
+                previous_time = current_time_in_millis;
             }
+
+            // 10 milliseconds * 50 = 500 milliseconds
+
 
 
             // cli_log::info!("---checking regions data packets");
@@ -545,6 +553,7 @@ pub fn start_service(
                     region_packets_data.offset = 0;
                 }
             }
+
 
         }
     });
