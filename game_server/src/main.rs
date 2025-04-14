@@ -97,7 +97,7 @@ pub fn init_panic_hook()
     set_hook(Box::new(move |panic_info| 
     {
         // intentionally ignore errors here since we're already in a panic
-        let _ = restore_tui();
+        // let _ = restore_tui();
         // original_hook(panic_info);
         
         // Extract the panic message (if any)
