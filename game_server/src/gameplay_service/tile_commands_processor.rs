@@ -319,7 +319,6 @@ pub async fn lay_foundation(
             updated_tile.health = 500;
             updated_tile.constitution = 0;
 
-            updated_tile.target_id = updated_tile.id.clone();
             updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
             updated_tile.prop = prop;
 
@@ -439,45 +438,45 @@ pub async fn move_mob(
     mob_id: u32,
 )
 {
-    let region = map.get_region_from_child(&tile_id);
-    let mut tiles = region.lock().await;
-    if let Some(tile) = tiles.get_mut(&tile_id)
-    {
-        let mut updated_tile = tile.clone();
-        let id = tile_id.to_string();
-        let tile_time = updated_tile.ownership_time;
-        cli_log::info!("move mob {id} tile time: {tile_time}");
-        let current_time_in_seconds = (current_time / 1000) as u32;
-        // we also need to be sure this player has control over the tile
-        if updated_tile.prop == mob_id // we are mostly sure you know this is a mob and wants to move 
-            && updated_tile.target_id != new_tile_id
-            && updated_tile.time < current_time_in_seconds // only if you are not doing something already
-            && updated_tile.owner_id == player_id
-        {
-            updated_tile.version += 1;
-            // let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
-            let required_time = required_time.round() as u32;
-            // cli_log::info!("required time {} " , required_time);
-            updated_tile.time = current_time_in_seconds + required_time;
-            updated_tile.origin_id = tile.target_id.clone();
-            updated_tile.target_id = new_tile_id.clone();
+    // let region = map.get_region_from_child(&tile_id);
+    // let mut tiles = region.lock().await;
+    // if let Some(tile) = tiles.get_mut(&tile_id)
+    // {
+    //     let mut updated_tile = tile.clone();
+    //     let id = tile_id.to_string();
+    //     let tile_time = updated_tile.ownership_time;
+    //     cli_log::info!("move mob {id} tile time: {tile_time}");
+    //     let current_time_in_seconds = (current_time / 1000) as u32;
+    //     // we also need to be sure this player has control over the tile
+    //     if updated_tile.prop == mob_id // we are mostly sure you know this is a mob and wants to move 
+    //         && updated_tile.target_id != new_tile_id
+    //         && updated_tile.time < current_time_in_seconds // only if you are not doing something already
+    //         && updated_tile.owner_id == player_id
+    //     {
+    //         updated_tile.version += 1;
+    //         // let required_time = u32::max(1, (*distance / 0.5f32).ceil() as u32);
+    //         let required_time = required_time.round() as u32;
+    //         // cli_log::info!("required time {} " , required_time);
+    //         updated_tile.time = current_time_in_seconds + required_time;
+    //         updated_tile.origin_id = tile.target_id.clone();
+    //         updated_tile.target_id = new_tile_id.clone();
 
-            updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
-            // cli_log::info!("updating ownership time {}" , updated_tile.ownership_time);
+    //         updated_tile.ownership_time = current_time_in_seconds; // more seconds of control
+    //         // cli_log::info!("updating ownership time {}" , updated_tile.ownership_time);
 
-            tiles_summary.push(updated_tile.clone());
-            *tile = updated_tile.clone();
-            drop(tiles);
+    //         tiles_summary.push(updated_tile.clone());
+    //         *tile = updated_tile.clone();
+    //         drop(tiles);
 
-            // sending the updated tile somewhere.
-            tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
-            tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
-        }
-        else 
-        {
-            tiles_summary.push(updated_tile.clone());
-        }
-    }
+    //         // sending the updated tile somewhere.
+    //         tx_me_gameplay_longterm.send(updated_tile.clone()).await.unwrap();
+    //         tx_me_gameplay_webservice.send(updated_tile.clone()).await.unwrap();
+    //     }
+    //     else 
+    //     {
+    //         tiles_summary.push(updated_tile.clone());
+    //     }
+    // }
 
 }
 
@@ -506,8 +505,8 @@ pub async fn lay_wall_foundation(
             updated_tile.constitution = 0;
             updated_tile.health = 30 * wall_size;
 
-            updated_tile.origin_id = endpoint_a.clone();
-            updated_tile.target_id = endpoint_b.clone();
+            // updated_tile.origin_id = endpoint_a.clone();
+            // updated_tile.target_id = endpoint_b.clone();
             updated_tile.ownership_time = 0; // more seconds of control
             updated_tile.prop = prop; // it has to be a wall...
             updated_tile.faction = faction;

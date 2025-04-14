@@ -2,10 +2,11 @@ use bson::oid::ObjectId;
 
 use super::tetrahedron_id::TetrahedronId;
 
-pub const MAP_ENTITY_SIZE: usize = 76;
+pub const MAP_ENTITY_SIZE: usize = 62;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MapEntity { // 76 bytes
+pub struct MapEntity 
+{ // 62 bytes
     pub object_id : Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub id : TetrahedronId, // 6 bytes
@@ -15,8 +16,6 @@ pub struct MapEntity { // 76 bytes
     pub ownership_time : u32, // 4 bytes
 
     // for moving between origin and target
-    pub origin_id : TetrahedronId, // 6 bytes
-    pub target_id : TetrahedronId, // 6 bytes
     pub time : u32,// 4 bytes
 
     pub prop: u32, // 4 bytes
@@ -28,15 +27,15 @@ pub struct MapEntity { // 76 bytes
     pub pathness : [f32;3], // 12 bytes
     pub health:u16, // 2 bytes
     pub constitution:u16, // 2 bytes
-    pub strength:u16, // 2 bytes
-    pub dexterity:u16, // 2 bytes
+    pub mana:u16, // 2 bytes
 }
 
-impl MapEntity {
+impl MapEntity 
+{
     pub fn new(id : &str, health : u16) -> MapEntity 
     {
-        
-        let entity = MapEntity{
+        let entity = MapEntity
+        {
             object_id: None,
             version: 1000,
             id: TetrahedronId::from_string(id),
@@ -44,8 +43,6 @@ impl MapEntity {
             owner_id: 0,
             ownership_time: 0,
 
-            origin_id: TetrahedronId::from_string(id),
-            target_id: TetrahedronId::from_string(id),
             time: 0,
 
             prop: 10,
@@ -56,21 +53,22 @@ impl MapEntity {
             heights: [0.2,1.0,2.2],
             pathness: [0.0,0.0,0.0],
             health,
-            constitution: health,
-            strength: 1,
-            dexterity: 1,
+            constitution:health,
+            mana: 1,
         };
           
         entity
     }
 
-    pub fn get_size() -> usize {
+    pub fn get_size() -> usize 
+    {
         MAP_ENTITY_SIZE
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum MapCommandInfo {
+pub enum MapCommandInfo 
+{
     Touch(),
     ResourceExtraction(u16,u16),
     LayFoundation(u16, u32, u8, f32, f32, f32),
@@ -79,13 +77,16 @@ pub enum MapCommandInfo {
 }
 
 #[derive(Debug, Clone)]
-pub struct MapCommand {
+pub struct MapCommand 
+{
     pub id : TetrahedronId,
     pub info : MapCommandInfo
 }
 
-impl MapEntity {
-    pub fn to_bytes(&self) -> [u8;MAP_ENTITY_SIZE] {
+impl MapEntity 
+{
+    pub fn to_bytes(&self) -> [u8;MAP_ENTITY_SIZE] 
+    {
         let mut buffer = [0u8;MAP_ENTITY_SIZE];
         let mut start : usize;
         let mut end : usize;
@@ -102,15 +103,15 @@ impl MapEntity {
         u16_into_buffer(&mut buffer, self.owner_id, &mut start, &mut end);
         u32_into_buffer(&mut buffer, self.ownership_time, &mut start, &mut end);
 
-        end = start + 6;
-        let origin_id_bytes = self.origin_id.to_bytes(); // 6 bytes
-        buffer[start..end].copy_from_slice(&origin_id_bytes);
-        start = end;
+        // end = start + 6;
+        // let origin_id_bytes = self.origin_id.to_bytes(); // 6 bytes
+        // buffer[start..end].copy_from_slice(&origin_id_bytes);
+        // start = end;
 
-        end = start + 6;
-        let target_id_bytes = self.target_id.to_bytes(); // 6 bytes
-        buffer[start..end].copy_from_slice(&target_id_bytes);
-        start = end;
+        // end = start + 6;
+        // let target_id_bytes = self.target_id.to_bytes(); // 6 bytes
+        // buffer[start..end].copy_from_slice(&target_id_bytes);
+        // start = end;
 
         u32_into_buffer(&mut buffer, self.time, &mut start, &mut end);
         u32_into_buffer(&mut buffer, self.prop, &mut start, &mut end);
@@ -135,13 +136,13 @@ impl MapEntity {
 
         u16_into_buffer(&mut buffer, self.health, &mut start, &mut end);
         u16_into_buffer(&mut buffer, self.constitution, &mut start, &mut end);
-        u16_into_buffer(&mut buffer, self.strength, &mut start, &mut end);
-        u16_into_buffer(&mut buffer, self.dexterity, &mut start, &mut end);
+        u16_into_buffer(&mut buffer, self.mana, &mut start, &mut end);
 
         buffer
     }
 
-    pub fn from_bytes(data: &[u8;MAP_ENTITY_SIZE]) -> Self {
+    pub fn from_bytes(data: &[u8;MAP_ENTITY_SIZE]) -> Self 
+    {
         let mut start : usize;
         let mut end : usize;
 
@@ -157,17 +158,17 @@ impl MapEntity {
         let owner_id = decode_u16(data, &mut start);
         let ownership_time = decode_u32(data, &mut start);
 
-        end = start + 6;
-        let mut buffer = [0u8;6];
-        buffer.copy_from_slice(&data[start..end]);
-        let origin_id = TetrahedronId::from_bytes(&buffer);
-        start = end;
+        // end = start + 6;
+        // let mut buffer = [0u8;6];
+        // buffer.copy_from_slice(&data[start..end]);
+        // let origin_id = TetrahedronId::from_bytes(&buffer);
+        // start = end;
 
-        end = start + 6;
-        let mut buffer = [0u8;6];
-        buffer.copy_from_slice(&data[start..end]);
-        let target_id = TetrahedronId::from_bytes(&buffer);
-        start = end;
+        // end = start + 6;
+        // let mut buffer = [0u8;6];
+        // buffer.copy_from_slice(&data[start..end]);
+        // let target_id = TetrahedronId::from_bytes(&buffer);
+        // start = end;
 
         let time = decode_u32(data, &mut start);
 
@@ -194,8 +195,7 @@ impl MapEntity {
 
         let health = decode_u16(data, &mut start);
         let constitution = decode_u16(data, &mut start);
-        let strength = decode_u16(data, &mut start);
-        let dexterity = decode_u16(data, &mut start);
+        let mana = decode_u16(data, &mut start);
 
         MapEntity 
         {
@@ -215,11 +215,8 @@ impl MapEntity {
             pathness,
             health,
             constitution,
-            origin_id,
-            target_id,
             time,
-            strength,
-            dexterity,
+            mana,
         }
     }
 }
@@ -274,7 +271,8 @@ pub fn decode_u16(buffer: &[u8;MAP_ENTITY_SIZE], start: &mut usize) -> u16
 }
 
 #[cfg(test)]
-mod tests {
+mod tests 
+{
     use super::*;
 
     #[test]
@@ -286,8 +284,6 @@ mod tests {
             object_id: None,
             version: 1000,
             id: TetrahedronId::from_string("a00001"),
-            origin_id: TetrahedronId::from_string("a00001"),
-            target_id: TetrahedronId::from_string("a00001"),
             time: 0,
             prop: 10,
             faction: 0,
@@ -297,11 +293,10 @@ mod tests {
             heights: [0.2,1.0,2.2],
             pathness: [1.2,1.1,1.5],
             health: 14,
-            constitution: 100,
+            constitution:15,
+            mana: 100,
             owner_id: 0,
             ownership_time: 234,
-            strength: 2,
-            dexterity: 2,
         };
 
         let encoded = entity.to_bytes();

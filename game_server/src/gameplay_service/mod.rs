@@ -191,18 +191,37 @@ pub fn start_service(
         let mut previous_time : u64 = 0;
 
         let mut packets_data : Vec<PacketsData> = Vec::new();             
-        for (i, region_id) in map.definitions.regions_by_id.iter().enumerate()
+
+        //this one is for area 0, not used!
+        // packets_data.push(PacketsData 
+        // {
+        //     started: false,
+        //     region: i as u16,
+        //     packet_number: 0,
+        //     packets: Vec::new(),
+        //     buffer: [0u8; 5000],
+        //     game_packets_count: 0,
+        //     offset: 0,
+        // });
+
+        // for (i, region_id) in map.definitions.regions_by_id.iter().enumerate()
+        for i in 0..321
         {
             packets_data.push(PacketsData 
             {
                 started: false,
-                region: i as u16,
+                region: 0,
                 packet_number: 0,
                 packets: Vec::new(),
                 buffer: [0u8; 5000],
                 game_packets_count: 0,
                 offset: 0,
             });
+        }
+        for region_id in map.definitions.regions_by_id.iter()
+        {
+            let packet_data = packets_data.get_mut(*region_id.1 as usize).unwrap();
+            packet_data.region = *region_id.1;
         }
 
         loop 
@@ -442,7 +461,9 @@ pub fn start_service(
             heroes_summary.drain(..)
             .for_each(|d| 
             {
+                // cli_log::info!("hero pos {} region: {} len: {}", d.position, d.position.get_parent(7), map.definitions.regions_by_id.len());
                 let region = map.definitions.regions_by_id.get(&d.position.get_parent(7)).unwrap();
+                // cli_log::info!("region {} packets data len: {}", region, packets_data.len());
                 let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = HeroEntity::get_size();

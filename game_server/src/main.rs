@@ -98,7 +98,26 @@ pub fn init_panic_hook()
     {
         // intentionally ignore errors here since we're already in a panic
         let _ = restore_tui();
-        original_hook(panic_info);
+        // original_hook(panic_info);
+        
+        // Extract the panic message (if any)
+        let message = match panic_info.payload().downcast_ref::<&str>() {
+            Some(s) => *s,
+            None => match panic_info.payload().downcast_ref::<String>() {
+                Some(s) => s.as_str(),
+                None => "Unknown panic message",
+            },
+        };
+
+        // Extract location info (file + line)
+        let location = panic_info
+            .location()
+            .map(|loc| format!("{}:{}", loc.file(), loc.line()))
+            .unwrap_or_else(|| "unknown location".to_string());
+
+        // Log the details
+        cli_log::error!("Panic occurred at {}: {}", location, message);
+
     }));
 }
 
@@ -157,7 +176,7 @@ async fn run_server(tx: Sender<AppData>)
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_082";
+    let world_name = "world_083";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
