@@ -3,6 +3,7 @@ use super::Definition;
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct MobProgression 
 {
+    pub mob:u16,
     pub level: u16,
     pub constitution: u16,
     pub base_strength: u16,

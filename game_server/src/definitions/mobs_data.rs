@@ -7,7 +7,7 @@ pub struct MobData
     pub name:String,
     pub mob_type:String,
     pub item:String,
-    pub skills:String,
+    pub area:String,
 }
 
 

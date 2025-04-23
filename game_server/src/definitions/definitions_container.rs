@@ -12,6 +12,7 @@ pub struct Definitions
     pub regions_by_id: HashMap<TetrahedronId, u16>,
     pub character_progression : Vec<CharacterProgression>,
     pub mob_progression : Vec<MobProgression>,
+    pub mob_progression_by_mob : Vec<Vec<MobProgression>>,
     pub props : Vec<PropData>,
     pub main_paths : Vec<MapPath>,
     pub towers_difficulty : Vec<TowerDifficulty>,

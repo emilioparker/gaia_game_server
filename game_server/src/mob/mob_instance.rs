@@ -144,7 +144,14 @@ impl AbilityUser for MobEntity
 
     fn get_constitution(&self, definition: &Definitions) -> u16 
     {
-        let constitution = definition.mob_progression.get(self.level as usize).map_or(0, |d| d.constitution);
+        let mut constitution = 0;
+        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+        {
+            if let Some(entry) = mob_progression.get(self.level as usize) 
+            {
+                constitution = entry.constitution;
+            }
+        }
         constitution
     }
 
@@ -159,7 +166,17 @@ impl AbilityUser for MobEntity
     {
         let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
 
-        let (base_strength, strength_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_strength, d.strength_points));
+        let mut base_strength = 0;
+        let mut strength_points = 0;
+        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+        {
+            if let Some(entry) = mob_progression.get(self.level as usize) 
+            {
+                base_strength = entry.base_strength;
+                strength_points = entry.strength_points;
+            }
+        }
+
         let added_strength : f32 = self.buffs.iter().map(|b| 
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
@@ -179,7 +196,16 @@ impl AbilityUser for MobEntity
 
     fn get_total_defense(&self, definition:&Definitions) -> u16
     {
-        let (base_defense, defense_points) = definition.mob_progression.get(self.level as usize).map_or((0,0), |d| (d.base_defense, d.defense_points));
+        let mut base_defense = 0;
+        let mut defense_points = 0;
+        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+        {
+            if let Some(entry) = mob_progression.get(self.level as usize) 
+            {
+                base_defense = entry.base_defense;
+                defense_points = entry.defense_points;
+            }
+        }
         let added_defense : f32 = self.buffs.iter().map(|b| 
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)

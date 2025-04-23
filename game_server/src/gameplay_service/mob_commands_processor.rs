@@ -300,12 +300,12 @@ pub async fn spawn_mob(
     };
 
 
-    if let Some(entry) = map.definitions.mob_progression.get(level as usize) 
+    if let Some(mob_progression) = map.definitions.mob_progression_by_mob.get(mob_id as usize)
     {
-        // let attribute = (entry.skill_points / 4) as u16;
-        new_mob.health =  entry.constitution;
-        // updated_mob.strength = attribute; // attack
-        // updated_mob.dexterity = attribute; // attack
+        if let Some(entry) = mob_progression.get(level as usize) 
+        {
+            new_mob.health =  entry.constitution;
+        }
     }
 
     let region = map.get_mob_region_from_child(&tile_id);

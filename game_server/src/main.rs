@@ -430,6 +430,13 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_hash.insert(entry.id.clone(), entry.clone());
     }
 
+    let mut mob_progression_by_mob = vec![Vec::new(); mobs_result.0.len()];
+
+    for item in mob_progression_result.0.iter().enumerate()
+    {
+        mob_progression_by_mob[item.1.mob as usize].push(item.1.clone());
+    }
+
     let definitions = Definitions 
     {
         regions_by_id: get_regions_by_id(),
@@ -437,6 +444,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         character_progression : character_result.0,
         props : props_result.0,
         mob_progression : mob_progression_result.0,
+        mob_progression_by_mob,
         main_paths: paths_result.0,
         towers_difficulty: towers_difficulty_result.0,
         items: items_result.0,
