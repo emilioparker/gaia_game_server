@@ -22,7 +22,7 @@ pub struct PlayerCreationResponse
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CharacterCreationRequest 
+pub struct HeroCreationRequest 
 {
     pub player_token: String,
     // pub character_name:String,
@@ -30,9 +30,9 @@ pub struct CharacterCreationRequest
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CharacterCreationResponse 
+pub struct HeroCreationResponse 
 {
-    pub character_id:u16,
+    pub hero_id:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -242,7 +242,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
-    let data: CharacterCreationRequest = serde_json::from_slice(&data).unwrap();
+    let data: HeroCreationRequest = serde_json::from_slice(&data).unwrap();
     cli_log::info!("handling request {:?}", data);
 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
@@ -400,9 +400,9 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
     let mut presentation_data_cache =  context.cached_presentation_data.lock().await;
     presentation_data_cache.extend(player_presentation.to_bytes());
 
-    let new_character = CharacterCreationResponse
+    let new_character = HeroCreationResponse
     {
-        character_id: new_id,
+        hero_id: new_id,
     };
 
     context.server_state.total_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
