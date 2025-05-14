@@ -1,10 +1,10 @@
 
 use bson::oid::ObjectId;
 use futures_util::StreamExt;
-use hyper::{Request, Body, Response, http::Error, body, StatusCode};
+use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId};
+use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -93,6 +93,7 @@ pub struct ExchangeSkillPointsRequest
     pub mana:u8,
 }
 
+
 pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
     let body = req.body_mut();
@@ -114,7 +115,10 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
 
     if let Some(_player) = data_from_db 
     {
-        let mut response = Response::new(Body::from(String::from("Player already created")));
+        let mut response = 
+            create_response_builder()
+            .body(Body::from("player_already_created"))
+            .expect("Failed to create response");
         *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
         return Ok(response);
     }
@@ -234,7 +238,11 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     };
 
     let response_json = serde_json::to_vec(&response_data).unwrap();
-    let response = Response::new(Body::from(response_json));
+
+    let response = create_response_builder()
+            .body(Body::from(response_json))
+            .expect("Failed to create response");
+
     return Ok(response);
 }
 
@@ -407,8 +415,9 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
 
     context.server_state.total_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-    let response = serde_json::to_vec(&new_character).unwrap();
-    Ok(Response::new(Body::from(response)))
+    let data= serde_json::to_vec(&new_character).unwrap();
+    let response = create_response_builder().body(Body::from(data)).expect("failed to create response");
+    Ok(response)
 }
 
 pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
@@ -468,20 +477,13 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
         output.extend_from_slice(&session_bytes);
         output.extend_from_slice(&encoded_player_data);
 
-        let response = Response::builder()
-            .status(hyper::StatusCode::OK)
-            .header("Content-Type", "application/octet-stream")
-            .body(Body::from(output))
-            .expect("Failed to create response");
+        let response = create_response_builder().body(Body::from(output)).expect("failed to create response");
         Ok(response)
     }
     else 
     {
-        let response = Response::builder()
-            .status(hyper::StatusCode::NOT_FOUND)
-            .header("Content-Type", "application/octet-stream")
-            .body(Body::from("Error"))
-            .expect("Failed to create response");
+        let mut response = create_response_builder().body(Body::from("Error")).expect("failed to create response");
+        *response.status_mut() = StatusCode::NOT_FOUND;
         Ok(response)
     }
 }
@@ -491,11 +493,7 @@ pub async fn handle_characters_request(context: AppContext) -> Result<Response<B
     let presentation_cache = context.cached_presentation_data.lock().await;
     let presentation_cache : Vec<u8> = presentation_cache.to_vec();
 
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
-        .body(Body::from(presentation_cache))
-        .expect("Failed to create response");
+    let response = create_response_builder().body(Body::from(presentation_cache)).expect("failed to create response");
     Ok(response)
 }
 
@@ -514,7 +512,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         let total_points = data.strength + data.defense + data.mana + data.intelligence;
         if total_points > player.available_skill_points
         {
-            let mut response = Response::new(Body::from(String::from("missing route")));
+            let mut response = create_response_builder().body(Body::from("missing route")).expect("failed to create response");
             *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
             return Ok(response);
         }
@@ -529,11 +527,12 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         }
         drop(players);
 
-        Ok(Response::new(Body::from("Done")))
+        let response = create_response_builder().body(Body::from("Done")).expect("failed to create response");
+        Ok(response)
     }
     else 
     {
-        let mut response = Response::new(Body::from(String::from("char not found")));
+        let mut response = create_response_builder().body(Body::from("hero not found")).expect("failed to create response");
         *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
         return Ok(response);
     }

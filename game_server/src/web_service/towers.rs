@@ -1,7 +1,7 @@
 use futures_util::StreamExt;
 use hyper::{Response, Body};
 
-use crate::{long_term_storage_service::db_tower::StoredTower, tower::tower_entity::{TowerEntity, DamageByFaction}, get_faction_code, map::tetrahedron_id::TetrahedronId};
+use crate::{get_faction_code, long_term_storage_service::db_tower::StoredTower, map::tetrahedron_id::TetrahedronId, tower::tower_entity::{DamageByFaction, TowerEntity}, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -57,9 +57,7 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
     }
     cli_log::info!("----- towers {}", towers_count);
 
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
+    let response = create_response_builder()
         .body(Body::from(binary_data))
         .expect("Failed to create response");
     Ok(response)
@@ -75,9 +73,7 @@ pub async fn handle_temp_tower_request(context: AppContext) -> Result<Response<B
     binary_data.extend_from_slice(&temp_towers.1[..size]);
 
     cli_log::info!("sending data back");
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
+    let response = create_response_builder()
         .body(Body::from(binary_data))
         .expect("Failed to create response");
     Ok(response)

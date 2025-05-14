@@ -28,6 +28,7 @@ pub mod buffs;
 pub mod ability_user;
 pub mod app;
 pub mod gaia_mpsc;
+pub mod http_service;
 
 pub struct AppData
 {

@@ -1,5 +1,5 @@
 id,name,weapon_type,card_name,icon,store_location,store_cost
-0,bare_fist,pugilist,punch_1,SkillsIcons/SkillIcons3/SkillVol3/Skill_Punch,weapons,5
+0,bare_fist,pugilist,punch_1,Icons/Weapons/Skill_Punch,weapons,5
 1,normal_sword,sword,strike_1,Icons/Weapons/02_Sword,weapons_swords,5
 2,normal_bow,bow,basic_arrow,Icons/Weapons/01_Bow,weapons_bows,5
 3,normal_staff,staff,mana_burst,Icons/Weapons/07_Priest_Staff,weapons_staffs,5

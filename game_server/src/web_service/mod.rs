@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use futures_util::future::OrElse;
 use futures_util::lock::Mutex;
 use hyper::http::Error;
 use hyper::{Request, body, server::conn::AddrStream};
@@ -88,6 +89,17 @@ pub struct AppContext
     old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
 }
 
+pub fn create_response_builder() -> hyper::http::response::Builder
+{
+    let response = Response::builder()
+        .status(hyper::StatusCode::OK)
+        .header("Content-Type", "application/octet-stream")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        .header("Access-Control-Allow-Headers", "*");
+    response
+}
+
 // deprecated, moved to the character protocol to avoid abusing form the web server.
 async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
 {
@@ -141,15 +153,20 @@ async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Re
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
-    let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
     cli_log::info!("handling request {:?}", data);
+    let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
 
     let response = ClientVersionResponse
     {
         server_version : 5
     };
-    let response = serde_json::to_vec(&response).unwrap();
-    Ok(Response::new(Body::from(response)))
+
+    let data = serde_json::to_vec(&response).unwrap();
+
+    let response = create_response_builder()
+        .body(Body::from(data))
+        .expect("Failed to create response");
+    Ok(response)
 }
 
 
@@ -162,68 +179,86 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
     {
         cli_log::info!("handling request {:?}", data);
 
-        if let Some(definition_data)= context.definitions_data.definition_versions.get(&data.name)
+        let data = if let Some(definition_data)= context.definitions_data.definition_versions.get(&data.name)
         {
             if definition_data.version == data.version && data.name == "character_progression"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.character_progression_data)));
+                Some(context.definitions_data.character_progression_data)
             }
             else if definition_data.version == data.version && data.name == "definition_versions"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.definition_versions_data)));
+                Some(context.definitions_data.definition_versions_data)
             }
             else if definition_data.version == data.version && data.name == "props"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.props_data)));
+                Some(context.definitions_data.props_data)
             }
             else if definition_data.version == data.version && data.name == "mob_progression"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.mob_progression_data)));
+                Some(context.definitions_data.mob_progression_data)
             }
             else if definition_data.version == data.version && data.name == "main_paths"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.main_paths_data)));
+                Some(context.definitions_data.main_paths_data)
             }
             else if definition_data.version == data.version && data.name == "items"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.items_data)));
+                Some(context.definitions_data.items_data)
             }
             else if definition_data.version == data.version && data.name == "cards"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.cards_data)));
+                Some(context.definitions_data.cards_data)
             }
             else if definition_data.version == data.version && data.name == "mobs"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.mobs_data)));
+                Some(context.definitions_data.mobs_data)
             }
             else if definition_data.version == data.version && data.name == "buffs"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.buffs_data)));
+                Some(context.definitions_data.buffs_data)
             }
             else if definition_data.version == data.version && data.name == "weapons"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.weapons_data)));
+                Some(context.definitions_data.weapons_data)
             }
             else if definition_data.version == data.version && data.name == "towers_difficulty"
             {
-                return Ok(Response::new(Body::from(context.definitions_data.towers_difficulty_data)));
+                Some(context.definitions_data.towers_difficulty_data)
             }
             else
             {
-                let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
-                *response.status_mut() = StatusCode::NOT_FOUND;
-                return Ok(response);
+                None
+                // let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
+                // *response.status_mut() = StatusCode::NOT_FOUND;
+                // return Ok(response);
             }
         }
-        else {
-            let mut response = Response::new(Body::from(String::from("definition_details_not_found")));
-            *response.status_mut() = StatusCode::NOT_FOUND;
+        else
+        {
+            None
+        };
+
+        if let Some(data) = data 
+        {
+            let response = create_response_builder()
+                .body(Body::from(data))
+                .expect("Failed to create response");
+            Ok(response)
+        }
+        else 
+        {
+            let mut response = create_response_builder()
+                .body(Body::from("definition_data_not_found"))
+                .expect("Failed to create response");
+            *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
             return Ok(response);
         }
     }
     else
     {
-        let mut response = Response::new(Body::from(String::from("definition_not_found")));
+        let mut response = create_response_builder()
+            .body(Body::from("definition_data_not_found"))
+            .expect("Failed to create response");
         *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
         return Ok(response);
     }
@@ -238,6 +273,15 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
     if let Some(route) = data.next() 
     {
         let rest : Vec<&str> = data.collect();
+
+        let builder = create_response_builder();
+
+        // Handle preflight requests
+        if req.method() == hyper::Method::OPTIONS 
+        {
+            return Ok(builder.status(StatusCode::NO_CONTENT).body(Body::empty()).unwrap());
+        }
+
         match route 
         {
             "region" => map::handle_region_request(context, rest).await,
@@ -271,6 +315,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
         return Ok(response);
     }
 }
+
 
 pub struct TempMapBuffer { 
     pub index : usize,
@@ -359,10 +404,12 @@ pub fn start_server(
 
     tokio::spawn(async move {
         let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
-        let make_service = make_service_fn(move |conn: &AddrStream| {
+        let make_service = make_service_fn(move |conn: &AddrStream| 
+        {
             let context = context.clone();
             let _addr = conn.remote_addr();
-            let service = service_fn(move |req| {
+            let service = service_fn(move |req| 
+            {
                 route(context.clone(), req)
             });
 
@@ -374,10 +421,15 @@ pub fn start_server(
         let server = Server::bind(&addr).serve(make_service);
 
         // And run forever...
-        if let Err(e) = server.await {
+        if let Err(e) = server.await 
+        {
             cli_log::info!("server error: {}", e);
         }
     });
+
+
+
+
 
     tokio::spawn(async move {
         loop {

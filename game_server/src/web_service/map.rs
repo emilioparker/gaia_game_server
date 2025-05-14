@@ -1,6 +1,6 @@
 use hyper::{Body, Response, http::Error};
 use crate::{long_term_storage_service::db_region::StoredRegion, map::tetrahedron_id::TetrahedronId};
-use super::AppContext;
+use super::{create_response_builder, AppContext};
 
 
 // why would I grab it from the database if I can grab it from ram ?? LIke the temp regions.
@@ -58,9 +58,7 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
         binary_data.append(region_data);
     }
 
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
+    let response = create_response_builder()
         .body(Body::from(binary_data))
         .expect("Failed to create response");
     Ok(response)
@@ -91,9 +89,7 @@ pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -
         binary_data.extend_from_slice(&region_map_lock.buffer[..size]);
     }
 
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
+    let response = create_response_builder()
         .body(Body::from(binary_data))
         .expect("Failed to create response");
     Ok(response)
@@ -129,9 +125,7 @@ pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str
         cli_log::info!("mob region size {size}");
     }
 
-    let response = Response::builder()
-        .status(hyper::StatusCode::OK)
-        .header("Content-Type", "application/octet-stream")
+    let response = create_response_builder()
         .body(Body::from(binary_data))
         .expect("Failed to create response");
     Ok(response)

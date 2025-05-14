@@ -39,6 +39,9 @@ cli-log = "2.1.0"
 strum = "0.27.1"
 strum_macros = "0.27"
 
+axum = "0.7"
+tower-http = { version = "0.6.2", features = ["cors", "fs"] }
+
 # [profile.release]
 # incremental = true
 # debug = true

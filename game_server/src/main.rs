@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicU16;
 use std::sync::atomic::AtomicU32;
 use game_server::get_regions_by_code;
 use game_server::get_regions_by_id;
+use game_server::http_service;
 use strum;
 
 use cli_log::init_cli_log;
@@ -56,9 +57,9 @@ use std::panic::{set_hook, take_hook};
 
 fn main() 
 {
+    //GAIA_LOG=debug cargo run --release
     init_cli_log!("gaia");
     init_panic_hook();
-    //GAIA_LOG=debug cargo run --release
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
@@ -73,6 +74,9 @@ fn main()
     let (tx, rx) = oneshot::channel();
     runtime.spawn(run_server(tx)); 
     // runtime.block_on(run_server(tx)); 
+
+    cli_log::info!("running http server");
+    runtime.spawn(http_service::run()); 
 
     cli_log::info!("running tui");
     runtime.block_on(run_tui(rx)); 
