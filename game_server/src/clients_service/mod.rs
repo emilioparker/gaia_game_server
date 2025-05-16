@@ -1,5 +1,6 @@
 pub mod client_handler;
 pub mod utils;
+pub mod websocket_client_handler;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -54,18 +55,29 @@ pub fn start_server(
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
-    let client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
-    let client_connections_mutex = std::sync::Arc::new(Mutex::new(client_connections));
 
-    let server_lock = client_connections_mutex.clone();
-    let server_send_to_clients_lock = client_connections_mutex.clone();
+    // udp connections
+    let udp_client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
+    let udp_client_connections_mutex = std::sync::Arc::new(Mutex::new(udp_client_connections));
 
-    let address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
-    let udp_socket = Arc::new(utils::create_reusable_udp_socket(address));
+    let udp_client_connections_receiver_lock = udp_client_connections_mutex.clone();
+    let udp_client_connections_sender_lock = udp_client_connections_mutex.clone();
+
+    let udp_address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
+    let udp_socket = Arc::new(utils::create_reusable_udp_socket(udp_address));
     let send_udp_socket = udp_socket.clone();
     let send_directly_udp_socket = udp_socket.clone();
+    
+    // websocket connections
+    // let websocket_client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
+    // let websocket_client_connections_mutex = std::sync::Arc::new(Mutex::new(udp_client_connections));
+    // let websocket_client_connections_receiver_lock = udp_client_connections_mutex.clone();
+    // let websocket_client_connections_sender_lock = udp_client_connections_mutex.clone();
 
-    let mut previous_packages : VecDeque<(u64, u8, Vec<u8>)> = VecDeque::new();
+    // tokio::spawn(async move 
+    // {
+    //     websocket_client_handler::run().await;
+    // });
 
     let mut player_regions_record = HashMap::<u16, [AtomicU16;3]>::new();
 
@@ -125,7 +137,7 @@ pub fn start_server(
                 let mut sent_bytes : u64 = 0;
                 let mut sent_game_packets : u64 = 0;
                 let mut sent_udp_packets : u64 = 0;
-                let mut clients_data = server_send_to_clients_lock.lock().await;
+                let mut clients_data = udp_client_connections_sender_lock.lock().await;
                 for client in clients_data.iter_mut()
                 {
                     for (_packet_id, faction, region, game_packets, data) in packet_list.iter()
@@ -167,58 +179,12 @@ pub fn start_server(
                                 Err(_) => cli_log::info!("error sending data through socket"),
                             }
                         }
-
-                        // we will try to send missing packages.
-
-                        // cli_log::info!("sending missing packets for {}", client.1.0);
-                        // if let Some(missing_packages_for_player) = executer_shared_player_missing_packets.get(&client.1.0) 
-                        // {
-                        //     // this should never fail
-                        //     for missing_packet in missing_packages_for_player
-                        //     {
-                        //         let packet_id = missing_packet.load(std::sync::atomic::Ordering::Relaxed);
-                        //         if packet_id != 0 
-                        //         {
-                        //             if let Some((old_id, _faction, old_data)) = previous_packages.iter().find(|(id, _faction, _data)| packet_id == *id)
-                        //             {
-                        //                 // sending missing data if found
-                        //                 cli_log::info!("sending missing packet with id {packet_id}");
-                        //                 let result = send_udp_socket.try_send_to(old_data, client.0.clone());
-                        //                 match result {
-                        //                     Ok(_) => {
-                        //                         // cli_log::info!("data sent to client {}", packet.len());
-                        //                     },
-                        //                     Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
-                        //                     {
-                        //                         cli_log::info!("error sending old data would block {}", old_id);
-                        //                     },
-                        //                     Err(_) => cli_log::info!("error sending old data through socket {} ", old_id),
-                        //                 }
-                        //             }
-                        //         }
-                        //     }
-                        // }
                     }
 
                     packet_builder_server_state.sent_bytes.fetch_add(sent_bytes, std::sync::atomic::Ordering::Relaxed);
                     packet_builder_server_state.sent_udp_packets.fetch_add(sent_udp_packets, std::sync::atomic::Ordering::Relaxed);
                     packet_builder_server_state.sent_game_packets.fetch_add(sent_game_packets, std::sync::atomic::Ordering::Relaxed);
                 }
-
-                // code used to recover packets, not used due to performance issues
-                // for packet in packet_list.into_iter()
-                // {
-                //     // only global packets are stored. global is 0 in the faction field
-                //     if packet.1 == 0 
-                //     {
-                //         previous_packages.push_front(packet);
-                //         if previous_packages.len() > 100
-                //         {
-                //             let _pop_result = previous_packages.pop_back();
-                //         }
-                //     }
-                // }
-                // cli_log::info!("storing packages {}", previous_packages.len());
             }
         }
     });
@@ -241,7 +207,7 @@ pub fn start_server(
                     if let Ok((packet_size, from_address)) = result 
                     {
                         cli_log::info!("Parent: {:?} bytes received from {}", packet_size, from_address);
-                        let mut clients_data = server_lock.lock().await;
+                        let mut clients_data = udp_client_connections_receiver_lock.lock().await;
                         if !clients_data.contains_key(&from_address)
                         {
                             // byte 0 is for the protocol, and we are sure the next 8 bytes are for the id.
@@ -274,7 +240,7 @@ pub fn start_server(
                                 client_handler::spawn_client_process(
                                     player_id, 
                                     session_id,
-                                    address, 
+                                    udp_address, 
                                     from_address, 
                                     map.clone(),
                                     server_state.clone(),
@@ -305,7 +271,7 @@ pub fn start_server(
                 {
                     cli_log::info!("removing entry from hash set");
                     server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-                    let mut clients_data = server_lock.lock().await;
+                    let mut clients_data = udp_client_connections_receiver_lock.lock().await;
                     let character_id = clients_data.get(&socket);
                     if let Some(session_id) = character_id.map(|(id, _faction)| &map.logged_in_players[*id as usize])
                     {

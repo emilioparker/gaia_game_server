@@ -94,7 +94,7 @@ pub struct ExchangeSkillPointsRequest
 }
 
 
-pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -115,12 +115,7 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
 
     if let Some(_player) = data_from_db 
     {
-        let mut response = 
-            create_response_builder()
-            .body(Body::from("player_already_created"))
-            .expect("Failed to create response");
-        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
-        return Ok(response);
+        return Err("player_already_created".to_owned());
     }
 
     let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
@@ -135,23 +130,17 @@ pub async fn handle_create_player(context: AppContext, mut req: Request<Body>) -
     };
 
     let _result = data_collection.insert_one(stored_character, None).await.unwrap();
-
-    // let _object_id: Option<ObjectId> = match result.inserted_id {
-    //     bson::Bson::ObjectId(id) => Some(id),
-    //     _ => None,
-    // };
-
     let new_character = PlayerCreationResponse
     {
         player_token,
     };
 
     let response = serde_json::to_vec(&new_character).unwrap();
-    Ok(Response::new(Body::from(response)))
+    Ok(Body::from(response))
 }
 
-pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> {
-
+pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
+{
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: PlayerDetailsRequest = serde_json::from_slice(&data).unwrap();
@@ -160,7 +149,8 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     let data_collection: mongodb::Collection<StoredPlayer> = context.db_client.database("game").collection::<StoredPlayer>("players");
     let stored_player: Option<StoredPlayer> = data_collection
     .find_one(
-        bson::doc! {
+        bson::doc! 
+        {
                 "player_name": data.player_name,
         },
         None,
@@ -169,9 +159,7 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
 
     if stored_player.is_none()
     {
-        let mut response = Response::new(Body::from(String::from("Player not found")));
-        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
-        return Ok(response);
+        return Err("player_not_found".to_owned());
     }
 
     let player_data = stored_player.unwrap();
@@ -190,19 +178,22 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
 
 
     let mut characters : Vec<Iteration>= Vec::new();
-    while let Some(result) = characters_cursor.next().await {
+    while let Some(result) = characters_cursor.next().await 
+    {
         match result 
         {
             Ok(doc) => 
             {
-                characters.push(Iteration {
+                characters.push(Iteration 
+                    {
                     playing: true, 
                     world_name: doc.world_name.clone(),
                     hero_id: doc.character_id,
                     hero_name: doc.character_name.to_string(),
                     })
             },
-            Err(error_details) => {
+            Err(error_details) => 
+            {
                 cli_log::info!("error getting characters from db with {:?}", error_details);
             },
         }
@@ -238,15 +229,10 @@ pub async fn handle_player_request(context: AppContext, mut req: Request<Body>) 
     };
 
     let response_json = serde_json::to_vec(&response_data).unwrap();
-
-    let response = create_response_builder()
-            .body(Body::from(response_json))
-            .expect("Failed to create response");
-
-    return Ok(response);
+    Ok(Body::from(response_json))
 }
 
-pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -266,9 +252,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
 
     if data_from_db.is_none()
     {
-        let mut response = Response::new(Body::from(String::from("player doesn't exist")));
-        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
-        return Ok(response);
+        return Err("player_not_found".to_owned());
     }
 
     let stored_player = data_from_db.unwrap();
@@ -416,13 +400,11 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
     context.server_state.total_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let data= serde_json::to_vec(&new_character).unwrap();
-    let response = create_response_builder().body(Body::from(data)).expect("failed to create response");
-    Ok(response)
+    Ok(Body::from(data))
 }
 
-pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
 {
-
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     let data: JoinWithHeroRequest = serde_json::from_slice(&data).unwrap();
@@ -450,9 +432,7 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
 
     if !is_valid 
     {
-        let mut response = Response::new(Body::from(String::from("player token is not valid")));
-        *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
-        return Ok(response);
+        return Err("player_token_not_valid".to_owned())
     }
 
     let players = context.working_game_map.character.lock().await;
@@ -477,27 +457,22 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
         output.extend_from_slice(&session_bytes);
         output.extend_from_slice(&encoded_player_data);
 
-        let response = create_response_builder().body(Body::from(output)).expect("failed to create response");
-        Ok(response)
+        Ok(Body::from(output))
     }
     else 
     {
-        let mut response = create_response_builder().body(Body::from("Error")).expect("failed to create response");
-        *response.status_mut() = StatusCode::NOT_FOUND;
-        Ok(response)
+        return Err("hero_not_found".to_owned())
     }
 }
 
-pub async fn handle_characters_request(context: AppContext) -> Result<Response<Body>, Error> 
+pub async fn handle_characters_request(context: AppContext) -> Result<Body, String> 
 {
     let presentation_cache = context.cached_presentation_data.lock().await;
     let presentation_cache : Vec<u8> = presentation_cache.to_vec();
-
-    let response = create_response_builder().body(Body::from(presentation_cache)).expect("failed to create response");
-    Ok(response)
+    Ok(Body::from(presentation_cache))
 }
 
-pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) -> Result<Response<Body>, Error> 
+pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) -> Result<Body, String> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -512,9 +487,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         let total_points = data.strength + data.defense + data.mana + data.intelligence;
         if total_points > player.available_skill_points
         {
-            let mut response = create_response_builder().body(Body::from("missing route")).expect("failed to create response");
-            *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
-            return Ok(response);
+            return Err("not_enough_skill_points".to_owned());
         }
         else 
         {
@@ -527,13 +500,10 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         }
         drop(players);
 
-        let response = create_response_builder().body(Body::from("Done")).expect("failed to create response");
-        Ok(response)
+        return Ok(Body::from("done".to_owned()));
     }
     else 
     {
-        let mut response = create_response_builder().body(Body::from("hero not found")).expect("failed to create response");
-        *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
-        return Ok(response);
+        return Err("hero_not_found".to_owned());
     }
 }

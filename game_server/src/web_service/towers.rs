@@ -7,7 +7,7 @@ use super::AppContext;
 
 
 
-pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hyper::Request<hyper::Body>) -> Result<hyper::Response<hyper::Body>, hyper::http::Error> 
+pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hyper::Request<hyper::Body>) -> Result<hyper::Body, String> 
 {
     let mut binary_data = Vec::<u8>::new();
     let data_collection: mongodb::Collection<StoredTower> = context.db_client.database("game").collection::<StoredTower>("towers");
@@ -56,14 +56,10 @@ pub(crate) async fn handle_request_towers(context: super::AppContext, _req: hype
         }
     }
     cli_log::info!("----- towers {}", towers_count);
-
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(binary_data))
 }
 
-pub async fn handle_temp_tower_request(context: AppContext) -> Result<Response<Body>, hyper::http::Error>
+pub async fn handle_temp_tower_request(context: AppContext) -> Result<Body, String>
 {
     cli_log::info!("request temp towers");
     let mut binary_data = Vec::<u8>::new();
@@ -73,8 +69,5 @@ pub async fn handle_temp_tower_request(context: AppContext) -> Result<Response<B
     binary_data.extend_from_slice(&temp_towers.1[..size]);
 
     cli_log::info!("sending data back");
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(binary_data))
 }

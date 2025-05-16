@@ -149,12 +149,32 @@ async fn handle_sell_item(context: AppContext, mut req: Request<Body>) ->Result<
     }
 }
 
-async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+// async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+// {
+//     let body = req.body_mut();
+//     let data = body::to_bytes(body).await.unwrap();
+//     cli_log::info!("handling request {:?}", data);
+//     let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
+
+//     let response = ClientVersionResponse
+//     {
+//         server_version : 5
+//     };
+
+//     let data = serde_json::to_vec(&response).unwrap();
+
+//     let response = create_response_builder()
+//         .body(Body::from(data))
+//         .expect("Failed to create response");
+//     Ok(response)
+// }
+
+async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
     cli_log::info!("handling request {:?}", data);
-    let data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
+    let _data: ClientVersionRequest = serde_json::from_slice(&data).unwrap();
 
     let response = ClientVersionResponse
     {
@@ -163,14 +183,11 @@ async fn handle_check_version(_context: AppContext, mut req: Request<Body>) ->Re
 
     let data = serde_json::to_vec(&response).unwrap();
 
-    let response = create_response_builder()
-        .body(Body::from(data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(data))
 }
 
 
-async fn handle_definition_request(context: AppContext, mut req: Request<Body>) ->Result<Response<Body>, Error> 
+async fn handle_definition_request(context: AppContext, mut req: Request<Body>) ->Result<Body, String> 
 {
     let body = req.body_mut();
     let data = body::to_bytes(body).await.unwrap();
@@ -228,9 +245,6 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             else
             {
                 None
-                // let mut response = Response::new(Body::from(String::from("incorrect_definition_version")));
-                // *response.status_mut() = StatusCode::NOT_FOUND;
-                // return Ok(response);
             }
         }
         else
@@ -240,27 +254,16 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
 
         if let Some(data) = data 
         {
-            let response = create_response_builder()
-                .body(Body::from(data))
-                .expect("Failed to create response");
-            Ok(response)
+            Ok(Body::from(data))
         }
         else 
         {
-            let mut response = create_response_builder()
-                .body(Body::from("definition_data_not_found"))
-                .expect("Failed to create response");
-            *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
-            return Ok(response);
+            return Err("definition_not_found".to_owned());
         }
     }
     else
     {
-        let mut response = create_response_builder()
-            .body(Body::from("definition_data_not_found"))
-            .expect("Failed to create response");
-        *response.status_mut() = StatusCode::NOT_ACCEPTABLE;
-        return Ok(response);
+        return Err("request_error".to_owned());
     }
 
 }
@@ -282,7 +285,7 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             return Ok(builder.status(StatusCode::NO_CONTENT).body(Body::empty()).unwrap());
         }
 
-        match route 
+        let body = match route 
         {
             "region" => map::handle_region_request(context, rest).await,
             "temp_regions" => map::handle_temp_region_request(context, rest).await,
@@ -295,17 +298,32 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "join_with_hero" => heroes::handle_login_with_hero(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
-            // "sell_item" => handle_sell_item(context, req).await,
+            // // "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
             "exchange_skill_points" => heroes::exchange_skill_points(context, req).await,
             "check_version" => handle_check_version(context, req).await,
             _ => 
             {
                 cli_log::warn!("route not found: {route}");
-                let mut response = Response::new(Body::from(String::from("route not found")));
+                let mut response = create_response_builder().body(Body::from("route_not_found")).unwrap();
                 *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
                 return Ok(response);
             }
+        };
+
+        match body
+        {
+            Ok(body) => 
+            {
+                let response = create_response_builder().body(body);
+                response
+            }
+            Err(error) => 
+            {
+                let mut response = create_response_builder().body(Body::from(error)).unwrap();
+                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                Ok(response)
+            },
         }
     }
     else 

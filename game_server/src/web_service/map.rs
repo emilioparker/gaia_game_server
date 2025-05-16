@@ -4,17 +4,20 @@ use super::{create_response_builder, AppContext};
 
 
 // why would I grab it from the database if I can grab it from ram ?? LIke the temp regions.
-pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
-
+pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Result<Body, String> 
+{
     let mut iterator = data.into_iter();
     let region_list = iterator.next();
-    let regions = if let Some(regions_csv) = region_list {
+    let regions = if let Some(regions_csv) = region_list 
+    {
         cli_log::info!("{}", regions_csv);
         let data = regions_csv.split(",");
         let regions_ids : Vec<&str> = data.collect();
         let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
         iterator
-    } else {
+    }
+    else 
+    {
         Vec::new()
     };
 
@@ -27,7 +30,8 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
         // Look up one document:
         let data_from_db: Option<StoredRegion> = data_collection
         .find_one(
-            bson::doc! {
+            bson::doc! 
+            {
                     "world_id": context.storage_game_map.world_id,
                     "region_id": region_id.to_string()
             },
@@ -35,15 +39,18 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
         ).await
         .unwrap();
 
-        if let Some(region_from_db) = data_from_db {
+        if let Some(region_from_db) = data_from_db 
+        {
             cli_log::info!("region id {:?} with version {}", region_from_db.region_id, region_from_db.region_version);
-            let region_data: Vec<u8> = match region_from_db.compressed_data {
+            let region_data: Vec<u8> = match region_from_db.compressed_data 
+            {
                 bson::Bson::Binary(binary) => binary.bytes,
                 _ => panic!("Expected Bson::Binary"),
             };
             stored_regions_data.push(region_data);
         }
-        else {
+        else 
+        {
             stored_regions_data.push(Vec::new());
         }
     }
@@ -58,25 +65,25 @@ pub async fn handle_region_request(context: AppContext, data : Vec<&str>) -> Res
         binary_data.append(region_data);
     }
 
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(binary_data))
 }
 
-pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
-
+pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -> Result<Body, String> 
+{
     let mut iterator = data.into_iter();
     let region_list = iterator.next();
 
 // this string might contain more than one region separated by semicolon
-    let regions = if let Some(regions_csv) = region_list {
+    let regions = if let Some(regions_csv) = region_list 
+    {
         cli_log::info!("{}", regions_csv);
         let data = regions_csv.split(",");
         let regions_ids : Vec<&str> = data.collect();
         let iterator : Vec<TetrahedronId> = regions_ids.into_iter().map(|id| TetrahedronId::from_string(id)).collect();
         iterator
-    } else {
+    }
+    else 
+    {
         Vec::new()
     };
 
@@ -89,14 +96,11 @@ pub async fn handle_temp_region_request(context: AppContext, data : Vec<&str>) -
         binary_data.extend_from_slice(&region_map_lock.buffer[..size]);
     }
 
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(binary_data))
 }
 
-pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, Error> {
-
+pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str>) -> Result<Body, String> 
+{
     let mut iterator = data.into_iter();
     let region_list = iterator.next();
 
@@ -125,8 +129,5 @@ pub async fn handle_temp_mob_region_request(context: AppContext, data : Vec<&str
         cli_log::info!("mob region size {size}");
     }
 
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+    Ok(Body::from(binary_data))
 }

@@ -1,11 +1,8 @@
 use hyper::{Response, Body};
 
-
-use crate::web_service::create_response_builder;
-
 use super::AppContext;
 
-pub async fn handle_chat_record_request(context: AppContext, data : Vec<&str>) -> Result<Response<Body>, hyper::http::Error>
+pub async fn handle_chat_record_request(context: AppContext, data : Vec<&str>) -> Result<Body, String>
 {
     let mut iterator = data.into_iter();
     let message_faction = if let Some(faction) = iterator.next()
@@ -31,8 +28,6 @@ pub async fn handle_chat_record_request(context: AppContext, data : Vec<&str>) -
     }
 
     cli_log::info!("sending data back");
-    let response = create_response_builder()
-        .body(Body::from(binary_data))
-        .expect("Failed to create response");
-    Ok(response)
+
+    Ok(Body::from(binary_data))
 }
