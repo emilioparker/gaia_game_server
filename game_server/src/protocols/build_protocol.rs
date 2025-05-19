@@ -2,7 +2,7 @@ use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo
 
 
 pub async fn process(
-     data : &[u8; 508],
+     data : &[u8],
     channel_map_tx : &GaiaSender<MapCommand>)
 {
         let mut start = 1;

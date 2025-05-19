@@ -6,7 +6,7 @@ use crate::{hero::hero_command::{HeroCommand, HeroCommandInfo, HeroMovement}, ga
 
 
 pub async fn process_respawn(
-    data : &[u8; 508],
+    data : &[u8],
     regions : &Arc<HashMap<u16, [AtomicU16;3]>>,
     channel_tx : &GaiaSender<HeroCommand>)
 {

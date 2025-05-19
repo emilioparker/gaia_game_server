@@ -2,7 +2,7 @@ use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_
 
 
 pub async fn process(
-     data : &[u8; 508],
+     data : &[u8],
     channel_map_tx : &GaiaSender<MobCommand>)
 {
         let mut start = 1;

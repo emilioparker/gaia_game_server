@@ -74,7 +74,6 @@ pub async fn spawn_client_process(
     {
         //handle the first package
         protocols::route_packet(
-            player_id,
             from_address,
             &initial_data, 
             packet_size,
@@ -106,7 +105,6 @@ pub async fn spawn_client_process(
                         {
                             // cli_log::info!("Child: {:?} bytes received on child process for {}", size, from_address);
                             protocols::route_packet(
-                                player_id,
                                 from_address,
                                 &child_buff, 
                                 packet_size,

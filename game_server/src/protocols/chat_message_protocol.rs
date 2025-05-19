@@ -4,7 +4,7 @@ use crate::{chat::ChatCommand, gaia_mpsc::GaiaSender, map::tetrahedron_id::Tetra
 
 
 pub async fn process(
-     data : &[u8; 508],
+     data : &[u8],
     channel_tower_tx : &GaiaSender<ChatCommand>)
 {
         let mut start = 1;

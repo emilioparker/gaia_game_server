@@ -4,7 +4,7 @@ use tokio::sync::mpsc::Sender;
 use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{MobCommand, MobCommandInfo}};
 
 
-pub async fn process(data : &[u8; 508],  channel_mob_tx : &GaiaSender<MobCommand>)
+pub async fn process(data : &[u8],  channel_mob_tx : &GaiaSender<MobCommand>)
 {
     let mut start = 1;
     let mut end = start + 8;

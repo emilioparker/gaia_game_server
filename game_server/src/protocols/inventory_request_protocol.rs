@@ -1,6 +1,7 @@
 
 use std::sync::Arc;
 
+use bytes::Bytes;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 use crate::hero::hero_card_inventory::CardItem;
@@ -14,10 +15,9 @@ use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
-    _player_id: u16,
     player_address : std::net::SocketAddr, 
     generic_channel_tx : &GaiaSender<GenericCommand>,
-    data : &[u8; 508],
+    data : &[u8],
     map : &Arc<GameMap>)
 {
     cli_log::info!("---- inventory request");
@@ -52,7 +52,7 @@ pub async fn process_request(
 
     // we pay the price of cloning, but just because compressing might be costly.
     let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, inventory_version);
-    generic_channel_tx.send(GenericCommand{player_address, data : compressed_bytes}).await.unwrap();
+    generic_channel_tx.send(GenericCommand{player_address, data : Bytes::from(compressed_bytes)}).await.unwrap();
 }
 
 pub fn pack_inventory(

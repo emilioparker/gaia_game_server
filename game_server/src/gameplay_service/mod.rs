@@ -18,6 +18,7 @@ use crate::map::map_entity::MapEntity;
 use crate::clients_service::client_handler::StateUpdate;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
+use bytes::Bytes;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use utils::get_mob_commands_to_execute;
@@ -37,7 +38,7 @@ pub struct PacketsData
     started:bool,
     region:u16,
     packet_number: u64,
-    packets: Vec<(u64, u8, u16, u32, Vec<u8>)>,
+    packets: Vec<(u64, u8, u16, u32, Bytes)>,
     buffer: [u8;5000],
     game_packets_count : u32,
     offset : usize,
@@ -50,7 +51,7 @@ pub fn start_service(
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
-    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u16, u32, Vec<u8>)>>
+    tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u16, u32, Bytes)>>
 ) 
 -> (Receiver<MapEntity>, 
     Receiver<MapEntity>, 
@@ -561,7 +562,7 @@ pub fn start_service(
                 if region_packets_data.offset > 0
                 {
                     let encoded_data = data_packer::encode_packet(&mut region_packets_data.buffer, region_packets_data.offset);
-                    region_packets_data.packets.push((region_packets_data.packet_number, 0, region_packets_data.region, region_packets_data.game_packets_count, encoded_data));
+                    region_packets_data.packets.push((region_packets_data.packet_number, 0, region_packets_data.region, region_packets_data.game_packets_count, Bytes::from(encoded_data)));
                 }
 
                 if region_packets_data.packets.len() > 0 

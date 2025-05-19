@@ -2,7 +2,7 @@ pub mod client_handler;
 pub mod utils;
 pub mod websocket_client_handler;
 
-use std::collections::VecDeque;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU16, AtomicU64};
 use std::collections::HashMap;
@@ -15,6 +15,7 @@ use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::hero::hero_command::HeroCommand;
 use crate::tower::TowerCommand;
+use bytes::Bytes;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -42,7 +43,7 @@ pub fn start_server(
     Receiver<HeroCommand>, 
     Receiver<TowerCommand>, 
     Receiver<ChatCommand>,
-    GaiaSender<Vec<(u64,u8,u16,u32,Vec<u8>)>>
+    GaiaSender<Vec<(u64,u8,u16,u32,Bytes)>>
 ) // packet number, faction, region, gamepackets,data
 {
     let (tx_gc_clients_gameplay, mut rx_gc_clients_gameplay) = gaia_mpsc::channel::<GenericCommand>(100, ServerChannels::TX_GC_ClIENTS_GAMEPLAY, server_state.clone());
@@ -51,7 +52,7 @@ pub fn start_server(
     let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<HeroCommand>(100, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(100, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(100, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
-    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u16, u32, Vec<u8>)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
+    let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u16, u32, Bytes)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
     let packet_builder_server_state = server_state.clone();
     let generic_packet_builder_server_state: Arc<ServerState> = server_state.clone();
@@ -68,16 +69,9 @@ pub fn start_server(
     let send_udp_socket = udp_socket.clone();
     let send_directly_udp_socket = udp_socket.clone();
     
-    // websocket connections
-    // let websocket_client_connections:HashMap<std::net::SocketAddr, (u16, u8)> = HashMap::new();
-    // let websocket_client_connections_mutex = std::sync::Arc::new(Mutex::new(udp_client_connections));
-    // let websocket_client_connections_receiver_lock = udp_client_connections_mutex.clone();
-    // let websocket_client_connections_sender_lock = udp_client_connections_mutex.clone();
+    let (tx_packets_gameplay_chat_websocket_clients, rx_packets_gameplay_chat_websocket_clients) =  gaia_mpsc::channel::<Vec<(u64, u8, u16, u32, Bytes)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_WEBSOCKET_CLIENTS, server_state.clone());
+    let (tx_packets_gameplay_chat_websocket_specific_client, rx_packets_gameplay_chat_websocket_specific_clients) =  gaia_mpsc::channel::<(SocketAddr, Bytes)>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_WEBSOCKET_SPECIFIC_CLIENT, server_state.clone());
 
-    // tokio::spawn(async move 
-    // {
-    //     websocket_client_handler::run().await;
-    // });
 
     let mut player_regions_record = HashMap::<u16, [AtomicU16;3]>::new();
 
@@ -98,6 +92,33 @@ pub fn start_server(
     let shared_player_regions_record= Arc::new(player_regions_record);
     let reader_shared_player_regions_record= shared_player_regions_record.clone();
     let updater_shared_player_regions_record = reader_shared_player_regions_record.clone();
+
+    let map_for_websocket = map.clone();
+    let server_state_for_websocket = server_state.clone();
+    let tx_gc_clients_gameplay_for_websocket = tx_gc_clients_gameplay.clone();
+    let tx_mc_clients_gameplay_for_websocket = tx_mc_clients_gameplay.clone();
+    let tx_moc_clients_gameplay_for_websocket = tx_moc_clients_gameplay.clone();
+    let tx_pc_clients_gameplay_for_websocket = tx_pc_clients_gameplay.clone();
+    let tx_tc_clients_gameplay_for_websocket = tx_tc_clients_gameplay.clone();
+    let tx_cc_clients_gameplay_for_websocket = tx_cc_clients_gameplay.clone();
+    let updater_shared_player_regions_record_for_websocket = updater_shared_player_regions_record.clone();
+
+    tokio::spawn(async move 
+    {
+        websocket_client_handler::run(
+        rx_packets_gameplay_chat_websocket_clients,
+        rx_packets_gameplay_chat_websocket_specific_clients,
+                map_for_websocket,
+                server_state_for_websocket,
+                tx_gc_clients_gameplay_for_websocket,
+                tx_mc_clients_gameplay_for_websocket,
+                tx_moc_clients_gameplay_for_websocket,
+                tx_pc_clients_gameplay_for_websocket,
+                tx_tc_clients_gameplay_for_websocket,
+                tx_cc_clients_gameplay_for_websocket,
+                updater_shared_player_regions_record_for_websocket
+            ).await;
+    });
 
     tokio::spawn(async move 
     {
@@ -122,6 +143,8 @@ pub fn start_server(
                 generic_packet_builder_server_state.sent_bytes.fetch_add(command.data.len() as u64, std::sync::atomic::Ordering::Relaxed);
                 generic_packet_builder_server_state.sent_udp_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
                 generic_packet_builder_server_state.sent_game_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
+
+                tx_packets_gameplay_chat_websocket_specific_client.send((command.player_address, command.data)).await;
             }
         }
     });
@@ -185,6 +208,8 @@ pub fn start_server(
                     packet_builder_server_state.sent_udp_packets.fetch_add(sent_udp_packets, std::sync::atomic::Ordering::Relaxed);
                     packet_builder_server_state.sent_game_packets.fetch_add(sent_game_packets, std::sync::atomic::Ordering::Relaxed);
                 }
+
+                tx_packets_gameplay_chat_websocket_clients.send(packet_list).await;
             }
         }
     });

@@ -14,6 +14,7 @@ use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
 
 use std::io::prelude::*;
 use std::time::SystemTime;
+use bytes::Bytes;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 
@@ -62,7 +63,7 @@ pub fn build_data_packet(
     {
         // this means we already have some data
         let encoded_data = encode_packet(&mut regions_packets_data.buffer, regions_packets_data.offset);
-        regions_packets_data.packets.push((regions_packets_data.packet_number, 0, 0, regions_packets_data.game_packets_count, encoded_data));
+        regions_packets_data.packets.push((regions_packets_data.packet_number, 0, 0, regions_packets_data.game_packets_count, Bytes::from(encoded_data)));
         regions_packets_data.offset = init_data_packet(regions_packets_data);
         regions_packets_data.game_packets_count = 0;
     }

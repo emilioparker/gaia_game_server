@@ -4,7 +4,7 @@ use crate::{hero::hero_command::{HeroCommand, HeroCommandInfo, HeroMovement}, ga
 
 
 pub async fn process(
-     data : &[u8; 508],
+     data : &[u8],
     channel_tx : &GaiaSender<HeroCommand>)
 {
     //1 - protocolo 1 bytes

@@ -78,10 +78,9 @@ pub enum Protocol
 }
     
 pub async fn route_packet(
-    player_id: u16,
     player_address : std::net::SocketAddr, 
     // socket: &UdpSocket,
-    data : &[u8; 508],
+    data : &[u8],
     packet_size: usize,
     map : &Arc<GameMap>,
     server_state: &Arc<ServerState>,
@@ -97,77 +96,101 @@ pub async fn route_packet(
     server_state.received_packets.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     server_state.received_bytes.fetch_add(packet_size as u64, std::sync::atomic::Ordering::Relaxed);
 
-    match data.get(0) {
-        Some(protocol) if *protocol == Protocol::Ping as u8 => {
+    match data.get(0) 
+    {
+        Some(protocol) if *protocol == Protocol::Ping as u8 => 
+        {
             ping_protocol::process_ping(player_address, tx_gc_clients_gameplay, data).await;
         },
-        Some(protocol) if *protocol == Protocol::SellItem as u8 => {
+        Some(protocol) if *protocol == Protocol::SellItem as u8 => 
+        {
             sell_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::BuyItem as u8 => {
+        Some(protocol) if *protocol == Protocol::BuyItem as u8 => 
+        {
             buy_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::UseItem as u8 => {
+        Some(protocol) if *protocol == Protocol::UseItem as u8 => 
+        {
             use_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::EquipItem as u8 => {
+        Some(protocol) if *protocol == Protocol::EquipItem as u8 => 
+        {
             equip_item_protocol::process(data, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => {
-            inventory_request_protocol::process_request(player_id, player_address, tx_gc_clients_gameplay, data, map).await;
+        Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => 
+        {
+            inventory_request_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
         },
-        Some(protocol) if *protocol == Protocol::LayFoundation as u8 => {
+        Some(protocol) if *protocol == Protocol::LayFoundation as u8 => 
+        {
             layfoundation_protocol::process_construction(data, tx_mc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => {
+        Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => 
+        {
             movement_protocol::process_movement(data, regions, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => {
+        Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => 
+        {
             resource_extraction_protocol::process(data, tx_mc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::Build as u8 => {
+        Some(protocol) if *protocol == Protocol::Build as u8 => 
+        {
             build_protocol::process(data, tx_mc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::MobAttacksWalker as u8 => { // used by mobs and towers.
+        Some(protocol) if *protocol == Protocol::MobAttacksWalker as u8 => 
+        { // used by mobs and towers.
             mob_attacks_character_protocol::process(data, tx_moc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::SpawnMob as u8 => {
+        Some(protocol) if *protocol == Protocol::SpawnMob as u8 => 
+        {
             spawn_mob_protocol::process(data, tx_moc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::MobMoves as u8 => {
+        Some(protocol) if *protocol == Protocol::MobMoves as u8 => 
+        {
             mob_moves_protocol::process(data, tx_moc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::ControlMob as u8 => {
+        Some(protocol) if *protocol == Protocol::ControlMob as u8 => 
+        {
             claim_mob_ownership::process(data, tx_moc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::AttackMob as u8 => {
+        Some(protocol) if *protocol == Protocol::AttackMob as u8 => 
+        {
             cast_mob_from_character_protocol::process(data, tx_moc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::MissingPackets as u8 => {
+        Some(protocol) if *protocol == Protocol::MissingPackets as u8 => 
+        {
             // let capacity = tx_mc_clients_gameplay.capacity();
             // server_state.tx_mc_clients_gameplay.store(capacity as f32 as u16, std::sync::atomic::Ordering::Relaxed);
             // missing_packages_protocol::process_request(player_id, data, missing_packets);
         },
-        Some(protocol) if *protocol == Protocol::AttackTower as u8 => {
+        Some(protocol) if *protocol == Protocol::AttackTower as u8 => 
+        {
             attack_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
+        Some(protocol) if *protocol == Protocol::RepairTower as u8 => 
+        {
             repair_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::RepairTower as u8 => {
+        Some(protocol) if *protocol == Protocol::RepairTower as u8 => 
+        {
             repair_tower_protocol::process(data, tx_tc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::ChatMessage as u8 => {
+        Some(protocol) if *protocol == Protocol::ChatMessage as u8 => 
+        {
             chat_message_protocol::process(data, tx_cc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::BuildWall as u8 => {
+        Some(protocol) if *protocol == Protocol::BuildWall as u8 => 
+        {
             lay_wall_foundation_protocol::process_construction(data, tx_mc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::Respawn as u8 => {
+        Some(protocol) if *protocol == Protocol::Respawn as u8 => 
+        {
             cli_log::info!("--------------------- process respawn");
             respawn_protocol::process_respawn(data, regions, tx_pc_clients_gameplay).await;
         },
-        Some(protocol) if *protocol == Protocol::CharacterAction as u8 => {
+        Some(protocol) if *protocol == Protocol::CharacterAction as u8 => 
+        {
             cli_log::info!("--------------------- process character action");
             action_protocol::process(data, tx_pc_clients_gameplay).await;
         },
@@ -199,7 +222,7 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::CraftCard as u8 => 
         {
             cli_log::info!("--------------------- process craft card");
-            craft_card_protocol::process_request(player_id, player_address, tx_gc_clients_gameplay, data, map).await;
+            craft_card_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
         },
         unknown_protocol => 
         {

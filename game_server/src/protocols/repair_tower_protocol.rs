@@ -4,7 +4,7 @@ use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, tower::{T
 
 
 pub async fn process(
-     data : &[u8; 508],
+     data : &[u8],
     channel_tower_tx : &GaiaSender<TowerCommand>)
 {
         let mut start = 1;
