@@ -81,14 +81,14 @@ async fn handle_connection(
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>)
 {
-    println!("New connection from {}", addr);
+    cli_log::info!("New connection from {}", addr);
 
     // Perform the WebSocket handshake
     let ws_stream = accept_async(stream)
         .await
         .expect("WebSocket handshake failed");
 
-    println!("WebSocket connection established: {}", addr);
+    cli_log::info!("WebSocket connection established: {}", addr);
 
     // Split into sender and receiver
     let (write, mut read) = ws_stream.split();
@@ -98,6 +98,7 @@ async fn handle_connection(
     let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(100);
     tokio::spawn(send_data_to_client(rx, write, kill_tx));
 
+    server_state.online_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let created = AtomicBool::new(false);
 
     'main_loop : loop
@@ -126,6 +127,7 @@ async fn handle_connection(
 
                             if !created.load(std::sync::atomic::Ordering::Relaxed)
                             {
+                                cli_log::info!("websocket:creating client");
                                 created.store(true, std::sync::atomic::Ordering::Relaxed);
 
                                 let start = 1;
@@ -188,6 +190,7 @@ async fn handle_connection(
     let mut clients_lock = clients.lock().await;
     clients_lock.remove(&addr);
 
+    server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
     println!("Connection {} closed", addr);
 }
 
@@ -201,6 +204,7 @@ async fn send_data_to_client(
     {
         if let Some(message) = from_server.recv().await
         {
+            cli_log::info!("websocket:sending data to specific client websocket <<<<<<----- this one {}" , message.len());
             let result = link.feed(Message::Binary(message)).await;
             if result.is_err()
             {
@@ -211,13 +215,13 @@ async fn send_data_to_client(
             let result = link.flush().await;
             if result.is_err()
             {
-                cli_log::error!("error flushing data to write link in websocket");
+                cli_log::error!("websocket:error flushing data to write link in websocket");
                 break;
             }
         }
         else
         { 
-            cli_log::error!("error receiving data before sending to websocket");
+            cli_log::error!("websocket:error receiving data before sending to websocket");
             break;
         }
     }
@@ -237,6 +241,7 @@ async fn send_data_to_clients(
             let locked_clients = clients.lock().await;
             for client in locked_clients.iter()
             {
+                cli_log::info!("sending data to clients {}" , client.0);
                 let client_regions = regions.get(&client.1.hero_id).unwrap();
                 let a = client_regions[0].load(std::sync::atomic::Ordering::Relaxed);
                 let b = client_regions[1].load(std::sync::atomic::Ordering::Relaxed);
@@ -281,6 +286,7 @@ async fn send_data_to_specific_client(
     {
         if let Some(message) = from_server.recv().await
         {
+            cli_log::info!("websocket:sending data to specific client channel");
             let locked_clients = clients.lock().await;
 
             if let Some(client) = locked_clients.get(&message.0)
