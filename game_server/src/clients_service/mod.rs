@@ -144,7 +144,7 @@ pub fn start_server(
                 generic_packet_builder_server_state.sent_udp_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
                 generic_packet_builder_server_state.sent_game_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
 
-                cli_log::info!("client_service:send data to specific client {}" , command.player_address);
+                // cli_log::info!("client_service:send data to specific client {}" , command.player_address);
 
                 let result = tx_packets_gameplay_chat_websocket_specific_client.send((command.player_address, command.data)).await;
                 if result.is_err()
@@ -216,7 +216,7 @@ pub fn start_server(
                     packet_builder_server_state.sent_game_packets.fetch_add(sent_game_packets, std::sync::atomic::Ordering::Relaxed);
                 }
 
-                cli_log::info!("seding data from client service to all websocket clients");
+                // cli_log::info!("seding data from client service to all websocket clients");
 
                 let result = tx_packets_gameplay_chat_websocket_clients.send(packet_list).await;
                 if result.is_err()
