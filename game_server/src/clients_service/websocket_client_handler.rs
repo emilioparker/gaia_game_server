@@ -35,7 +35,7 @@ pub async fn run(
     // Bind to a local TCP socket
     let addr = "0.0.0.0:11005";
     let listener = TcpListener::bind(&addr).await.expect("Can't bind");
-    println!("WebSocket server running at ws://{}", addr);
+    cli_log::info!("WebSocket server running at ws://{}", addr);
 
     let clients = Arc::new(Mutex::new(HashMap::new()));
 
@@ -180,7 +180,7 @@ async fn handle_connection(
                     }
                     Err(e) => 
                     {
-                        eprintln!("Error processing connection: {}", e);
+                        cli_log::error!("Error processing connection: {}", e);
                         break 'main_loop;
                     }
                 }
@@ -192,7 +192,7 @@ async fn handle_connection(
     clients_lock.remove(&addr);
 
     server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-    println!("Connection {} closed", addr);
+    cli_log::info!("Connection {} closed", addr);
 }
 
 async fn send_data_to_client(
