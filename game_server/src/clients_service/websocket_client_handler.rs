@@ -156,6 +156,7 @@ async fn handle_connection(
                                 drop(clients_lock);
                             }
 
+                            cli_log::info!("websocket:got data from client {}", data.len());
                             // let _result = to_server.send(msg.into_data()).await;
                             protocols::route_packet(
                                 addr,
@@ -204,7 +205,7 @@ async fn send_data_to_client(
     {
         if let Some(message) = from_server.recv().await
         {
-            cli_log::info!("websocket:sending data to specific client websocket <<<<<<----- this one {}" , message.len());
+            // cli_log::info!("websocket:sending data to specific client websocket <<<<<<----- this one {}" , message.len());
             let result = link.feed(Message::Binary(message)).await;
             if result.is_err()
             {
