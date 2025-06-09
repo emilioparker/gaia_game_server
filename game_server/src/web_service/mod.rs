@@ -335,16 +335,19 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
 }
 
 
-pub struct TempMapBuffer { 
+pub struct TempMapBuffer 
+{ 
     pub index : usize,
     pub tile_to_index : HashMap<TetrahedronId, usize>,
+    pub defeated_mob_and_time: HashMap<TetrahedronId, u32>,
     pub buffer : [u8;100000]
 }
 
-impl TempMapBuffer {
+impl TempMapBuffer 
+{
     pub fn new() -> TempMapBuffer
     {
-        TempMapBuffer { index: 0, buffer: [0; 100000], tile_to_index : HashMap::new() }
+        TempMapBuffer { index: 0, buffer: [0; 100000], tile_to_index : HashMap::new(), defeated_mob_and_time : HashMap::new() }
     }
 }
 
@@ -420,7 +423,8 @@ pub fn start_server(
     };
 
 
-    tokio::spawn(async move {
+    tokio::spawn(async move 
+    {
         let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
         let make_service = make_service_fn(move |conn: &AddrStream| 
         {
@@ -445,12 +449,11 @@ pub fn start_server(
         }
     });
 
-
-
-
-
-    tokio::spawn(async move {
-        loop {
+    // saves map entities 
+    tokio::spawn(async move 
+    {
+        loop 
+        {
             let message = rx_me_realtime_webservice.recv().await.unwrap();
             let region_id = message.id.get_parent(7);
 
@@ -481,7 +484,9 @@ pub fn start_server(
         }
     });
 
-    tokio::spawn(async move {
+    // clears map entities from the cache
+    tokio::spawn(async move 
+    {
         let regions = crate::map::get_region_ids(2);
         loop 
         {
@@ -498,140 +503,199 @@ pub fn start_server(
     });
 
 
-    // mobs
-    tokio::spawn(async move {
-        loop 
-        {
-            let message = rx_moe_realtime_webservice.recv().await.unwrap();
-            let region_id = message.tile_id.get_parent(7);
-
-            let mob_region_map = mob_regions_adder_reference.get(&region_id).unwrap();
-            let mut mob_region_map_lock = mob_region_map.lock().await;
-
-            
-            if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
-            {
-                if message.health <= 0
-                {
-                    // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
-
-                    let current_index = mob_region_map_lock.index;
-                    // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
-                    if current_index == 0
-                    {
-                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-                    }
-                    else if index == current_index - MobEntity::get_size()
-                    {
-                        mob_region_map_lock.index = index;
-                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-                    }
-                    else
-                    {
-                        let last_index = current_index - MobEntity::get_size();
-                        let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
-
-                        let mut buffer = [0u8;6];
-                        buffer.copy_from_slice(&last_entry[0..6]);
-                        let tile_id = TetrahedronId::from_bytes(&buffer);
-
-                        let mut buffer = [0u8;MOB_ENTITY_SIZE];
-                        buffer.copy_from_slice(last_entry);
-
-                        mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
-                        mob_region_map_lock.tile_to_index.remove(&tile_id);
-                        mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-                        mob_region_map_lock.tile_to_index.insert(tile_id, index);
-                        mob_region_map_lock.index = last_index;
-                        // cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
-                    }
-                }
-                else
-                {
-                    let idx = index;
-                    let bytes = message.to_bytes();
-                    mob_region_map_lock.buffer[idx.. idx + MobEntity::get_size()].copy_from_slice(&bytes);
-                }
-            }
-            else 
-            {
-                if message.health > 0
-                {
-                    let index = mob_region_map_lock.index;
-                    if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
-                    {
-                        mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
-                        mob_region_map_lock.index = index + MobEntity::get_size();
-                        mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
-                        // cli_log::info!("-- updated mob index {}", mob_region_map_lock.index);
-                    }
-                    else 
-                    {
-                        cli_log::info!("webservice - mob temp buffer at capacity {}", region_id);
-                    }
-                }
-            }
-        }
-    });
-
-    // towers
-    tokio::spawn(async move 
+    fn remove_mob_at_index(to_be_removed : TetrahedronId, mob_region_map_lock : &mut TempMapBuffer)
     {
-        loop 
+        if let Some(index) = mob_region_map_lock.tile_to_index.get(&to_be_removed).map(|s| *s)
         {
-            let message = rx_te_realtime_webservice.recv().await.unwrap();
-            let mut towers = towers_adder_reference.lock().await;
-            let index = towers.0;
-            if index + TOWER_ENTITY_SIZE < 100000 
+            let current_index = mob_region_map_lock.index;
+            // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
+            if current_index == 0
             {
-                towers.1[index .. index + TOWER_ENTITY_SIZE].copy_from_slice(&message.to_bytes());
-                towers.0 = index + TOWER_ENTITY_SIZE;
+                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
+            }
+            else if index == current_index - MobEntity::get_size()
+            {
+                mob_region_map_lock.index = index;
+                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
             }
             else
             {
-                cli_log::info!("tower temp buffer max size reached");
+                let last_index = current_index - MobEntity::get_size();
+                let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
+
+                let mut buffer = [0u8;6];
+                buffer.copy_from_slice(&last_entry[0..6]);
+                let tile_id = TetrahedronId::from_bytes(&buffer);
+
+                let mut buffer = [0u8;MOB_ENTITY_SIZE];
+                buffer.copy_from_slice(last_entry);
+
+                mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
+                mob_region_map_lock.tile_to_index.remove(&tile_id);
+                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
+                mob_region_map_lock.defeated_mob_and_time.remove(&to_be_removed);
+                mob_region_map_lock.tile_to_index.insert(tile_id, index);
+                mob_region_map_lock.index = last_index;
+                // cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
             }
         }
-    });
+    }
 
-    tokio::spawn(async move {
-        loop 
+// saves mobs to cache if health is 0, the mob is registered to be removed later.
+tokio::spawn(async move 
+{
+    loop 
+    {
+        let message = rx_moe_realtime_webservice.recv().await.unwrap();
+        let region_id = message.tile_id.get_parent(7);
+
+        let mob_region_map = mob_regions_adder_reference.get(&region_id).unwrap();
+        let mut mob_region_map_lock = mob_region_map.lock().await;
+
+        if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
         {
-            // a message here means that all towers have been saved to disk.
-            let _message = rx_saved_te_longterm_webservice.recv().await.unwrap();
+            if message.health <= 0
+            {
+                mob_region_map_lock.defeated_mob_and_time.insert(message.tile_id.clone(), message.ownership_time);
+            }
+            else
+            {
+                let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
+                let current_time_in_millis = current_time.as_millis() as u64;
+                let current_time_in_seconds = (current_time_in_millis / 1000) as u32;
 
-            let mut towers = towers_cleaner_reference.lock().await;
-            towers.0 = 0;
+                // lets find the first mob we can actually remove before adding more items
+                for defeated_mob in &mob_region_map_lock.defeated_mob_and_time
+                {
+                    //16 minutes before despawn
+                    if *defeated_mob.1  + 1000 > current_time_in_seconds
+                    {
+                        remove_mob_at_index(defeated_mob.0.clone(), &mut mob_region_map_lock);
+                        break;
+                    }
+                }
+            }
+            // if message.health <= 0
+            // {
+            //     // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
+
+            //     let current_index = mob_region_map_lock.index;
+            //     // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
+            //     if current_index == 0
+            //     {
+            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+            //     }
+            //     else if index == current_index - MobEntity::get_size()
+            //     {
+            //         mob_region_map_lock.index = index;
+            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+            //     }
+            //     else
+            //     {
+            //         let last_index = current_index - MobEntity::get_size();
+            //         let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
+
+            //         let mut buffer = [0u8;6];
+            //         buffer.copy_from_slice(&last_entry[0..6]);
+            //         let tile_id = TetrahedronId::from_bytes(&buffer);
+
+            //         let mut buffer = [0u8;MOB_ENTITY_SIZE];
+            //         buffer.copy_from_slice(last_entry);
+
+            //         mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
+            //         mob_region_map_lock.tile_to_index.remove(&tile_id);
+            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
+            //         mob_region_map_lock.tile_to_index.insert(tile_id, index);
+            //         mob_region_map_lock.index = last_index;
+            //         // cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
+            //     }
+            // }
+            // else
+            {
+                let idx = index;
+                let bytes = message.to_bytes();
+                mob_region_map_lock.buffer[idx.. idx + MobEntity::get_size()].copy_from_slice(&bytes);
+            }
         }
-    });
-
-    // we keep the last 20 messages just for fun
-    tokio::spawn(async move {
-        loop 
+        else 
         {
-            let message = rx_ce_realtime_webservice.recv().await.unwrap();
-
-
-            let message_bytes = message.to_bytes();
-            let mut chat = chat_adder_reference.lock().await;
-
-            let message_faction = message.faction;
-            if !chat.contains_key(&message_faction)
+            // if message.health > 0
             {
-                let new_storage = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE] };
-                chat.insert(message_faction, new_storage);
-            }
-
-            if let Some(messages) = chat.get_mut(&message_faction)
-            {
-                let index = messages.index;
-                cli_log::info!("chat index {index} {}", messages.count);
-                messages.count = usize::min(CHAT_STORAGE_SIZE, messages.count + 1);
-                messages.index = (index + 1) % CHAT_STORAGE_SIZE;
-                let offset = index * CHAT_ENTRY_SIZE;
-                messages.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
-                cli_log::info!("index {}", index)
+                let index = mob_region_map_lock.index;
+                if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
+                {
+                    mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
+                    mob_region_map_lock.index = index + MobEntity::get_size();
+                    mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
+                    // cli_log::info!("-- updated mob index {}", mob_region_map_lock.index);
+                }
+                else 
+                {
+                    cli_log::info!("webservice - mob temp buffer at capacity {}", region_id);
+                }
             }
         }
-    });
+    }
+});
+
+// towers
+tokio::spawn(async move 
+{
+    loop 
+    {
+        let message = rx_te_realtime_webservice.recv().await.unwrap();
+        let mut towers = towers_adder_reference.lock().await;
+        let index = towers.0;
+        if index + TOWER_ENTITY_SIZE < 100000 
+        {
+            towers.1[index .. index + TOWER_ENTITY_SIZE].copy_from_slice(&message.to_bytes());
+            towers.0 = index + TOWER_ENTITY_SIZE;
+        }
+        else
+        {
+            cli_log::info!("tower temp buffer max size reached");
+        }
+    }
+});
+
+tokio::spawn(async move {
+    loop 
+    {
+        // a message here means that all towers have been saved to disk.
+        let _message = rx_saved_te_longterm_webservice.recv().await.unwrap();
+
+        let mut towers = towers_cleaner_reference.lock().await;
+        towers.0 = 0;
+    }
+});
+
+// we keep the last 20 messages just for fun
+tokio::spawn(async move {
+    loop 
+    {
+        let message = rx_ce_realtime_webservice.recv().await.unwrap();
+
+
+        let message_bytes = message.to_bytes();
+        let mut chat = chat_adder_reference.lock().await;
+
+        let message_faction = message.faction;
+        if !chat.contains_key(&message_faction)
+        {
+            let new_storage = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE] };
+            chat.insert(message_faction, new_storage);
+        }
+
+        if let Some(messages) = chat.get_mut(&message_faction)
+        {
+            let index = messages.index;
+            cli_log::info!("chat index {index} {}", messages.count);
+            messages.count = usize::min(CHAT_STORAGE_SIZE, messages.count + 1);
+            messages.index = (index + 1) % CHAT_STORAGE_SIZE;
+            let offset = index * CHAT_ENTRY_SIZE;
+            messages.record[offset..offset + CHAT_ENTRY_SIZE].copy_from_slice(&message_bytes);
+            cli_log::info!("index {}", index)
+        }
+    }
+});
 }

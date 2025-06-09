@@ -15,8 +15,8 @@ pub struct TowerEntity
     pub version: u16, // 2 bytes
     pub tetrahedron_id : TetrahedronId, // 6 bytes
     pub cooldown : u32,// 4 bytes
-    pub event_id:u16,
-    pub faction:u8,
+    pub event_id:u16, // 2 
+    pub faction:u8, // 1
     pub damage_received_in_event : Vec<DamageByFaction>,// this one is not serializable  normally
 }
 
@@ -197,7 +197,7 @@ impl TowerEntity
         let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
         if let Ok(elapsed) = result 
         {
-            self.cooldown = elapsed.as_secs() as u32 + 20 * 60; // 20 min of cooldown
+            self.cooldown = elapsed.as_secs() as u32;
         }
 
         self.damage_received_in_event.clear();

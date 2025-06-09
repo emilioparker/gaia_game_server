@@ -51,7 +51,28 @@ pub async fn process_tower_commands (
                         let current_time_in_seconds = current_time.as_secs() as u32;
                         let current_time_in_milliseconds = current_time.as_millis() as u64;
 
-                        if tower.cooldown < current_time_in_seconds
+                        // tower might be sleeping or active
+                        if tower.faction == 0 && tower.cooldown < current_time_in_seconds
+                        {
+                            let elapsed_time = current_time_in_seconds - tower.cooldown;
+                            let elapsed_time_normalized = elapsed_time % (6*60);
+
+                            if elapsed_time_normalized <= 5*60
+                            {
+                                // sleeping!
+                                cli_log::info!("Tower is sleeping");
+                            }
+                            else
+                            {
+                                let mut lock = delayed_tower_commands_lock.lock().await;
+                                let info = TowerCommandInfo::AttackTower(*player_id, *damage, *required_time);
+
+                                let tower_action = TowerCommand { id: tower_command.id.clone(), info };
+                                lock.push((current_time_in_milliseconds + *required_time as u64, tower_action));
+                                drop(lock);
+                            }
+                        }
+                        else if tower.cooldown + 10 * 60 < current_time_in_seconds // tower has been conquered it can be attacked anytime after 10 min
                         {
                             // let attack = Attack
                             // {
@@ -107,53 +128,52 @@ pub async fn process_delayed_tower_commands (
 {
     for tower_command in delayed_tower_commands_to_execute.iter()
     {
+        let mut towers = map.towers.lock().await;
+        cli_log::info!("towers count {}", towers.len());
+        let tower_option = towers.get_mut(&tower_command.id);
 
-            let mut towers = map.towers.lock().await;
-            cli_log::info!("towers count {}", towers.len());
-            let tower_option = towers.get_mut(&tower_command.id);
-
-            if let Some(tower) = tower_option
+        if let Some(tower) = tower_option
+        {
+            match &tower_command.info 
             {
-                match &tower_command.info 
+                TowerCommandInfo::Touch() => todo!(),
+                TowerCommandInfo::RepairTower(_player_id, _repair_amount) => 
                 {
-                    TowerCommandInfo::Touch() => todo!(),
-                    TowerCommandInfo::RepairTower(_player_id, _repair_amount) => 
-                    {
-                        // repair should not be a delayed command.
-                    },
-                    TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
-                    {
-                        cli_log::info!("Got a tower attack");
-                        let mut updated_tower = tower.clone();
-                        let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
-                        let player_option = player_entities.get_mut(&player_id);
-                        let faction_damage = if let Some(player_entity) = player_option 
-                            {
-                                updated_tower.add_damage_record(player_entity.faction, updated_tower.event_id, *damage)
-                            }
-                            else
-                            {
-                                0
-                            };
-
-                        drop(player_entities);
-
-                        if faction_damage > 600 
+                    // repair should not be a delayed command.
+                },
+                TowerCommandInfo::AttackTower(player_id, damage, _required_time) => 
+                {
+                    cli_log::info!("Got a tower attack");
+                    let mut updated_tower = tower.clone();
+                    let mut player_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
+                    let player_option = player_entities.get_mut(&player_id);
+                    let faction_damage = if let Some(player_entity) = player_option 
                         {
-                            // you defeated the tower!
-                            updated_tower.finish_event();
+                            updated_tower.add_damage_record(player_entity.faction, updated_tower.event_id, *damage)
                         }
+                        else
+                        {
+                            0
+                        };
 
-                        updated_tower.version += 1;
+                    drop(player_entities);
 
-                        // sending the updated tile somewhere.
-                        tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
-                        tx_te_gameplay_webservice.send(updated_tower.clone()).await.unwrap();
-                        towers_summary.push(updated_tower.clone());
-                        *tower = updated_tower;
+                    if faction_damage > 600 
+                    {
+                        // you defeated the tower!
+                        updated_tower.finish_event();
                     }
+
+                    updated_tower.version += 1;
+
+                    // sending the updated tile somewhere.
+                    tx_te_gameplay_longterm.send(updated_tower.clone()).await.unwrap();
+                    tx_te_gameplay_webservice.send(updated_tower.clone()).await.unwrap();
+                    towers_summary.push(updated_tower.clone());
+                    *tower = updated_tower;
                 }
             }
+        }
 
     }
 }
