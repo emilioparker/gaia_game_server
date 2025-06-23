@@ -6,6 +6,8 @@ pub mod db_tower;
 pub mod world_service;
 pub mod heroes_service;
 pub mod towers_service;
+pub mod kingdom_service;
+pub mod db_kingdom;
 
 
 

@@ -173,6 +173,9 @@ async fn run_server(tx: Sender<AppData>)
         pending_tower_entities_to_save: AtomicU32::new(0),
         saved_tower_entities: AtomicU32::new(0),
         last_tower_entities_save_timestamp: AtomicU64::new(0),
+
+        pending_kingdome_entities_to_save: AtomicU32::new(0),
+        last_kingdome_entities_save_timestamp: AtomicU64::new(0),
     });
     // let (_tx, mut rx) = tokio::sync::watch::channel("hello");
 
@@ -180,7 +183,7 @@ async fn run_server(tx: Sender<AppData>)
     let options = ClientOptions::parse_with_resolver_config(&client_uri, ResolverConfig::cloudflare()).await.unwrap();
     let db_client = Client::with_options(options).unwrap();
 
-    let world_name = "world_086";
+    let world_name = "world_087";
 
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
@@ -223,9 +226,10 @@ async fn run_server(tx: Sender<AppData>)
         // let (towers, _) = load_files_into_regions_hashset(world_name).await;
         // long_term_storage_service::towers_service::preload_db(world_name, world.id, towers, db_client.clone()).await;
         let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
+        let kingdomes_db_data = long_term_storage_service::kingdom_service::get_kingdoms_from_db_by_world(world.id, db_client.clone()).await;
 
-        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone()));
-        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data, storage_players, world_towers));
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data, storage_players, world_towers, kingdomes_db_data));
 
     }
     else
@@ -246,17 +250,25 @@ async fn run_server(tx: Sender<AppData>)
             long_term_storage_service::world_service::preload_db(world_name, world_id, regions_data, db_client.clone()).await;
             long_term_storage_service::towers_service::preload_db(world_name, world_id, towers, db_client.clone()).await;
 
+            let kingdomes = vec![
+                (TetrahedronId::from_string("t312222222"), 1),
+                (TetrahedronId::from_string("m113222222"), 2),
+                (TetrahedronId::from_string("k121222222"), 3),
+                ];
+
+            long_term_storage_service::kingdom_service::preload_db(world_name, world_id, kingdomes, db_client.clone()).await;
+
             // reading what we just created because we need the object ids!
             let regions_data_from_db = long_term_storage_service::world_service::get_regions_from_db(world_id, db_client.clone()).await;
-
             let regions_data = load_regions_data_into_game_map(&regions_data_from_db);
-
             let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world_id, db_client.clone()).await;
+            let kingdomes_db_data = long_term_storage_service::kingdom_service::get_kingdoms_from_db_by_world(world_id, db_client.clone()).await;
 
-            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone()));
-            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data, storage_players, world_towers));
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data, storage_players, world_towers, kingdomes_db_data));
         }
-        else {
+        else 
+        {
             cli_log::info!("Error creating world in db");
             return;
         }
@@ -274,6 +286,7 @@ async fn run_server(tx: Sender<AppData>)
                 rx_moc_client_gameplay, 
                 rx_hc_client_gameplay, 
                 rx_tc_client_gameplay ,
+                rx_kc_client_gameplay ,
                 rx_cc_client_gameplay ,
                 tx_packets_gameplay_chat_clients,
             ) =  clients_service::start_server(
@@ -287,12 +300,15 @@ async fn run_server(tx: Sender<AppData>)
                 rx_he_gameplay_longterm,
                 rx_te_gameplay_longterm,
                 rx_te_gameplay_webservice,
+                rx_ke_gameplay_longterm,
+                rx_ke_gameplay_webservice,
                 _tx_mc_webservice_gameplay,
             ) = gameplay_service::start_service(
                 rx_hc_client_gameplay,
                 rx_mc_client_gameplay,
                 rx_moc_client_gameplay,
                 rx_tc_client_gameplay,
+                rx_kc_client_gameplay,
                 working_game_map_reference.clone(), 
                 server_state.clone(),
                 tx_packets_gameplay_chat_clients.clone());
@@ -325,6 +341,14 @@ async fn run_server(tx: Sender<AppData>)
                 server_state.clone(),
                 db_client.clone()
             );
+
+            // realtime service sends the mapentity after updating the working copy, so it can be stored eventually
+            let rx_ke_saved_longterm_web = long_term_storage_service::kingdom_service::start_server(
+                rx_ke_gameplay_longterm,
+                storage_game_map_reference.clone(), 
+                server_state.clone(),
+                db_client.clone()
+            );
             
             web_service::start_server
             (
@@ -337,9 +361,11 @@ async fn run_server(tx: Sender<AppData>)
                 rx_me_gameplay_webservice,
                 rx_moe_gameplay_webservice,
                 rx_te_gameplay_webservice,
+                rx_ke_gameplay_webservice,
                 rx_ce_gameplay_webservice,
                 rx_me_saved_longterm_web,
                 rx_te_saved_longterm_web,
+                rx_ke_saved_longterm_web,
             );
         // ---------------------------------------------------
 

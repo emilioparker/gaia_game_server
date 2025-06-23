@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{mob::mob_instance::MobEntity, hero::hero_entity::HeroEntity, definitions::definitions_container::Definitions, tower::tower_entity::TowerEntity};
+use crate::{definitions::definitions_container::Definitions, hero::hero_entity::HeroEntity, kingdom::kingdom_entity::KingdomEntity, mob::mob_instance::MobEntity, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -23,6 +23,7 @@ pub struct GameMap
     pub logged_in_players: Vec<AtomicU64>,
     pub character : Arc<Mutex<HashMap<u16, HeroEntity>>>,
     pub towers : Arc<Mutex<HashMap<TetrahedronId, TowerEntity>>>,
+    pub kingdomes : Arc<Mutex<HashMap<TetrahedronId, KingdomEntity>>>,
 }
 
 impl GameMap 
@@ -34,6 +35,7 @@ impl GameMap
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
         players : HashMap<u16, HeroEntity>,
         towers : HashMap<TetrahedronId, TowerEntity>,
+        kingdomes : HashMap<TetrahedronId, KingdomEntity>,
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
@@ -84,6 +86,7 @@ impl GameMap
             mobs: arc_mobs,
             character : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),
+            kingdomes : Arc::new(Mutex::new(kingdomes)),
         }
     }
 

@@ -38,7 +38,8 @@ pub async fn preload_db(
             bytes: region.1,
         });
 
-        let data = StoredRegion {
+        let data = StoredRegion 
+        {
             id : None,
             world_id : world_id,
             world_name : world_name.to_owned(),

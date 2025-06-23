@@ -34,6 +34,7 @@ use std::sync::atomic::AtomicU16;
 
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
+use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::ServerState;
 use crate::chat::ChatCommand;
@@ -90,6 +91,7 @@ pub async fn route_packet(
     tx_mc_clients_gameplay: &GaiaSender<MapCommand>,
     tx_moc_clients_gameplay: &GaiaSender<MobCommand>,
     tx_tc_clients_gameplay: &GaiaSender<TowerCommand>,
+    tx_kc_clients_gameplay: &GaiaSender<KingdomCommand>,
     tx_cc_clients_gameplay: &GaiaSender<ChatCommand>
 ){
 

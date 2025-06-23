@@ -5,7 +5,7 @@ use futures_util::{stream::ForEach, SinkExt, StreamExt}; // for reading/writing 
 use std::{collections::{vec_deque, HashMap}, net::SocketAddr, sync::{atomic::{AtomicBool, AtomicU16}, Arc}, time::Duration};
 use bytes::Bytes;
 
-use crate::{chat::ChatCommand, gaia_mpsc, gameplay_service::generic_command::GenericCommand, hero::hero_command::HeroCommand, map::{map_entity::MapCommand, GameMap}, mob::mob_command::MobCommand, protocols, tower::TowerCommand, ServerState};
+use crate::{chat::ChatCommand, gaia_mpsc, gameplay_service::generic_command::GenericCommand, hero::hero_command::HeroCommand, kingdom::KingdomCommand, map::{map_entity::MapCommand, GameMap}, mob::mob_command::MobCommand, protocols, tower::TowerCommand, ServerState};
 
 pub struct WebSocketConnection
 {
@@ -29,6 +29,7 @@ pub async fn run(
     tx_moc_clients_gameplay : gaia_mpsc::GaiaSender<MobCommand>,
     tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<HeroCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
+    tx_kc_clients_gameplay : gaia_mpsc::GaiaSender<KingdomCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>)
 {
@@ -57,6 +58,7 @@ pub async fn run(
             tx_moc_clients_gameplay.clone(),
             tx_pc_clients_gameplay.clone(), 
             tx_tc_clients_gameplay.clone(),
+            tx_kc_clients_gameplay.clone(),
             tx_cc_clients_gameplay.clone(),
             regions.clone()
         ));
@@ -78,6 +80,7 @@ async fn handle_connection(
     tx_moc_clients_gameplay : gaia_mpsc::GaiaSender<MobCommand>,
     tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<HeroCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
+    tx_kc_clients_gameplay : gaia_mpsc::GaiaSender<KingdomCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>)
 {
@@ -170,6 +173,7 @@ async fn handle_connection(
                                 &tx_mc_clients_gameplay,
                                 &tx_moc_clients_gameplay,
                                 &tx_tc_clients_gameplay,
+                                &tx_kc_clients_gameplay,
                                 &tx_cc_clients_gameplay,
                             ).await;
                         }

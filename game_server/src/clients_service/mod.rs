@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicU16, AtomicU64};
 use std::collections::HashMap;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
+use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::{gaia_mpsc, ServerChannels, ServerState};
 use crate::chat::ChatCommand;
@@ -42,6 +43,7 @@ pub fn start_server(
     Receiver<MobCommand>,
     Receiver<HeroCommand>, 
     Receiver<TowerCommand>, 
+    Receiver<KingdomCommand>, 
     Receiver<ChatCommand>,
     GaiaSender<Vec<(u64,u8,u16,u32,Bytes)>>
 ) // packet number, faction, region, gamepackets,data
@@ -51,6 +53,7 @@ pub fn start_server(
     let (tx_moc_clients_gameplay, rx_moc_clients_gameplay) = gaia_mpsc::channel::<MobCommand>(100, ServerChannels::TX_MOC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_pc_clients_gameplay, rx_pc_clients_gameplay) = gaia_mpsc::channel::<HeroCommand>(100, ServerChannels::TX_PC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_tc_clients_gameplay, rx_tc_clients_gameplay) = gaia_mpsc::channel::<TowerCommand>(100, ServerChannels::TX_TC_CLIENTS_GAMEPLAY, server_state.clone());
+    let (tx_kc_clients_gameplay, rx_kc_clients_gameplay) = gaia_mpsc::channel::<KingdomCommand>(100, ServerChannels::TX_KC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_cc_clients_gameplay, rx_cc_clients_gameplay) = gaia_mpsc::channel::<ChatCommand>(100, ServerChannels::TX_CC_CLIENTS_GAMEPLAY, server_state.clone());
     let (tx_packets_gameplay_chat_clients, mut rx_packets_gameplay_chat_clients) = gaia_mpsc::channel::<Vec<(u64, u8, u16, u32, Bytes)>>(100, ServerChannels::TX_PACKETS_GAMEPLAY_CHAT_CLIENTS, server_state.clone());
 
@@ -100,6 +103,7 @@ pub fn start_server(
     let tx_moc_clients_gameplay_for_websocket = tx_moc_clients_gameplay.clone();
     let tx_pc_clients_gameplay_for_websocket = tx_pc_clients_gameplay.clone();
     let tx_tc_clients_gameplay_for_websocket = tx_tc_clients_gameplay.clone();
+    let tx_kc_clients_gameplay_for_websocket = tx_kc_clients_gameplay.clone();
     let tx_cc_clients_gameplay_for_websocket = tx_cc_clients_gameplay.clone();
     let updater_shared_player_regions_record_for_websocket = updater_shared_player_regions_record.clone();
 
@@ -115,6 +119,7 @@ pub fn start_server(
                 tx_moc_clients_gameplay_for_websocket,
                 tx_pc_clients_gameplay_for_websocket,
                 tx_tc_clients_gameplay_for_websocket,
+                tx_kc_clients_gameplay_for_websocket,
                 tx_cc_clients_gameplay_for_websocket,
                 updater_shared_player_regions_record_for_websocket
             ).await;
@@ -288,6 +293,7 @@ pub fn start_server(
                                     tx_moc_clients_gameplay.clone(), 
                                     tx_pc_clients_gameplay.clone(), 
                                     tx_tc_clients_gameplay.clone(), 
+                                    tx_kc_clients_gameplay.clone(), 
                                     tx_cc_clients_gameplay.clone(), 
                                     updater_shared_player_regions_record.clone(),
                                     buf_udp,
@@ -334,6 +340,7 @@ pub fn start_server(
         rx_moc_clients_gameplay,
         rx_pc_clients_gameplay,
         rx_tc_clients_gameplay,
+        rx_kc_clients_gameplay,
         rx_cc_clients_gameplay,
         tx_packets_gameplay_chat_clients
     )

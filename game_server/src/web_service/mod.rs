@@ -17,6 +17,7 @@ use hyper::service::{make_service_fn, service_fn};
 use crate::hero::hero_inventory::InventoryItem;
 use crate::chat::chat_entry::{ChatEntry, CHAT_ENTRY_SIZE};
 use crate::definitions::definitions_container::DefinitionsData;
+use crate::kingdom::kingdom_entity::{KingdomEntity, KINGDOM_ENTITY_SIZE};
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
@@ -27,6 +28,7 @@ use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 pub mod heroes;
 pub mod map;
 pub mod towers;
+pub mod kingdoms;
 pub mod chat;
 
 pub const CHAT_STORAGE_SIZE: usize = 100;
@@ -86,6 +88,7 @@ pub struct AppContext
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
     temp_mobs_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
     temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>,
+    temp_kingdoms : Arc::<Mutex::<(usize,[u8;10000])>>,
     old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
 }
 
@@ -298,6 +301,8 @@ async fn route(context: AppContext, req: Request<Body>) -> Result<Response<Body>
             "join_with_hero" => heroes::handle_login_with_hero(context, req).await,
             "towers" => towers::handle_request_towers(context, req).await,
             "temp_towers" => towers::handle_temp_tower_request(context).await,
+            "kingdoms" => kingdoms::handle_request_kingdoms(context, req).await,
+            "temp_kingdoms" => kingdoms::handle_temp_kingdoms_request(context).await,
             // // "sell_item" => handle_sell_item(context, req).await,
             "chat_record" => chat::handle_chat_record_request(context, rest).await,
             "exchange_skill_points" => heroes::exchange_skill_points(context, req).await,
@@ -361,10 +366,12 @@ pub fn start_server(
     mut rx_me_realtime_webservice : Receiver<MapEntity>,
     mut rx_moe_realtime_webservice : Receiver<MobEntity>,
     mut rx_te_realtime_webservice : Receiver<TowerEntity>,
+    mut rx_ke_realtime_webservice : Receiver<KingdomEntity>,
     mut rx_ce_realtime_webservice : Receiver<ChatEntry>,
     // tx_mc_webservice_gameplay : Sender<MapCommand>,
     mut rx_saved_me_longterm_webservice : Receiver<u32>,
     mut rx_saved_te_longterm_webservice : Receiver<bool>,
+    mut rx_saved_ke_longterm_webservice : Receiver<bool>,
 )
 {
     // temp tiles
@@ -404,6 +411,11 @@ pub fn start_server(
     let towers_cleaner_reference = towers_adder_reference.clone();
     let towers_reader_reference = towers_adder_reference.clone();
 
+    let kingdoms = (0, [0; 10000]);
+    let kingdoms_adder_reference= Arc::new(Mutex::new(kingdoms));
+    let kingdoms_cleaner_reference = kingdoms_adder_reference.clone();
+    let kingdoms_reader_reference = kingdoms_adder_reference.clone();
+
     // let chat = ChatStorage { index: 0, count: 0, record: [0; CHAT_ENTRY_SIZE * CHAT_STORAGE_SIZE] };
     let chat_adder_reference= Arc::new(Mutex::new(HashMap::new()));
     let chat_reader_reference = chat_adder_reference.clone();
@@ -419,6 +431,7 @@ pub fn start_server(
         temp_regions : regions_reader_reference,
         temp_mobs_regions : mob_regions_reader_reference,
         temp_towers : towers_reader_reference,
+        temp_kingdoms : kingdoms_reader_reference,
         old_messages : chat_reader_reference,
     };
 
@@ -669,8 +682,42 @@ tokio::spawn(async move {
     }
 });
 
+// kingdoms
+tokio::spawn(async move 
+{
+    loop 
+    {
+        let message = rx_ke_realtime_webservice.recv().await.unwrap();
+        let mut kingdoms = kingdoms_adder_reference.lock().await;
+        let index = kingdoms.0;
+        if index + KINGDOM_ENTITY_SIZE < 10000 
+        {
+            kingdoms.1[index .. index + TOWER_ENTITY_SIZE].copy_from_slice(&message.to_bytes());
+            kingdoms.0 = index + TOWER_ENTITY_SIZE;
+        }
+        else
+        {
+            cli_log::info!("kingdome temp buffer max size reached");
+        }
+    }
+});
+
+
+tokio::spawn(async move 
+{
+    loop 
+    {
+        // a message here means that all towers have been saved to disk.
+        let _message = rx_saved_ke_longterm_webservice.recv().await.unwrap();
+
+        let mut kingdoms = kingdoms_cleaner_reference.lock().await;
+        kingdoms.0 = 0;
+    }
+});
+
 // we keep the last 20 messages just for fun
-tokio::spawn(async move {
+tokio::spawn(async move 
+{
     loop 
     {
         let message = rx_ce_realtime_webservice.recv().await.unwrap();

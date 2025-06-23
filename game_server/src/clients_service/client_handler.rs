@@ -11,6 +11,7 @@ use tokio::sync::mpsc;
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
 use crate::gameplay_service::generic_command::GenericCommand;
+use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::hero::hero_command::{HeroCommand, HeroMovement};
@@ -55,6 +56,7 @@ pub async fn spawn_client_process(
     tx_moc_clients_gameplay : gaia_mpsc::GaiaSender<MobCommand>,
     tx_pc_clients_gameplay : gaia_mpsc::GaiaSender<HeroCommand>,
     tx_tc_clients_gameplay : gaia_mpsc::GaiaSender<TowerCommand>,
+    tx_kc_clients_gameplay : gaia_mpsc::GaiaSender<KingdomCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>,
     initial_data : [u8; 508],
@@ -85,6 +87,7 @@ pub async fn spawn_client_process(
             &tx_mc_clients_gameplay,
             &tx_moc_clients_gameplay,
             &tx_tc_clients_gameplay,
+            &tx_kc_clients_gameplay,
             &tx_cc_clients_gameplay,
         ).await;
 
@@ -116,6 +119,7 @@ pub async fn spawn_client_process(
                                 &tx_mc_clients_gameplay,
                                 &tx_moc_clients_gameplay,
                                 &tx_tc_clients_gameplay,
+                                &tx_kc_clients_gameplay,
                                 &tx_cc_clients_gameplay,
                             ).await;
                         }

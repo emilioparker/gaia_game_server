@@ -34,13 +34,13 @@ id,name,prop_type,area,item,attack
 32,ice_2,resource,0,ice,none
 33,ice_3,resource,0,ice,none
 34,ice_4,resource,0,ice,none
-35,magic_tower_1,tower,1,none,none
+35,magic_tower,tower,1,none,none
 36,structure_floor,structure,1,none,none
 37,structure_base,structure,1,none,arrow
 38,market_1,structure,2,none,none
 39,house_1,structure,1,none,none
 40,enemy_1,mob,0,none,arrow
-41,castle_1,structure,4,none,none
+41,castle,structure,4,none,none
 42,enemy_2,mob,0,none,short
 43,enemy_3,mob,0,none,fire
 44,wall_1,structure,0,none,none

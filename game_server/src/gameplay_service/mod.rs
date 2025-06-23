@@ -5,6 +5,8 @@ use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
 use crate::hero::hero_presentation::HeroPresentation;
 use crate::gaia_mpsc::GaiaSender;
+use crate::kingdom::kingdom_entity::KingdomEntity;
+use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
 use crate::mob::mob_instance::MobEntity;
 use crate::clients_service::DataType;
@@ -31,6 +33,7 @@ pub mod tile_commands_processor;
 pub mod tower_commands_processor;
 pub mod chat_commands_processor;
 pub mod mob_commands_processor;
+pub mod kingdoms_commands_processor;
 pub mod generic_command;
 
 pub struct PacketsData
@@ -49,6 +52,7 @@ pub fn start_service(
     mut rx_mc_client_game : tokio::sync::mpsc::Receiver<MapCommand>,
     mut rx_moc_client_game : tokio::sync::mpsc::Receiver<MobCommand>,
     mut rx_tc_client_game : tokio::sync::mpsc::Receiver<TowerCommand>,
+    mut rx_kc_client_game : tokio::sync::mpsc::Receiver<KingdomCommand>,
     map : Arc<GameMap>,
     server_state: Arc<ServerState>,
     tx_bytes_game_socket: gaia_mpsc::GaiaSender<Vec<(u64, u8, u16, u32, Bytes)>>
@@ -59,6 +63,8 @@ pub fn start_service(
     Receiver<HeroEntity>, 
     Receiver<TowerEntity>, 
     Receiver<TowerEntity>, 
+    Receiver<KingdomEntity>, 
+    Receiver<KingdomEntity>, 
     GaiaSender<MapCommand>) 
 {
 
@@ -72,6 +78,8 @@ pub fn start_service(
     let (tx_he_gameplay_longterm, rx_he_gameplay_longterm ) = gaia_mpsc::channel::<HeroEntity>(100, ServerChannels::TX_PE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_longterm, rx_te_gameplay_longterm ) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_LONGTERM, server_state.clone());
     let (tx_te_gameplay_webservice, rx_te_gameplay_webservice) = gaia_mpsc::channel::<TowerEntity>(100, ServerChannels::TX_TE_GAMEPLAY_WEBSERVICE, server_state.clone());
+    let (tx_ke_gameplay_longterm, rx_ke_gameplay_longterm ) = gaia_mpsc::channel::<KingdomEntity>(100, ServerChannels::TX_KE_GAMEPLAY_LONGTERM, server_state.clone());
+    let (tx_ke_gameplay_webservice, rx_ke_gameplay_webservice) = gaia_mpsc::channel::<KingdomEntity>(100, ServerChannels::TX_KE_GAMEPLAY_WEBSERVICE, server_state.clone());
 
     //players
     //player commands -------------------------------------
@@ -91,6 +99,12 @@ pub fn start_service(
     let tower_commands_mutex = Arc::new(Mutex::new(tower_commands));
     let tower_commands_processor_lock = tower_commands_mutex.clone();
     let tower_commands_agregator_from_client_lock = tower_commands_mutex.clone();
+
+    //kingdome commands -------------------------------------
+    let kingdom_commands = Vec::<KingdomCommand>::new();
+    let kingdom_commands_mutex = Arc::new(Mutex::new(kingdom_commands));
+    let kingdom_commands_processor_lock = kingdom_commands_mutex.clone();
+    let kingdom_commands_agregator_from_client_lock = kingdom_commands_mutex.clone();
 
     //mob commands -------------------------------------
     let mob_commands = Vec::<MobCommand>::new();
@@ -167,6 +181,18 @@ pub fn start_service(
 
     tokio::spawn(async move 
     {
+        // let mut sequence_number:u64 = 101;
+        loop
+        {
+            let message = rx_kc_client_game.recv().await.unwrap();
+            cli_log::info!("got a kingdome change data {}", message.id);
+            let mut data = kingdom_commands_agregator_from_client_lock.lock().await;
+            data.push(message);
+        }
+    });
+
+    tokio::spawn(async move 
+    {
         loop
         {
             let message = rx_moc_client_game.recv().await.unwrap();
@@ -187,6 +213,7 @@ pub fn start_service(
         let mut tiles_summary : Vec<MapEntity>= Vec::new();
         let mut heroes_rewards_summary : Vec<HeroReward>= Vec::new();
         let mut towers_summary : Vec<TowerEntity>= Vec::new();
+        let mut kingdoms_summary : Vec<KingdomEntity>= Vec::new();
         let mut mobs_summary : Vec<MobEntity>= Vec::new();
 
         let mut previous_time : u64 = 0;
@@ -333,6 +360,16 @@ pub fn start_service(
                 &mut towers_summary,
                 &mut attacks_summary,
                 delayed_tower_commands_lock.clone()).await;
+
+            kingdoms_commands_processor::process_kingdoms_commands(
+                map.clone(),
+                server_state.clone(),
+                kingdom_commands_processor_lock.clone(),
+                &tx_ke_gameplay_longterm,
+                &tx_ke_gameplay_webservice,
+                // &tx_pe_gameplay_longterm,
+                &mut kingdoms_summary,
+                &mut attacks_summary).await;
 
             let mut delayed_mob_commands_guard = delayed_mob_commands_lock.lock().await;
 
@@ -587,6 +624,8 @@ pub fn start_service(
         rx_he_gameplay_longterm,
         rx_te_gameplay_longterm,
         rx_te_gameplay_webservice,
+        rx_ke_gameplay_longterm,
+        rx_ke_gameplay_webservice,
         tx_mc_webservice_gameplay
     )
 }

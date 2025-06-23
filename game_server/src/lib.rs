@@ -29,6 +29,7 @@ pub mod ability_user;
 pub mod app;
 pub mod gaia_mpsc;
 pub mod http_service;
+pub mod kingdom;
 
 pub struct AppData
 {
@@ -45,6 +46,7 @@ pub enum ServerChannels
     TX_MC_CLIENTS_GAMEPLAY,
     TX_PC_CLIENTS_GAMEPLAY,
     TX_TC_CLIENTS_GAMEPLAY,
+    TX_KC_CLIENTS_GAMEPLAY,
     TX_CC_CLIENTS_GAMEPLAY,
     TX_MOC_CLIENTS_GAMEPLAY,
     TX_MOE_GAMEPLAY_WEBSERVICE,
@@ -57,9 +59,12 @@ pub enum ServerChannels
     TX_PE_GAMEPLAY_LONGTERM,
     TX_TE_GAMEPLAY_LONGTERM,
     TX_TE_GAMEPLAY_WEBSERVICE,
+    TX_KE_GAMEPLAY_LONGTERM,
+    TX_KE_GAMEPLAY_WEBSERVICE,
     TX_CE_CHAT_WEBSERVICE,
     TX_SAVED_LONGTERM_WEBSERVICE,
     TX_TE_SAVED_LONGTERM_WEBSERVICE,
+    TX_KE_SAVED_LONGTERM_WEBSERVICE,
 }
 
 pub struct ServerState 
@@ -82,8 +87,10 @@ pub struct ServerState
     pub last_character_entities_save_timestamp:AtomicU64,
 
     pub pending_tower_entities_to_save:AtomicU32,
+    pub pending_kingdome_entities_to_save:AtomicU32,
     pub saved_tower_entities:AtomicU32,
     pub last_tower_entities_save_timestamp:AtomicU64,
+    pub last_kingdome_entities_save_timestamp:AtomicU64,
 }
 
 impl ServerState 
