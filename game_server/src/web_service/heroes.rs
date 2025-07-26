@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
+use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation, hero_tower_progress::HeroTowerProgress}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -319,7 +319,8 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         intelligence: 10,
         mana: 10,
         health: 10,
-        buffs : Vec::new()
+        buffs : Vec::new(),
+        tower_progress: HeroTowerProgress::default().into(),
     };
 
     let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
@@ -365,7 +366,8 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         base_mana: 10,
         health: 10,
         buffs : Vec::new(),
-        buffs_summary: [0,0,0,0,0]
+        buffs_summary: [0,0,0,0,0],
+        tower_progress: HeroTowerProgress::default(),
     };
 
     let mut players = context.working_game_map.character.lock().await;

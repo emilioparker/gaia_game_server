@@ -1,8 +1,8 @@
-use std::time::SystemTime;
+use std::{cmp, time::SystemTime};
 
 use bson::oid::ObjectId;
 
-use crate::map::tetrahedron_id::TetrahedronId;
+use crate::map::tetrahedron_id::{self, TetrahedronId};
 
 pub const TOWER_ENTITY_SIZE: usize = 65;
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
@@ -202,6 +202,35 @@ impl TowerEntity
 
         self.damage_received_in_event.clear();
     }
+
+    pub fn can_enter(&self, faction : u8, current_time:u32) -> bool
+    {
+        TowerEntity::can_enter_tower(&self.tetrahedron_id, self.cooldown, self.faction, faction, current_time)
+    }
+
+    pub fn can_enter_tower(tile_id : &TetrahedronId, cooldown : u32, tower_faction : u8, faction : u8, current_time:u32) -> bool
+    {
+        // tower has been conquered and can be used by the faction
+        if tower_faction == faction
+        {
+            return true;
+        }
+        else
+        {
+            let active_time = 1;
+            let inactive_time = 5;
+            let total_cycle = active_time + inactive_time;
+            let elapsed_time = cmp::max(0, current_time - (cooldown + (tile_id.id + tile_id.area as u32) * 10)) % (total_cycle*60);
+            if elapsed_time <= inactive_time * 60
+            {
+                return false;
+            }
+            else 
+            {
+                return true;
+            }
+        }
+    } 
 
     pub fn get_size() -> usize 
     {

@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG}, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward, hero_weapon_inventory::WeaponItem}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG, INSIDE_TOWER_FLAG, TRYING_TO_ENTER_TOWER_FLAG}, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward, hero_weapon_inventory::WeaponItem}, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, tower::tower_entity::TowerEntity, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_hero_commands (
@@ -8,7 +8,7 @@ pub async fn process_hero_commands (
     server_state: Arc<ServerState>,
     current_time : u64,
     hero_commands_processor_lock : Arc<Mutex<Vec<HeroCommand>>>,
-    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    tx_he_gameplay_longterm : &GaiaSender<HeroEntity>,
     heros_summary : &mut Vec<HeroEntity>,
     heros_presentation_summary : &mut Vec<HeroPresentation>,
     attacks_summary : &mut  Vec<Attack>,
@@ -34,12 +34,15 @@ pub async fn process_hero_commands (
 
         match &hero_command.info 
         {
-            hero_command::HeroCommandInfo::Touch() => todo!(),
+            hero_command::HeroCommandInfo::Touch() => 
+            {
+                cli_log::error!("touch not implemented")
+            },
             hero_command::HeroCommandInfo::Movement(movement_data) => 
             {
                 move_character(
                     &map,
-                    tx_pe_gameplay_longterm,
+                    tx_he_gameplay_longterm,
                     heros_summary,
                     cloned_data.player_id,
                     movement_data.position.clone(),
@@ -52,27 +55,27 @@ pub async fn process_hero_commands (
             },
             hero_command::HeroCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
             {
-                sell_item(&map, tx_pe_gameplay_longterm, heros_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
+                sell_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
             },
             hero_command::HeroCommandInfo::BuyItem(_faction, item_id, item_type, amount) => 
             {
-                buy_item(&map, tx_pe_gameplay_longterm, heros_summary, *item_id, *item_type, cloned_data.player_id, *amount).await
+                buy_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *item_type, cloned_data.player_id, *amount).await
             },
             hero_command::HeroCommandInfo::UseItem(_faction, item_id, amount) => 
             {
-                use_item(&map, tx_pe_gameplay_longterm, heros_summary, *item_id, cloned_data.player_id, *amount).await;
+                use_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, cloned_data.player_id, *amount).await;
             },
             hero_command::HeroCommandInfo::EquipItem(equip_data) => 
             {
-                equip_item(&map, tx_pe_gameplay_longterm, heros_summary, equip_data.item_id, equip_data.inventory_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
+                equip_item(&map, tx_he_gameplay_longterm, heros_summary, equip_data.item_id, equip_data.inventory_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
             },
             hero_command::HeroCommandInfo::Respawn(respawn_tile) => 
             {
-                respawn(&map, tx_pe_gameplay_longterm, heros_summary, cloned_data.player_id, respawn_tile.clone()).await;
+                respawn(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, respawn_tile.clone()).await;
             },
             hero_command::HeroCommandInfo::Action(action) => 
             {
-                set_action(&map, current_time, tx_pe_gameplay_longterm, heros_summary, cloned_data.player_id, *action).await;
+                set_action(&map, current_time, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, *action).await;
             },
             hero_command::HeroCommandInfo::Greet() => 
             {
@@ -80,7 +83,7 @@ pub async fn process_hero_commands (
             },
             hero_command::HeroCommandInfo::ActivateBuff(card_id) => 
             {
-                activate_buff(&map, current_time, tx_pe_gameplay_longterm, heros_summary, *card_id, cloned_data.player_id).await;
+                activate_buff(&map, current_time, tx_he_gameplay_longterm, heros_summary, *card_id, cloned_data.player_id).await;
             },
             hero_command::HeroCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
             {
@@ -91,7 +94,7 @@ pub async fn process_hero_commands (
                         &map,
                         current_time,
                         &server_state,
-                        tx_pe_gameplay_longterm,
+                        tx_he_gameplay_longterm,
                         heros_summary,
                         attack_details_summary,
                         rewards_summary,
@@ -129,7 +132,19 @@ pub async fn process_hero_commands (
             },
             hero_command::HeroCommandInfo::Disconnect() => 
             {
-                disconnect(&map, tx_pe_gameplay_longterm, heros_summary, cloned_data.player_id).await;
+                disconnect(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id).await;
+            },
+            hero_command::HeroCommandInfo::EnterTower(tower_id, hero_faction) => 
+            {
+                enter_tower(
+                    &map,
+                    tx_he_gameplay_longterm,
+                    heros_summary,
+                    cloned_data.player_id,
+                    *hero_faction,
+                    tower_id.clone(),
+                    current_time
+                ).await;
             },
         }
     }
@@ -177,6 +192,55 @@ pub async fn process_delayed_hero_commands(
                 cli_log::info!("delayed command not supported");
             }
         }
+    }
+}
+
+pub async fn enter_tower(
+    map : &Arc<GameMap>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    heros_summary : &mut Vec<HeroEntity>,
+    player_id: u16,
+    faction: u8,
+    tower_id : TetrahedronId,
+    current_time : u64
+)
+{
+    let current_time_in_seconds = (current_time / 1000) as u32;
+
+    let mut tower_entities : tokio::sync:: MutexGuard<HashMap<TetrahedronId, TowerEntity>> = map.towers.lock().await;
+    let tower_option = tower_entities.get_mut(&tower_id);
+
+    let valid = if let Some(tower) = tower_option 
+    {
+        tower.can_enter(faction, current_time_in_seconds)
+    }
+    else
+    {
+        false
+    };
+
+    drop(tower_entities);
+
+    let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
+    let hero_option = hero_entities.get_mut(&player_id);
+
+    // cli_log::info!("set action {} {action}", player_id);
+    if let Some(hero_entity) = hero_option 
+    {
+        if valid
+        {
+            hero_entity.set_flag(INSIDE_TOWER_FLAG, true);
+            hero_entity.position = tower_id;
+        }
+        else
+        {
+            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
+            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
+        }
+
+        hero_entity.version += 1;
+        tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
+        heros_summary.push(hero_entity.clone());
     }
 }
 
@@ -574,6 +638,13 @@ pub async fn move_character(
     cli_log::info!("move {} vertex id {}", player_id, vertex_id);
     if let Some(hero_entity) = hero_option 
     {
+        if hero_entity.get_flag_value(INSIDE_TOWER_FLAG)
+        {
+            cli_log::info!("move {} vertex id {} not valid inside tower", player_id, vertex_id);
+            // cannot touch someone in the tower
+            return;
+        }
+
         let mut updated_hero_entity = HeroEntity 
         {
             action: hero_command::WALK_ACTION,
@@ -732,12 +803,27 @@ pub async fn attack_character(
     missed: u8)
 {
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
+
+    if let Some(defender)= character_entities.get_mut(&other_character_id)
+    {
+        if defender.get_flag_value(INSIDE_TOWER_FLAG)
+        {
+            // cannot touch someone in the tower
+            return;
+        }
+        else if defender.get_flag_value(TRYING_TO_ENTER_TOWER_FLAG)
+        {
+            defender.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
+        }
+    }
+
     let attacker_option= character_entities.get(&character_id);
     let defender_option= character_entities.get(&other_character_id);
 
     let current_time_in_seconds = (current_time / 1000) as u32;
     if let (Some(attacker), Some(defender)) = (attacker_option, defender_option)
     {
+
         let mut attacker = attacker.clone();
         let mut defender = defender.clone();
 

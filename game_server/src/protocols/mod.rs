@@ -27,6 +27,8 @@ pub mod disconnect_protocol;
 pub mod touch_mob_protocol;
 pub mod cast_mob_from_mob_protocol;
 pub mod craft_card_protocol;
+pub mod try_enter_tower_request_protocol;
+pub mod enter_tower_request_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -76,6 +78,9 @@ pub enum Protocol
     TouchMob = 28,
     CastMobFromMob = 29,
     CraftCard = 30,
+    TryEnterTower = 31,
+    EnterTower = 32,
+    HeroData = 33,
 }
     
 pub async fn route_packet(
@@ -87,7 +92,7 @@ pub async fn route_packet(
     server_state: &Arc<ServerState>,
     regions: &Arc<HashMap<u16, [AtomicU16;3]>>,
     tx_gc_clients_gameplay: &GaiaSender<GenericCommand>,
-    tx_pc_clients_gameplay: &GaiaSender<HeroCommand>,
+    tx_hc_clients_gameplay: &GaiaSender<HeroCommand>,
     tx_mc_clients_gameplay: &GaiaSender<MapCommand>,
     tx_moc_clients_gameplay: &GaiaSender<MobCommand>,
     tx_tc_clients_gameplay: &GaiaSender<TowerCommand>,
@@ -106,19 +111,19 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == Protocol::SellItem as u8 => 
         {
-            sell_item_protocol::process(data, tx_pc_clients_gameplay).await;
+            sell_item_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::BuyItem as u8 => 
         {
-            buy_item_protocol::process(data, tx_pc_clients_gameplay).await;
+            buy_item_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::UseItem as u8 => 
         {
-            use_item_protocol::process(data, tx_pc_clients_gameplay).await;
+            use_item_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::EquipItem as u8 => 
         {
-            equip_item_protocol::process(data, tx_pc_clients_gameplay).await;
+            equip_item_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => 
         {
@@ -130,7 +135,7 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == Protocol::CharacterMovement as u8 => 
         {
-            movement_protocol::process_movement(data, regions, tx_pc_clients_gameplay).await;
+            movement_protocol::process_movement(data, regions, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ResourceExtraction as u8 => 
         {
@@ -189,27 +194,27 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::Respawn as u8 => 
         {
             cli_log::info!("--------------------- process respawn");
-            respawn_protocol::process_respawn(data, regions, tx_pc_clients_gameplay).await;
+            respawn_protocol::process_respawn(data, regions, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAction as u8 => 
         {
             cli_log::info!("--------------------- process character action");
-            action_protocol::process(data, tx_pc_clients_gameplay).await;
+            action_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::Greet as u8 => 
         {
             cli_log::info!("--------------------- process greet");
-            greet_protocol::process(data, tx_pc_clients_gameplay).await;
+            greet_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::ActivateBuff as u8 => 
         {
             cli_log::info!("--------------------- process buff");
-            activate_buff_protocol::process(data, tx_pc_clients_gameplay).await;
+            activate_buff_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::CharacterAttacksCharacter as u8 => 
         {
             cli_log::info!("--------------------- process character attack");
-            character_attacks_character_protocol::process(data, tx_pc_clients_gameplay).await;
+            character_attacks_character_protocol::process(data, tx_hc_clients_gameplay).await;
         },
         Some(protocol) if *protocol == Protocol::TouchMob as u8 => 
         {
@@ -225,6 +230,16 @@ pub async fn route_packet(
         {
             cli_log::info!("--------------------- process craft card");
             craft_card_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
+        },
+        Some(protocol) if *protocol == Protocol::TryEnterTower as u8 => 
+        {
+            cli_log::info!("--------------------- process try enter tower");
+            try_enter_tower_request_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
+        },
+        Some(protocol) if *protocol == Protocol::EnterTower as u8 => 
+        {
+            cli_log::info!("--------------------- process enter tower");
+            enter_tower_request_protocol::process_request(player_address, tx_hc_clients_gameplay, data, map).await;
         },
         unknown_protocol => 
         {

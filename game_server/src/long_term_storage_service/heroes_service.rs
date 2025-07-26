@@ -4,8 +4,9 @@ use std::sync::Arc;
 use crate::buffs::buff::{Buff, BuffUser};
 use crate::hero::hero_card_inventory::CardItem;
 use crate::hero::hero_inventory::InventoryItem;
+use crate::hero::hero_tower_progress::HeroTowerProgress;
 use crate::hero::hero_weapon_inventory::WeaponItem;
-use crate::long_term_storage_service::db_hero::{StoredBuff, StoredHero, StoredInventoryItem};
+use crate::long_term_storage_service::db_hero::{StoredBuff, StoredHero, StoredInventoryItem, StoredTowerProgress};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
 use crate::hero::hero_entity::HeroEntity;
@@ -68,6 +69,9 @@ pub async fn get_heroes_from_db_by_world(
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
                 let buffs_summary : [u8;5]= [0,0,0,0,0];
 
+                let tower_progress :  HeroTowerProgress = doc.tower_progress.into();
+
+
                 cli_log::info!("----- faction {}", doc.faction);
                 let pos = TetrahedronId::from_string(&doc.position);
                 let mut player =  HeroEntity
@@ -104,6 +108,7 @@ pub async fn get_heroes_from_db_by_world(
                     health: doc.health,
                     buffs,
                     buffs_summary,
+                    tower_progress,
                 };
                 player.summarize_buffs();
 
@@ -224,6 +229,8 @@ pub fn start_server(
                 .map(|buff| StoredBuff ::from(buff))
                 .collect();
 
+                let tower_progress = StoredTowerProgress::from(player.tower_progress);
+
                 let serialized_buffs_data= bson::to_bson(&updated_buffs).unwrap();
                 let serialized_position= bson::to_bson(&player.second_position.to_string()).unwrap();
 
@@ -243,6 +250,7 @@ pub fn start_server(
                             "inventory" : inventory_serialized_data,
                             "card_inventory" : card_inventory_serialized_data,
                             "weapon_inventory" : weapon_inventory_serialized_data,
+                            "tower_progress" : bson::to_bson(&tower_progress).unwrap(),
                             "level": bson::to_bson(&player.level).unwrap(),
                             "experience" : bson::to_bson(&player.experience).unwrap(),
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),

@@ -34,7 +34,7 @@ id,name,prop_type,area,item,attack
 32,ice_2,resource,0,ice,none
 33,ice_3,resource,0,ice,none
 34,ice_4,resource,0,ice,none
-35,magic_tower,tower,1,none,none
+35,magic_tower,tower,2,none,none
 36,structure_floor,structure,1,none,none
 37,structure_base,structure,1,none,arrow
 38,market_1,structure,2,none,none

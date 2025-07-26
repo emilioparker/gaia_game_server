@@ -159,7 +159,7 @@ async fn handle_connection(
                                 drop(clients_lock);
                             }
 
-                            cli_log::info!("websocket:got data from client {}", data.len());
+                            // cli_log::info!("websocket:got data from client {}", data.len());
                             // let _result = to_server.send(msg.into_data()).await;
                             protocols::route_packet(
                                 addr,
@@ -246,7 +246,7 @@ async fn send_data_to_clients(
             let locked_clients = clients.lock().await;
             for client in locked_clients.iter()
             {
-                cli_log::info!("sending data to clients {}" , client.0);
+                // cli_log::info!("sending data to clients {}" , client.0);
                 let client_regions = regions.get(&client.1.hero_id).unwrap();
                 let a = client_regions[0].load(std::sync::atomic::Ordering::Relaxed);
                 let b = client_regions[1].load(std::sync::atomic::Ordering::Relaxed);

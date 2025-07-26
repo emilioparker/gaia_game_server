@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
+use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, hero::hero_tower_progress::HeroTowerProgress, map::tetrahedron_id::TetrahedronId};
 
 use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_weapon_inventory::WeaponItem};
 
@@ -10,6 +10,8 @@ pub const HERO_ENTITY_SIZE: usize = 50;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
+pub const TRYING_TO_ENTER_TOWER_FLAG : u8 = 0b00000100;
+pub const INSIDE_TOWER_FLAG : u8 = 0b00001000;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -41,6 +43,7 @@ pub struct HeroEntity
     pub weapon_inventory : Vec<WeaponItem>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
+    pub tower_progress : HeroTowerProgress, // not serializable
     // 1 bytes
 
     pub level:u8, // 1 bytes
@@ -233,6 +236,11 @@ impl HeroEntity
         }
     }
 
+    pub fn get_flag_value(&mut self, flag : u8) -> bool
+    {
+        (self.flags & flag) != 0
+    }
+
     pub fn get_size() -> usize 
     {
         HERO_ENTITY_SIZE
@@ -341,7 +349,7 @@ mod tests
     use std::num::Wrapping;
 
 
-    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
+    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE, hero_tower_progress::HeroTowerProgress}, map::tetrahedron_id::TetrahedronId};
 
     use super::HeroEntity;
 
@@ -424,6 +432,7 @@ mod tests
             mana_points: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
+            tower_progress: HeroTowerProgress::default(),
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -485,6 +494,7 @@ mod tests
             health: 10,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
+            tower_progress: HeroTowerProgress::default(),
         };
         let buffer = char.to_bytes();
         cli_log::info!("{:?}", buffer);
