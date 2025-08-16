@@ -203,22 +203,22 @@ impl TowerEntity
         self.damage_received_in_event.clear();
     }
 
-    pub fn can_enter(&self, faction : u8, current_time:u32) -> bool
+    pub fn is_active(&self, faction : u8, current_time:u32) -> bool
     {
-        TowerEntity::can_enter_tower(&self.tetrahedron_id, self.cooldown, self.faction, faction, current_time)
+        TowerEntity::is_tower_active(&self.tetrahedron_id, self.cooldown, self.faction, faction, current_time)
     }
 
-    pub fn can_enter_tower(tile_id : &TetrahedronId, cooldown : u32, tower_faction : u8, faction : u8, current_time:u32) -> bool
+    pub fn is_tower_active(tile_id : &TetrahedronId, cooldown : u32, tower_faction : u8, faction : u8, current_time:u32) -> bool
     {
         // tower has been conquered and can be used by the faction
         if tower_faction == faction
         {
-            return true;
+            return false;
         }
         else
         {
-            let active_time = 1;
-            let inactive_time = 5;
+            let active_time = 5;
+            let inactive_time = 1;
             let total_cycle = active_time + inactive_time;
             let elapsed_time = cmp::max(0, current_time - (cooldown + (tile_id.id + tile_id.area as u32) * 10)) % (total_cycle*60);
             if elapsed_time <= inactive_time * 60

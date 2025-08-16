@@ -342,12 +342,14 @@ pub fn start_service(
             tower_commands_processor::process_delayed_tower_commands(
                 map.clone(),
                 server_state.clone(),
+                current_time_in_millis,
                 &tx_te_gameplay_longterm,
                 &tx_te_gameplay_webservice,
                 // &tx_pe_gameplay_longterm,
                 &mut towers_summary,
                 &mut heroes_summary,
                 &mut heroes_rewards_summary,
+                &mut attack_details_summary,
                 delayed_tower_commands_to_execute).await;
 
             tower_commands_processor::process_tower_commands(

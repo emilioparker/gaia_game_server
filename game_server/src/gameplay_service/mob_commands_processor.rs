@@ -72,14 +72,13 @@ pub async fn process_mob_commands (
                             attacker_character_id: 0,
                             target_character_id: 0,
                             attacker_mob_tile_id: caster_mob_tile_id.clone(),
-                            target_mob_tile_id: mobs_command.tile_id.clone(),
+                            target_tile_id: mobs_command.tile_id.clone(),
                             card_id: *card_id,
                             required_time: *required_time,
-                            active_effect: *active_effect,
                             battle_type : BATTLE_MOB_MOB,
                         };
 
-                        cli_log::info!("--- cast {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- cast {} ", attack.required_time);
                         attacks_summary.push(attack);
                     }
 
@@ -121,14 +120,13 @@ pub async fn process_mob_commands (
                             attacker_character_id: *character_id,
                             target_character_id: 0,
                             attacker_mob_tile_id: TetrahedronId::default(),
-                            target_mob_tile_id: mobs_command.tile_id.clone(),
+                            target_tile_id: mobs_command.tile_id.clone(),
                             card_id: *card_id,
                             required_time: *required_time,
-                            active_effect: *active_effect,
                             battle_type : BATTLE_CHAR_MOB,
                         };
 
-                        cli_log::info!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- attack {}", attack.required_time);
                         attacks_summary.push(attack);
                     }
 
@@ -177,14 +175,13 @@ pub async fn process_mob_commands (
                             attacker_character_id: 0,
                             target_character_id: *character_id,
                             attacker_mob_tile_id: mobs_command.tile_id.clone(),
-                            target_mob_tile_id: TetrahedronId::default(),
+                            target_tile_id: TetrahedronId::default(),
                             card_id: *card_id,
                             required_time: *required_time,
-                            active_effect: *active_effect,
                             battle_type : BATTLE_MOB_CHAR,
                         };
 
-                        cli_log::info!("--- attack {} effect {}", attack.required_time, attack.active_effect);
+                        cli_log::info!("--- attack {} ", attack.required_time);
                         attacks_summary.push(attack);
                     }
                 },
@@ -439,7 +436,7 @@ pub async fn cast_mob_from_mob(
             attacker_mob_tile_id: caster_mob_id,
             attacker_character_id: 0,
             target_character_id: 0,
-            target_mob_tile_id: target_mob_id,
+            target_tile_id: target_mob_id,
             battle_type: BATTLE_MOB_MOB,
             result,
         });
@@ -574,7 +571,7 @@ pub async fn cast_mob_from_character(
             attacker_mob_tile_id: TetrahedronId::default(),
             attacker_character_id: character_id,
             target_character_id: 0,
-            target_mob_tile_id: mob_id,
+            target_tile_id: mob_id,
             battle_type: BATTLE_CHAR_MOB,
             result,
         });
@@ -665,7 +662,7 @@ pub async fn cast_character_from_mob(
             attacker_mob_tile_id: mob_id,
             attacker_character_id: 0,
             target_character_id: character_id,
-            target_mob_tile_id: TetrahedronId::default(),
+            target_tile_id: TetrahedronId::default(),
             battle_type: BATTLE_MOB_CHAR,
             result,
         });

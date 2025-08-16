@@ -30,6 +30,7 @@ pub enum HeroCommandInfo
     EquipItem(EquipItemCommandData),
     ActivateBuff(u32),
     EnterTower(TetrahedronId, u8),
+    ExitTower(TetrahedronId, u8, u8),
 }
 
 #[derive(Debug, Clone)]

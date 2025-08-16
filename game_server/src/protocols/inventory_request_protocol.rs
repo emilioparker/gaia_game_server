@@ -16,6 +16,7 @@ use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
     player_address : std::net::SocketAddr, 
+    is_udp: bool,
     generic_channel_tx : &GaiaSender<GenericCommand>,
     data : &[u8],
     map : &Arc<GameMap>)
@@ -52,7 +53,7 @@ pub async fn process_request(
 
     // we pay the price of cloning, but just because compressing might be costly.
     let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, inventory_version);
-    generic_channel_tx.send(GenericCommand{player_address, data : Bytes::from(compressed_bytes)}).await.unwrap();
+    generic_channel_tx.send(GenericCommand{player_address, is_udp, data : Bytes::from(compressed_bytes)}).await.unwrap();
 }
 
 pub fn pack_inventory(

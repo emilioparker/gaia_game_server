@@ -1,6 +1,6 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const ATTACK_SIZE: usize = 28;
+pub const ATTACK_SIZE: usize = 27;
 
 #[derive(Debug, Clone)]
 pub struct Attack 
@@ -8,11 +8,10 @@ pub struct Attack
     pub id:u16,// 2 bytes
     pub attacker_character_id: u16, // 2 bytes
     pub target_character_id: u16, // 2 bytes
-    pub attacker_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
-    pub target_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
+    pub attacker_mob_tile_id: TetrahedronId, // 6 bytes 
+    pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess. can be towers
     pub card_id: u32, // 4 bytes
     pub required_time:u32, // 4 bytes
-    pub active_effect:u8, //1 byte
     pub battle_type: u8, // 1 byte
 }
 
@@ -46,7 +45,7 @@ impl Attack
         start = end;
 
         end = start + 6;
-        let target_tile_id_bytes = self.target_mob_tile_id.to_bytes();
+        let target_tile_id_bytes = self.target_tile_id.to_bytes();
         buffer[start..end].copy_from_slice(&target_tile_id_bytes);
         start = end;
 
@@ -58,10 +57,6 @@ impl Attack
         end = start + 4;
         let end_time_bytes = u32::to_le_bytes(self.required_time); // 4 bytes
         buffer[start..end].copy_from_slice(&end_time_bytes);
-        start = end;
-
-        end = start + 1;
-        buffer[start] = self.active_effect;
         start = end;
 
         end = start + 1;

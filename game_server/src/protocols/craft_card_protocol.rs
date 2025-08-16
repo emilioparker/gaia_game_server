@@ -2,18 +2,15 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
-use tokio::net::UdpSocket;
-use tokio::sync::mpsc::Sender;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
 use crate::hero::hero_command::{HeroCommand, HeroMovement};
 use crate::protocols::inventory_request_protocol::pack_inventory;
-use flate2::Compression;
-use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
     player_address : std::net::SocketAddr, 
+    is_udp: bool,
     tx_gc_clients_gameplay : &GaiaSender<GenericCommand>,
     data : &[u8],
     map : &Arc<GameMap>)
@@ -47,7 +44,7 @@ pub async fn process_request(
             drop(player_entities); // we drop the lock asap, we can do what we want later.
 
             let compressed_bytes = pack_inventory(inventory, card_inventory, weapon_inventory, version);
-            tx_gc_clients_gameplay.send(GenericCommand{player_address, data : Bytes::from(compressed_bytes)}).await.unwrap();
+            tx_gc_clients_gameplay.send(GenericCommand{player_address, is_udp, data : Bytes::from(compressed_bytes)}).await.unwrap();
         }
     }
     else 

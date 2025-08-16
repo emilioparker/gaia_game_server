@@ -17,7 +17,7 @@ pub async fn process(
 
         start = end;
         end = start + 1;
-        let _faction = data[start];
+        let faction = data[start];
         start = end;
 
         end = start + 6;
@@ -32,7 +32,7 @@ pub async fn process(
 
         let tower_action = TowerCommand{
             id: tile_id,
-            info: TowerCommandInfo::RepairTower(player_id, repair_amount)
+            info: TowerCommandInfo::RepairTower(player_id, faction, repair_amount)
         };
 
         cli_log::info!("got a {:?}", tower_action);

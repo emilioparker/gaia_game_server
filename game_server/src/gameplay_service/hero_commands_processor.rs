@@ -35,117 +35,126 @@ pub async fn process_hero_commands (
         match &hero_command.info 
         {
             hero_command::HeroCommandInfo::Touch() => 
-            {
-                cli_log::error!("touch not implemented")
-            },
-            hero_command::HeroCommandInfo::Movement(movement_data) => 
-            {
-                move_character(
-                    &map,
-                    tx_he_gameplay_longterm,
-                    heros_summary,
-                    cloned_data.player_id,
-                    movement_data.position.clone(),
-                    movement_data.second_position.clone(),
-                    movement_data.vertex_id,
-                    movement_data.path,
-                    movement_data.time,
-                    movement_data.dash,
-                ).await;
-            },
-            hero_command::HeroCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
-            {
-                sell_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
-            },
-            hero_command::HeroCommandInfo::BuyItem(_faction, item_id, item_type, amount) => 
-            {
-                buy_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *item_type, cloned_data.player_id, *amount).await
-            },
-            hero_command::HeroCommandInfo::UseItem(_faction, item_id, amount) => 
-            {
-                use_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, cloned_data.player_id, *amount).await;
-            },
-            hero_command::HeroCommandInfo::EquipItem(equip_data) => 
-            {
-                equip_item(&map, tx_he_gameplay_longterm, heros_summary, equip_data.item_id, equip_data.inventory_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
-            },
-            hero_command::HeroCommandInfo::Respawn(respawn_tile) => 
-            {
-                respawn(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, respawn_tile.clone()).await;
-            },
-            hero_command::HeroCommandInfo::Action(action) => 
-            {
-                set_action(&map, current_time, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, *action).await;
-            },
-            hero_command::HeroCommandInfo::Greet() => 
-            {
-                greet(&map, heros_presentation_summary, cloned_data.player_id).await;
-            },
-            hero_command::HeroCommandInfo::ActivateBuff(card_id) => 
-            {
-                activate_buff(&map, current_time, tx_he_gameplay_longterm, heros_summary, *card_id, cloned_data.player_id).await;
-            },
-            hero_command::HeroCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
-            {
-                let end_time = current_time + *required_time as u64;
-                if *required_time == 0
-                {
-                    attack_character(
-                        &map,
-                        current_time,
-                        &server_state,
-                        tx_he_gameplay_longterm,
-                        heros_summary,
-                        attack_details_summary,
-                        rewards_summary,
-                        *card_id,
-                        cloned_data.player_id,
-                        *other_player_id,
-                        *missed).await;
-                }
-                else 
-                {
-                    cli_log::info!("------------ required time for hero attack {required_time} current time: {current_time} {card_id}");
-                    let mut lock = delayed_hero_commands_lock.lock().await;
-                    let info = HeroCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect, *missed);
-                    let character_action = HeroCommand { player_id: cloned_data.player_id, info };
-                    lock.push((end_time, character_action));
-                    drop(lock);
-
-                    let attack = Attack
                     {
-                        id: (current_time % 10000) as u16,
-                        attacker_character_id: cloned_data.player_id,
-                        target_character_id: *other_player_id,
-                        target_mob_tile_id: TetrahedronId::default(),
-                        attacker_mob_tile_id: TetrahedronId::default(),
-                        card_id: *card_id,
-                        required_time: *required_time,
-                        active_effect: *active_effect,
-                        battle_type: BATTLE_CHAR_CHAR,
-                    };
+                        cli_log::error!("touch not implemented")
+                    },
+            hero_command::HeroCommandInfo::Movement(movement_data) => 
+                    {
+                        move_character(
+                            &map,
+                            tx_he_gameplay_longterm,
+                            heros_summary,
+                            cloned_data.player_id,
+                            movement_data.position.clone(),
+                            movement_data.second_position.clone(),
+                            movement_data.vertex_id,
+                            movement_data.path,
+                            movement_data.time,
+                            movement_data.dash,
+                        ).await;
+                    },
+            hero_command::HeroCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
+                    {
+                        sell_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
+                    },
+            hero_command::HeroCommandInfo::BuyItem(_faction, item_id, item_type, amount) => 
+                    {
+                        buy_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *item_type, cloned_data.player_id, *amount).await
+                    },
+            hero_command::HeroCommandInfo::UseItem(_faction, item_id, amount) => 
+                    {
+                        use_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, cloned_data.player_id, *amount).await;
+                    },
+            hero_command::HeroCommandInfo::EquipItem(equip_data) => 
+                    {
+                        equip_item(&map, tx_he_gameplay_longterm, heros_summary, equip_data.item_id, equip_data.inventory_type, cloned_data.player_id, equip_data.current_slot,equip_data.new_slot).await;
+                    },
+            hero_command::HeroCommandInfo::Respawn(respawn_tile) => 
+                    {
+                        respawn(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, respawn_tile.clone()).await;
+                    },
+            hero_command::HeroCommandInfo::Action(action) => 
+                    {
+                        set_action(&map, current_time, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, *action).await;
+                    },
+            hero_command::HeroCommandInfo::Greet() => 
+                    {
+                        greet(&map, heros_presentation_summary, cloned_data.player_id).await;
+                    },
+            hero_command::HeroCommandInfo::ActivateBuff(card_id) => 
+                    {
+                        activate_buff(&map, current_time, tx_he_gameplay_longterm, heros_summary, *card_id, cloned_data.player_id).await;
+                    },
+            hero_command::HeroCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
+                    {
+                        let end_time = current_time + *required_time as u64;
+                        if *required_time == 0
+                        {
+                            attack_character(
+                                &map,
+                                current_time,
+                                &server_state,
+                                tx_he_gameplay_longterm,
+                                heros_summary,
+                                attack_details_summary,
+                                rewards_summary,
+                                *card_id,
+                                cloned_data.player_id,
+                                *other_player_id,
+                                *missed).await;
+                        }
+                        else 
+                        {
+                            cli_log::info!("------------ required time for hero attack {required_time} current time: {current_time} {card_id}");
+                            let mut lock = delayed_hero_commands_lock.lock().await;
+                            let info = HeroCommandInfo::AttackCharacter(*other_player_id, *card_id, *required_time, *active_effect, *missed);
+                            let character_action = HeroCommand { player_id: cloned_data.player_id, info };
+                            lock.push((end_time, character_action));
+                            drop(lock);
 
-                    cli_log::info!("--- attack hero {} at {} effect {}", other_player_id, attack.required_time, attack.active_effect);
-                    attacks_summary.push(attack);
-                }
+                            let attack = Attack
+                            {
+                                id: (current_time % 10000) as u16,
+                                attacker_character_id: cloned_data.player_id,
+                                target_character_id: *other_player_id,
+                                target_tile_id: TetrahedronId::default(),
+                                attacker_mob_tile_id: TetrahedronId::default(),
+                                card_id: *card_id,
+                                required_time: *required_time,
+                                battle_type: BATTLE_CHAR_CHAR,
+                            };
 
-            },
+                            cli_log::info!("--- attack hero {} at {} effect", other_player_id, attack.required_time);
+                            attacks_summary.push(attack);
+                        }
+
+                    },
             hero_command::HeroCommandInfo::Disconnect() => 
-            {
-                disconnect(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id).await;
-            },
+                    {
+                        disconnect(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id).await;
+                    },
             hero_command::HeroCommandInfo::EnterTower(tower_id, hero_faction) => 
-            {
-                enter_tower(
-                    &map,
-                    tx_he_gameplay_longterm,
-                    heros_summary,
-                    cloned_data.player_id,
-                    *hero_faction,
-                    tower_id.clone(),
-                    current_time
-                ).await;
-            },
+                    {
+                        enter_tower(
+                            &map,
+                            tx_he_gameplay_longterm,
+                            heros_summary,
+                            cloned_data.player_id,
+                            *hero_faction,
+                            tower_id.clone(),
+                            current_time
+                        ).await;
+                    },
+            HeroCommandInfo::ExitTower(tower_id, hero_faction, points) => 
+                    {
+                        exit_tower(
+                            &map,
+                            tx_he_gameplay_longterm,
+                            heros_summary,
+                            cloned_data.player_id,
+                            *hero_faction, tower_id.clone(),
+                            current_time).await;
+                    },
         }
     }
     hero_commands_data.clear();
@@ -212,7 +221,7 @@ pub async fn enter_tower(
 
     let valid = if let Some(tower) = tower_option 
     {
-        tower.can_enter(faction, current_time_in_seconds)
+        tower.is_active(faction, current_time_in_seconds)
     }
     else
     {
@@ -231,6 +240,55 @@ pub async fn enter_tower(
         {
             hero_entity.set_flag(INSIDE_TOWER_FLAG, true);
             hero_entity.position = tower_id;
+        }
+        else
+        {
+            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
+            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
+        }
+
+        hero_entity.version += 1;
+        tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
+        heros_summary.push(hero_entity.clone());
+    }
+}
+
+pub async fn exit_tower(
+    map : &Arc<GameMap>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    heros_summary : &mut Vec<HeroEntity>,
+    player_id: u16,
+    faction: u8,
+    tower_id : TetrahedronId,
+    current_time : u64
+)
+{
+    let current_time_in_seconds = (current_time / 1000) as u32;
+
+    let mut tower_entities : tokio::sync:: MutexGuard<HashMap<TetrahedronId, TowerEntity>> = map.towers.lock().await;
+    let tower_option = tower_entities.get_mut(&tower_id);
+
+    let can_score = if let Some(tower) = tower_option 
+    {
+        tower.is_active(faction, current_time_in_seconds)
+    }
+    else
+    {
+        false
+    };
+
+    drop(tower_entities);
+
+    let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
+    let hero_option = hero_entities.get_mut(&player_id);
+
+    // cli_log::info!("set action {} {action}", player_id);
+    if let Some(hero_entity) = hero_option 
+    {
+        if can_score
+        {
+            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
+            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
         }
         else
         {
@@ -891,7 +949,7 @@ pub async fn attack_character(
             attacker_mob_tile_id: TetrahedronId::default(),
             attacker_character_id: character_id,
             target_character_id: other_character_id,
-            target_mob_tile_id: TetrahedronId::default(),
+            target_tile_id: TetrahedronId::default(),
             battle_type: BATTLE_CHAR_CHAR,
             result,
         });

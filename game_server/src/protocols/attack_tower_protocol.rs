@@ -17,7 +17,7 @@ pub async fn process(
 
         start = end;
         end = start + 1;
-        let _faction = data[start];
+        let faction = data[start];
 
         start = end; // ignoring first byte
         end = start + 6;
@@ -27,16 +27,21 @@ pub async fn process(
 
         start = end;
         end = start + 2;
-        let damage = u16::from_le_bytes(data[start..end].try_into().unwrap()); 
+        let event_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+
+        start = end;
+        end = start + 4;
+        let card_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         start = end;
 
         end = start + 4;
         let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
         // start = end;
 
-        let tower_action = TowerCommand{
+        let tower_action = TowerCommand
+        {
             id: tile_id,
-            info: TowerCommandInfo::AttackTower(player_id, damage, required_time)
+            info: TowerCommandInfo::AttackTower(player_id, event_id, faction, card_id, required_time)
         };
 
         cli_log::info!("got a {:?}", tower_action);

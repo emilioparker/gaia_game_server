@@ -131,31 +131,38 @@ pub fn start_server(
         {
             if let Some(command) = rx_gc_clients_gameplay.recv().await 
             {
-                let result = send_directly_udp_socket.try_send_to(&command.data, command.player_address);
-                match result 
+                let data_size = command.data.len() as u64;
+                if command.is_udp
                 {
-                    Ok(_) => 
+                    let result = send_directly_udp_socket.try_send_to(&command.data, command.player_address);
+                    match result 
                     {
-                        // cli_log::info!("ping sent to client ");
-                    },
-                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
-                    {
-                        cli_log::info!("error sending specific data to {} would block", command.player_address);
-                    },
-                    Err(_) => cli_log::info!("error sending specific data through socket"),
+                        Ok(_) => 
+                        {
+                            // cli_log::info!("ping sent to client ");
+                        },
+                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock =>
+                        {
+                            cli_log::info!("error sending specific data to {} would block", command.player_address);
+                        },
+                        Err(_) => cli_log::info!("error sending specific data through socket"),
+                    }
                 }
-
-                generic_packet_builder_server_state.sent_bytes.fetch_add(command.data.len() as u64, std::sync::atomic::Ordering::Relaxed);
-                generic_packet_builder_server_state.sent_udp_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
-                generic_packet_builder_server_state.sent_game_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
+                else
+                {
+                    let result = tx_packets_gameplay_chat_websocket_specific_client.send((command.player_address, command.data)).await;
+                    if result.is_err()
+                    {
+                        cli_log::error!("client_service:error sending data to specific client channel");
+                    }
+                }
 
                 // cli_log::info!("client_service:send data to specific client {}" , command.player_address);
 
-                let result = tx_packets_gameplay_chat_websocket_specific_client.send((command.player_address, command.data)).await;
-                if result.is_err()
-                {
-                    cli_log::error!("client_service:error sending data to specific client channel");
-                }
+                generic_packet_builder_server_state.sent_bytes.fetch_add(data_size, std::sync::atomic::Ordering::Relaxed);
+                generic_packet_builder_server_state.sent_udp_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
+                generic_packet_builder_server_state.sent_game_packets.fetch_add(1u64, std::sync::atomic::Ordering::Relaxed);
+
             }
 
         }

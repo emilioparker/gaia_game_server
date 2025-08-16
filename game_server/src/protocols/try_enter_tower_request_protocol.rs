@@ -17,6 +17,7 @@ use flate2::write::ZlibEncoder;
 
 pub async fn process_request(
     player_address : std::net::SocketAddr, 
+    is_udp : bool,
     generic_channel_tx : &GaiaSender<GenericCommand>,
     data : &[u8],
     map : &Arc<GameMap>)
@@ -57,7 +58,7 @@ pub async fn process_request(
 
     if let Some(data) = result 
     {
-        generic_channel_tx.send(GenericCommand{player_address, data : Bytes::from(data.to_vec())}).await.unwrap();
+        generic_channel_tx.send(GenericCommand{player_address, is_udp, data : Bytes::from(data.to_vec())}).await.unwrap();
     }
 }
 

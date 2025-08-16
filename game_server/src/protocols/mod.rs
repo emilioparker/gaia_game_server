@@ -29,6 +29,7 @@ pub mod cast_mob_from_mob_protocol;
 pub mod craft_card_protocol;
 pub mod try_enter_tower_request_protocol;
 pub mod enter_tower_request_protocol;
+pub mod exit_tower_request_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -81,11 +82,12 @@ pub enum Protocol
     TryEnterTower = 31,
     EnterTower = 32,
     HeroData = 33,
+    ExitTower = 34,
 }
     
 pub async fn route_packet(
     player_address : std::net::SocketAddr, 
-    // socket: &UdpSocket,
+    is_udp: bool,
     data : &[u8],
     packet_size: usize,
     map : &Arc<GameMap>,
@@ -107,7 +109,7 @@ pub async fn route_packet(
     {
         Some(protocol) if *protocol == Protocol::Ping as u8 => 
         {
-            ping_protocol::process_ping(player_address, tx_gc_clients_gameplay, data).await;
+            ping_protocol::process_ping(player_address, is_udp, tx_gc_clients_gameplay, data).await;
         },
         Some(protocol) if *protocol == Protocol::SellItem as u8 => 
         {
@@ -127,7 +129,7 @@ pub async fn route_packet(
         },
         Some(protocol) if *protocol == Protocol::InventoryRequest as u8 => 
         {
-            inventory_request_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
+            inventory_request_protocol::process_request(player_address, is_udp, tx_gc_clients_gameplay, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::LayFoundation as u8 => 
         {
@@ -229,17 +231,22 @@ pub async fn route_packet(
         Some(protocol) if *protocol == Protocol::CraftCard as u8 => 
         {
             cli_log::info!("--------------------- process craft card");
-            craft_card_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
+            craft_card_protocol::process_request(player_address, is_udp, tx_gc_clients_gameplay, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::TryEnterTower as u8 => 
         {
             cli_log::info!("--------------------- process try enter tower");
-            try_enter_tower_request_protocol::process_request(player_address, tx_gc_clients_gameplay, data, map).await;
+            try_enter_tower_request_protocol::process_request(player_address, is_udp, tx_gc_clients_gameplay, data, map).await;
         },
         Some(protocol) if *protocol == Protocol::EnterTower as u8 => 
         {
             cli_log::info!("--------------------- process enter tower");
             enter_tower_request_protocol::process_request(player_address, tx_hc_clients_gameplay, data, map).await;
+        },
+        Some(protocol) if *protocol == Protocol::ExitTower as u8 => 
+        {
+            cli_log::info!("--------------------- process exit tower");
+            exit_tower_request_protocol::process_request(tx_hc_clients_gameplay, tx_tc_clients_gameplay, data).await;
         },
         unknown_protocol => 
         {

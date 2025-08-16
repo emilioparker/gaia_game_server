@@ -11,6 +11,7 @@ pub const BATTLE_MOB_CHAR: u8 = 0;
 pub const BATTLE_CHAR_MOB: u8 = 1;
 pub const BATTLE_CHAR_CHAR: u8 = 2;
 pub const BATTLE_MOB_MOB: u8 = 3;
+pub const BATTLE_CHAR_TOWER: u8 = 4;
 
 
 #[derive(Debug, Clone)]
@@ -21,7 +22,7 @@ pub struct AttackResult
     pub attacker_character_id: u16, // 2 bytes
     pub attacker_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub target_character_id: u16, // 2 bytes
-    pub target_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
+    pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub battle_type: u8, // 1 byte
     pub result: u8, //1 byte
 }
@@ -61,7 +62,7 @@ impl AttackResult
         start = end;
 
         end = start + 6;
-        let tile_id_bytes = self.target_mob_tile_id.to_bytes();
+        let tile_id_bytes = self.target_tile_id.to_bytes();
         buffer[start..end].copy_from_slice(&tile_id_bytes);
         start = end;
 
