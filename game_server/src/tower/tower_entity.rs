@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::map::tetrahedron_id::{self, TetrahedronId};
 
-pub const TOWER_ENTITY_SIZE: usize = 65;
+pub const TOWER_ENTITY_SIZE: usize = 61;
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
 
 #[derive(Debug)]
