@@ -56,7 +56,6 @@ pub async fn get_towers_from_db_by_world(
                     object_id: doc.id,
                     version:doc.version,
                     tetrahedron_id: TetrahedronId::from_string(&doc.tetrahedron_id),
-                    cooldown: doc.cooldown,
                     event_id: doc.event_id,
                     faction:get_faction_code(&doc.faction),
                     damage_received_in_event: record,

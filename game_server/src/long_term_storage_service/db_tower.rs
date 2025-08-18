@@ -5,7 +5,8 @@ use crate::{tower::tower_entity::DamageByFaction, get_faction_from_code};
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct StoredTower {
+pub struct StoredTower 
+{
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub tetrahedron_id : String,

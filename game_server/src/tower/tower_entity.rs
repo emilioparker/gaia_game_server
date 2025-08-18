@@ -14,7 +14,6 @@ pub struct TowerEntity
     pub object_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
     pub tetrahedron_id : TetrahedronId, // 6 bytes
-    pub cooldown : u32,// 4 bytes
     pub event_id:u16, // 2 
     pub faction:u8, // 1
     pub damage_received_in_event : Vec<DamageByFaction>,// this one is not serializable  normally
@@ -73,10 +72,10 @@ impl TowerEntity
         buffer[offset..end].copy_from_slice(&tile_id);
         offset = end;
 
-        end = offset + 4;
-        let cooldown_bytes = u32::to_le_bytes(self.cooldown); // 2 bytes
-        buffer[offset..end].copy_from_slice(&cooldown_bytes);
-        offset = end;
+        // end = offset + 4;
+        // let cooldown_bytes = u32::to_le_bytes(self.cooldown); // 2 bytes
+        // buffer[offset..end].copy_from_slice(&cooldown_bytes);
+        // offset = end;
 
         end = offset + 2;
         let event_id_bytes = u16::to_le_bytes(self.event_id); // 2 bytes
@@ -193,22 +192,15 @@ impl TowerEntity
             self.faction = winner.faction;
         }
         self.event_id += 1;
-
-        let result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
-        if let Ok(elapsed) = result 
-        {
-            self.cooldown = elapsed.as_secs() as u32;
-        }
-
         self.damage_received_in_event.clear();
     }
 
     pub fn is_active(&self, faction : u8, current_time:u32) -> bool
     {
-        TowerEntity::is_tower_active(&self.tetrahedron_id, self.cooldown, self.faction, faction, current_time)
+        TowerEntity::is_tower_active(&self.tetrahedron_id, self.faction, faction, current_time)
     }
 
-    pub fn is_tower_active(tile_id : &TetrahedronId, cooldown : u32, tower_faction : u8, faction : u8, current_time:u32) -> bool
+    pub fn is_tower_active(tile_id : &TetrahedronId, tower_faction : u8, faction : u8, current_time:u32) -> bool
     {
         // tower has been conquered and can be used by the faction
         if tower_faction == faction
@@ -220,7 +212,7 @@ impl TowerEntity
             let active_time = 5;
             let inactive_time = 1;
             let total_cycle = active_time + inactive_time;
-            let elapsed_time = cmp::max(0, current_time - (cooldown + (tile_id.id + tile_id.area as u32) * 10)) % (total_cycle*60);
+            let elapsed_time = cmp::max(0, current_time + (tile_id.id + tile_id.area as u32) * 10) % (total_cycle*60);
             if elapsed_time <= inactive_time * 60
             {
                 return false;
@@ -252,7 +244,6 @@ mod tests {
         {
             object_id: None,
             tetrahedron_id: TetrahedronId::from_string("a0"),
-            cooldown: 0,
             version: 0,
             event_id: 1,
             faction: 0,
@@ -274,7 +265,6 @@ mod tests {
         {
             object_id: None,
             tetrahedron_id: TetrahedronId::from_string("a0"),
-            cooldown : 0,
             version: 0,
             event_id: 0,
             faction: 0,
