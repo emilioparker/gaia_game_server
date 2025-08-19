@@ -59,7 +59,8 @@ fn main()
 {
     //GAIA_LOG=debug cargo run --release
     init_cli_log!("gaia");
-    init_panic_hook();
+    // panic hook disabled
+    // init_panic_hook();
     // build runtime
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(4)
@@ -69,17 +70,19 @@ fn main()
         .build()
         .unwrap();
 
-
-    cli_log::info!("running server");
-    let (tx, rx) = oneshot::channel();
-    runtime.spawn(run_server(tx)); 
-    // runtime.block_on(run_server(tx)); 
-
     cli_log::info!("running http server");
+    println!("Running http server");
     runtime.spawn(http_service::run()); 
 
-    cli_log::info!("running tui");
-    runtime.block_on(run_tui(rx)); 
+    println!("Running main server");
+    cli_log::info!("running main server");
+    let (tx, rx) = oneshot::channel();
+    // runtime.spawn(run_server(tx)); 
+    runtime.block_on(run_server(tx)); 
+
+
+    // cli_log::info!("running tui");
+    // runtime.block_on(run_tui(rx)); 
 }
 
 async fn run_tui(rx: Receiver<AppData>)
@@ -188,6 +191,7 @@ async fn run_server(tx: Sender<AppData>)
     let working_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
     let storage_game_map: Option<GameMap>; // load_files_into_game_map(world_name).await;
 
+    println!("Checking world state {}", world_name);
     cli_log::info!("checking world state");
     let world_state = long_term_storage_service::world_service::check_world_state(world_name, db_client.clone()).await;
 
