@@ -145,6 +145,7 @@ async fn run_server(tx: Sender<AppData>)
     let definitions = load_definitions().await;
 
     cli_log::info!("definitions loaded");
+    println!("definitions loaded");
     let mut channels_status = HashMap::new();
     for channel in ServerChannels::iter() 
     {
@@ -202,12 +203,14 @@ async fn run_server(tx: Sender<AppData>)
     if let Some(world) = world_state 
     {
         cli_log::info!("Load the world from db init at {}", world.start_time);
+        println!("Load the world from db init at {}", world.start_time);
         let working_players = long_term_storage_service::heroes_service::get_heroes_from_db_by_world(world.id, db_client.clone()).await;
         //used and updated by the long storage system
         let storage_players = working_players.clone();
 
         let regions_db_data = long_term_storage_service::world_service::get_regions_from_db(world.id, db_client.clone()).await;
         cli_log::info!("reading regions into game maps");
+        println!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
 
 
@@ -224,6 +227,7 @@ async fn run_server(tx: Sender<AppData>)
                 character_name: name_array,
             };
             cli_log::info!("Adding player data {}", player.hero_name);
+            println!("Adding player data {}", player.hero_name);
 
             presentation_data_cache.extend(player_presentation.to_bytes());
         }
@@ -239,12 +243,14 @@ async fn run_server(tx: Sender<AppData>)
     else
     {
         cli_log::info!("Creating world from scratch, because it was not found in the database");
+        println!("Creating world from scratch, because it was not found in the database");
         // any errors will just crash the app.
 
         let world_id = long_term_storage_service::world_service::init_world_state(world_name, db_client.clone()).await;
         if let Some(id) = world_id
         {
             cli_log::info!("Creating world with id {}", id);
+            println!("Creating world with id {}", id);
             let working_players = long_term_storage_service::heroes_service::get_heroes_from_db_by_world(world_id, db_client.clone()).await;
             //used and updated by the long storage system
             let storage_players = working_players.clone();
@@ -274,6 +280,7 @@ async fn run_server(tx: Sender<AppData>)
         else 
         {
             cli_log::info!("Error creating world in db");
+            println!("Error creating world in db");
             return;
         }
     }
@@ -390,6 +397,7 @@ async fn run_server(tx: Sender<AppData>)
     }
 
     cli_log::info!("Game server started correctly");
+    println!("Game server started correctly");
 
     loop 
     {
