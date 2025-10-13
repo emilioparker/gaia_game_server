@@ -70,9 +70,9 @@ fn main()
         .build()
         .unwrap();
 
-    cli_log::info!("running http server");
-    println!("Running http server");
-    runtime.spawn(http_service::run()); 
+    // cli_log::info!("running http server");
+    // println!("Running http server");
+    // runtime.spawn(http_service::run()); 
 
     println!("Running main server");
     cli_log::info!("running main server");
