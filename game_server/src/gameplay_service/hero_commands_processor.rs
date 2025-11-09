@@ -44,13 +44,12 @@ pub async fn process_hero_commands (
                             &map,
                             tx_he_gameplay_longterm,
                             heros_summary,
+                            current_time,
                             cloned_data.player_id,
                             movement_data.position.clone(),
                             movement_data.second_position.clone(),
                             movement_data.vertex_id,
                             movement_data.path,
-                            movement_data.time,
-                            movement_data.dash,
                         ).await;
                     },
             hero_command::HeroCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
@@ -681,17 +680,18 @@ pub async fn move_character(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     heros_summary : &mut Vec<HeroEntity>,
+    current_time : u64,
     player_id: u16,
     pos: TetrahedronId,
     second_pos: TetrahedronId,
     vertex_id: i32,
     path: [u8;6],
-    movement_start_time: u32,
-    dash: bool
 )
 {
     let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let hero_option = hero_entities.get_mut(&player_id);
+
+    let current_time_in_seconds = (current_time / 1000) as u32;
 
     cli_log::info!("move {} vertex id {}", player_id, vertex_id);
     if let Some(hero_entity) = hero_option 
@@ -703,7 +703,7 @@ pub async fn move_character(
             return;
         }
 
-        let mut updated_hero_entity = HeroEntity 
+        let updated_hero_entity = HeroEntity 
         {
             action: hero_command::WALK_ACTION,
             version: hero_entity.version + 1,
@@ -711,11 +711,12 @@ pub async fn move_character(
             second_position: second_pos,
             vertex_id,
             path,
-            time: movement_start_time,
+            time: current_time_in_seconds,
             ..hero_entity.clone()
         };
 
-        updated_hero_entity.set_flag(DASH_FLAG, dash);
+        // dash is deprecated, I don't care about it.
+        // updated_hero_entity.set_flag(DASH_FLAG, dash);
 
         *hero_entity = updated_hero_entity;
         tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();

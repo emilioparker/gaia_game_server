@@ -48,8 +48,6 @@ pub struct HeroMovement
     pub second_position: TetrahedronId,
     pub vertex_id: i32,
     pub path: [u8;6],
-    pub time: u32,
-    pub dash: bool,
 }
 
 #[derive(Debug, Clone)]

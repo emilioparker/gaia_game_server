@@ -62,14 +62,6 @@ pub async fn process_movement(
         start = end;
     }
 
-    end = start + 4;
-    let start_time = u32::from_le_bytes(data[start..end].try_into().unwrap());
-    start = end;
-
-    // end = start + 1;
-    let dash = data[start];
-    // start = end;
-
     let player_regions = regions.get(&player_id).unwrap();
     player_regions[0].store(region_1, std::sync::atomic::Ordering::Relaxed);
     player_regions[1].store(region_2, std::sync::atomic::Ordering::Relaxed);
@@ -84,8 +76,6 @@ pub async fn process_movement(
         second_position: second_position_tile_id,
         vertex_id,
         path,
-        time:start_time,
-        dash: dash == 1
     };
 
     let character_command = HeroCommand
