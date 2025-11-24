@@ -13,7 +13,7 @@ use crate::ability_user::attack_result::AttackResult;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
-use crate::mob::mob_instance::MobEntity;
+use crate::mob::mob_entity::MobEntity;
 use crate::hero::hero_command::{HeroCommand, HeroMovement};
 use crate::hero::hero_entity::HeroEntity;
 use crate::hero::hero_presentation::HeroPresentation;

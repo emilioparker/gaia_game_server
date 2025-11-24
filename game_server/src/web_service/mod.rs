@@ -21,7 +21,7 @@ use crate::kingdom::kingdom_entity::{KingdomEntity, KINGDOM_ENTITY_SIZE};
 use crate::map::GameMap;
 use crate::map::map_entity::MapEntity;
 use crate::map::tetrahedron_id::TetrahedronId;
-use crate::mob::mob_instance::{MobEntity, MOB_ENTITY_SIZE};
+use crate::mob::mob_entity::{MobEntity, MOB_ENTITY_SIZE};
 use crate::ServerState;
 use crate::tower::tower_entity::{TowerEntity, TOWER_ENTITY_SIZE};
 

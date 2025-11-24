@@ -8,7 +8,7 @@ use crate::gaia_mpsc::GaiaSender;
 use crate::kingdom::kingdom_entity::KingdomEntity;
 use crate::kingdom::KingdomCommand;
 use crate::mob::mob_command::MobCommand;
-use crate::mob::mob_instance::MobEntity;
+use crate::mob::mob_entity::MobEntity;
 use crate::clients_service::DataType;
 use crate::{gaia_mpsc, ServerChannels, ServerState};
 use crate::hero::hero_command::{HeroCommand, HeroMovement};

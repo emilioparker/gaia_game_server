@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{definitions::definitions_container::Definitions, hero::hero_entity::HeroEntity, kingdom::kingdom_entity::KingdomEntity, mob::mob_instance::MobEntity, tower::tower_entity::TowerEntity};
+use crate::{definitions::definitions_container::Definitions, hero::hero_entity::HeroEntity, kingdom::kingdom_entity::KingdomEntity, mob::mob_entity::MobEntity, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 

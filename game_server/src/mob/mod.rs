@@ -1,2 +1,2 @@
-pub mod mob_instance;
+pub mod mob_entity;
 pub mod mob_command;

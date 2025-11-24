@@ -1,6 +1,6 @@
 use crate::ability_user::attack::ATTACK_SIZE;
 use crate::ability_user::attack_result::ATTACK_RESULT_SIZE;
-use crate::mob::mob_instance::{self, MOB_ENTITY_SIZE};
+use crate::mob::mob_entity::{self, MOB_ENTITY_SIZE};
 use crate::{SERVER_STATE_SIZE, ServerState};
 use crate::hero::hero_entity::HERO_ENTITY_SIZE;
 use crate::hero::hero_presentation::HERO_PRESENTATION_SIZE;
