@@ -20,9 +20,10 @@ pub struct MobEntity
     //6 bytes
 
     // for moving between origin and target
-    pub origin_id : TetrahedronId, // 6 bytes
-    pub target_id : TetrahedronId, // 6 bytes
-    pub time : u32,// 4 bytes
+    pub start_position_id: TetrahedronId, // 6 bytes
+    pub end_position_id: TetrahedronId, // 6 bytes not serialized, path should point to this point
+    pub path: [u8;6], // 6 bytes
+    pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
 
     // 16 bytes
 
@@ -30,7 +31,7 @@ pub struct MobEntity
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5], // this one is serialized but not saved 10 bytes
 
-    // 9 bytes
+    // 7 bytes
 
     //total 10 + 6 + 16 + 7 = 39 
 
@@ -76,14 +77,26 @@ impl MobEntity
         start = end;
 
         end = start + 6;
-        let origin_id_bytes = self.origin_id.to_bytes(); // 6 bytes
-        buffer[start..end].copy_from_slice(&origin_id_bytes);
+        let origin_tile_id = self.start_position_id.to_bytes(); // 6 bytes
+        buffer[start..end].copy_from_slice(&origin_tile_id);
         start = end;
 
-        end = start + 6;
-        let target_id_bytes = self.target_id.to_bytes(); // 6 bytes
-        buffer[start..end].copy_from_slice(&target_id_bytes);
-        start = end;
+        // end = start + 6;
+        // let end_tile_id = self.end_position_id.to_bytes(); // 6 bytes
+        // buffer[start..end].copy_from_slice(&end_tile_id);
+        // start = end;
+
+        for path_point in self.path
+        {
+            end = start + 1;
+            buffer[start] = path_point;
+            start = end;
+        }
+
+        // end = start + 6;
+        // let target_id_bytes = self.target_id.to_bytes(); // 6 bytes
+        // buffer[start..end].copy_from_slice(&target_id_bytes);
+        // start = end;
 
         end = start + 4;
         let time_bytes = u32::to_le_bytes(self.time); // 2 bytes

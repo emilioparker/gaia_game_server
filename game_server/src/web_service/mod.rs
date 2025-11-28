@@ -588,47 +588,10 @@ tokio::spawn(async move
                     }
                 }
             }
-            // if message.health <= 0
-            // {
-            //     // mob_region_map_lock.buffer[idx.. idx + Mob::get_size()].copy_from_slice(&message.to_bytes());
 
-            //     let current_index = mob_region_map_lock.index;
-            //     // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
-            //     if current_index == 0
-            //     {
-            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-            //     }
-            //     else if index == current_index - MobEntity::get_size()
-            //     {
-            //         mob_region_map_lock.index = index;
-            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-            //     }
-            //     else
-            //     {
-            //         let last_index = current_index - MobEntity::get_size();
-            //         let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
-
-            //         let mut buffer = [0u8;6];
-            //         buffer.copy_from_slice(&last_entry[0..6]);
-            //         let tile_id = TetrahedronId::from_bytes(&buffer);
-
-            //         let mut buffer = [0u8;MOB_ENTITY_SIZE];
-            //         buffer.copy_from_slice(last_entry);
-
-            //         mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
-            //         mob_region_map_lock.tile_to_index.remove(&tile_id);
-            //         mob_region_map_lock.tile_to_index.remove(&message.tile_id);
-            //         mob_region_map_lock.tile_to_index.insert(tile_id, index);
-            //         mob_region_map_lock.index = last_index;
-            //         // cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
-            //     }
-            // }
-            // else
-            {
-                let idx = index;
-                let bytes = message.to_bytes();
-                mob_region_map_lock.buffer[idx.. idx + MobEntity::get_size()].copy_from_slice(&bytes);
-            }
+            let idx = index;
+            let bytes = message.to_bytes();
+            mob_region_map_lock.buffer[idx.. idx + MobEntity::get_size()].copy_from_slice(&bytes);
         }
         else 
         {

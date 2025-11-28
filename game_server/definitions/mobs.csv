@@ -1,8 +1,8 @@
-id,name,mob_type,item,area
-0,none,empty,none,0;5;0;5
-1,enemy_1,goblin,none,3;4;3;4
-2,enemy_2,goblin_warrior,none,3;4;3;4
-3,enemy_3,goblin_shaman,none,3;4;3;4
-4,enemy_4,centaur,none,2;4;2;4
-5,enemy_5,golem_stone,none,3;5;3;5
-6,enemy_6,golem_ice,none,0;0;0;5
+id,name,mob_type,item,area,awareness_range
+0,none,empty,none,0;5;0;5,2
+1,enemy_1,goblin,none,3;4;3;4,2
+2,enemy_2,goblin_warrior,none,3;4;3;4,2
+3,enemy_3,goblin_shaman,none,3;4;3;4,2
+4,enemy_4,centaur,none,2;4;2;4,3
+5,enemy_5,golem_stone,none,3;5;3;5,1
+6,enemy_6,golem_ice,none,0;0;0;5,1

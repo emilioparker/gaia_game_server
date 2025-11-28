@@ -92,14 +92,16 @@ pub fn add_to_data_packet(
 
 pub fn encode_packet(buffer : &mut [u8;5000], start : usize) -> Vec<u8>
 {
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
+    let mut output = Vec::new();
+    let mut encoder = ZlibEncoder::new(&mut output, Compression::fast());
     buffer[start] = DataType::NoData as u8;
     let trimmed_buffer = &buffer[..(start + 1)];
     
     encoder.write_all(trimmed_buffer).unwrap();
     // encoder.write_all(buffer.as_slice()).unwrap();
-    let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-    compressed_bytes
+    encoder.flush().unwrap();
+    drop(encoder);
+    output
 }
 
 

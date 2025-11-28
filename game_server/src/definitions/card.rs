@@ -20,7 +20,6 @@ pub struct Card
     pub duration_time:f32,
     pub hits:u8,
     pub cooldown:f32,
-    pub cast_range:f32,
     pub hit_range:f32,
     pub buff:String,
     pub effect_probability:f32,

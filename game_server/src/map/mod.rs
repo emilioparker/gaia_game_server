@@ -1,4 +1,4 @@
-use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::HashMap};
+use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::{HashMap, HashSet}};
 
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
@@ -19,6 +19,7 @@ pub struct GameMap
     pub definitions : Definitions,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
     pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>,
+    pub mob_positions : HashMap<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
     pub character : Arc<Mutex<HashMap<u16, HeroEntity>>>,
@@ -40,12 +41,14 @@ impl GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
         let mut arc_mobs= HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>::new();
+        let mut arc_mob_positions= HashMap::<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>::new();
         let mut region_keys = Vec::<TetrahedronId>::new();
 
         for (key, value) in regions.into_iter()
         {
             arc_regions.insert(key.clone(), Arc::new(Mutex::new(value)));
             arc_mobs.insert(key.clone(), Arc::new(Mutex::new(HashMap::new())));
+            arc_mob_positions.insert(key.clone(), Arc::new(Mutex::new(HashSet::new())));
             region_keys.push(key);
         }
 
@@ -84,6 +87,7 @@ impl GameMap
             logged_in_players : logged_in_players_set,
             regions : arc_regions,
             mobs: arc_mobs,
+            mob_positions: arc_mob_positions,
             character : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),
             kingdomes : Arc::new(Mutex::new(kingdomes)),
@@ -106,6 +110,13 @@ impl GameMap
     {
         let key = self.get_parent(tetrahedron_id);
         let mob_region = self.mobs.get(&key).unwrap();
+        mob_region.clone()
+    }
+
+    pub fn get_mob_positions_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashSet<TetrahedronId>>>
+    {
+        let key = self.get_parent(tetrahedron_id);
+        let mob_region = self.mob_positions.get(&key).unwrap();
         mob_region.clone()
     }
 

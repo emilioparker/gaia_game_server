@@ -8,6 +8,7 @@ pub struct MobData
     pub mob_type:String,
     pub item:String,
     pub area:String,
+    pub awareness_range:u32
 }
 
 

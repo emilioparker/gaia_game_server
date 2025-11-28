@@ -139,6 +139,10 @@ pub async fn process_mob_commands (
                 {
                     control_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id).await;
                 },
+                mob_command::MobCommandInfo::MoveMob(character_id , origin_position, end_position, path) => 
+                {
+                    move_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id,  origin_position.clone(), end_position.clone(), *path).await;
+                },
                 mob_command::MobCommandInfo::AttackFromMobToWalker(character_id, card_id, required_time, active_effect, missed) => 
                 {
                     let end_time = current_time + *required_time as u64;
@@ -211,6 +215,7 @@ pub async fn process_delayed_mob_commands (
             mob_command::MobCommandInfo::Touch() => todo!(),
             mob_command::MobCommandInfo::Spawn(_, _, _) => todo!(),
             mob_command::MobCommandInfo::ControlMob(_) => todo!(),
+            mob_command::MobCommandInfo::MoveMob(_,_,_,_) => todo!(),
             mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id,card_id,required_time,active_effect,missed) => 
             {
                 cast_mob_from_mob(
@@ -275,7 +280,7 @@ pub async fn spawn_mob(
     tile_id: TetrahedronId,
     current_time : u64,
     character_id: u16,
-    mob_id: u32,
+    definition_id: u32,
     level: u8
 )
 {
@@ -283,13 +288,14 @@ pub async fn spawn_mob(
     let mut new_mob = MobEntity
     {
         tile_id : tile_id.clone(),
-        mob_definition_id: mob_id as u16,
+        mob_definition_id: definition_id as u16,
         level,
         version: 0,
         owner_id: character_id,
         ownership_time: current_time_in_seconds,
-        origin_id: tile_id.clone(),
-        target_id: tile_id.clone(),
+        start_position_id : tile_id.clone(),
+        end_position_id : tile_id.clone(),
+        path: [0,0,0,0,0,0],
         time: 0,
         health: 0,
         buffs: Vec::new(),
@@ -297,7 +303,7 @@ pub async fn spawn_mob(
     };
 
 
-    if let Some(mob_progression) = map.definitions.mob_progression_by_mob.get(mob_id as usize)
+    if let Some(mob_progression) = map.definitions.mob_progression_by_mob.get(definition_id as usize)
     {
         if let Some(entry) = mob_progression.get(level as usize) 
         {
@@ -306,7 +312,17 @@ pub async fn spawn_mob(
     }
 
     let region = map.get_mob_region_from_child(&tile_id);
+    let region_for_positions = map.get_mob_positions_region_from_child(&tile_id);
     let mut mobs = region.lock().await;
+    let mut mob_positions = region_for_positions.lock().await;
+
+    if mob_positions.contains(&tile_id) 
+    {
+        // this place is already occupied
+        cli_log::info!("Move position is occupied {tile_id}");
+        return;
+    }
+
     if let Some(mob) = mobs.get_mut(&tile_id)
     {
         if mob.health <= 0 // we can spawn a mob here.
@@ -314,7 +330,9 @@ pub async fn spawn_mob(
             new_mob.version = mob.version + 1;
             // cli_log::info!("new mob {:?}", updated_tile);
             *mob = new_mob.clone();
+            mob_positions.insert(tile_id);
             drop(mobs);
+            drop(mob_positions);
             mobs_summary.push(new_mob.clone());
             tx_moe_gameplay_webservice.send(new_mob).await.unwrap();
         }
@@ -322,13 +340,16 @@ pub async fn spawn_mob(
         {
             mobs_summary.push(mob.clone());
             drop(mobs);
+            drop(mob_positions);
         }
     }
     else
     {
         mobs_summary.push(new_mob.clone());
-        mobs.insert(tile_id, new_mob.clone());
+        mobs.insert(tile_id.clone(), new_mob.clone());
+        mob_positions.insert(tile_id);
         drop(mobs);
+        drop(mob_positions);
 
         tx_moe_gameplay_webservice.send(new_mob).await.unwrap();
     }
@@ -381,6 +402,64 @@ pub async fn control_mob(
         tx_moe_gameplay_webservice.send(updated_mob.clone()).await.unwrap();
     }
 }
+
+pub async fn move_mob(
+    map : &Arc<GameMap>,
+    server_state: &Arc<ServerState>,
+    tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
+    mobs_summary : &mut Vec<MobEntity>,
+    tile_id: TetrahedronId,
+    current_time : u64,
+    player_id: u16,
+    new_origin_position_id: TetrahedronId,
+    new_end_position_id: TetrahedronId,
+    path: [u8;6],
+)
+{
+    let mob_region = map.get_mob_region_from_child(&tile_id);
+    let region_for_positions = map.get_mob_positions_region_from_child(&tile_id);
+    let mut mobs = mob_region.lock().await;
+    let mut mob_positions = region_for_positions.lock().await;
+
+    let occupied_spot = mob_positions.contains(&new_end_position_id);
+
+    if occupied_spot
+    {
+        return;
+    }
+
+    if let Some(mob) = mobs.get_mut(&tile_id)
+    {
+        let mut updated_mob = mob.clone();
+        let current_time_in_seconds = (current_time / 1000) as u32;
+
+        if updated_mob.health == 0 || updated_mob.owner_id != player_id || updated_mob.end_position_id != new_origin_position_id
+        {
+            drop(mobs);
+            tx_moe_gameplay_webservice.send(updated_mob).await.unwrap();
+            return;
+        }
+
+        // let previous_end_position = updated_mob.end_position_id;
+        updated_mob.version += 1;
+        updated_mob.start_position_id = new_origin_position_id;
+        updated_mob.end_position_id = new_end_position_id.clone();
+        updated_mob.path = path;
+        updated_mob.time = current_time_in_seconds;
+
+        mobs_summary.push(updated_mob.clone());
+
+        mob_positions.insert(new_end_position_id);
+        *mob = updated_mob.clone();
+
+        drop(mobs);
+        drop(mob_positions);
+
+        // sending the updated tile somewhere.
+        tx_moe_gameplay_webservice.send(updated_mob.clone()).await.unwrap();
+    }
+}
+
 pub async fn cast_mob_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,

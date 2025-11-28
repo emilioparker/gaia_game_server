@@ -1,4 +1,4 @@
-use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_command::MobCommand};
+use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_command::{MobCommand, MobCommandInfo}};
 
 
 pub async fn process(
@@ -28,27 +28,31 @@ pub async fn process(
         // new tile, must be empty and not water.
         end = start + 6;
         buffer.copy_from_slice(&data[start..end]);
-        let new_tile_id = TetrahedronId::from_bytes(&buffer);
+        let origin_position = TetrahedronId::from_bytes(&buffer);
         start = end;
 
-        end = start + 4;
-        let mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
+        // new tile, must be empty and not water.
+        end = start + 6;
+        buffer.copy_from_slice(&data[start..end]);
+        let end_position = TetrahedronId::from_bytes(&buffer);
         start = end;
 
-        end = start + 4;
-        let distance = f32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        start = end;
-        
-        end = start + 4;
-        let required_time = f32::from_le_bytes(data[start..end].try_into().unwrap()); 
-        // start = end;
+        // path should point to the end position for consistency
+        let mut path : [u8;6] = [0,0,0,0,0,0];
+        for i in 0..6
+        {
+            end = start + 1;
+            path[i] = data[start];
+            start = end;
+        }
 
-        // let map_action = MobCommand{
-        //     tile_id,
-        //     info: MobCommandInfo::MoveMob(player_id, mob_id, new_tile_id, distance, required_time)
-        // };
+        let map_action = MobCommand
+        {
+            tile_id,
+            info: MobCommandInfo::MoveMob(player_id, origin_position, end_position, path)
+        };
 
-        // // cli_log::info!("got a {:?}", map_action);
+        cli_log::info!("-------------------------- got a {:?}", map_action);
 
-        // channel_map_tx.send(map_action).await.unwrap();
+        channel_mob_tx.send(map_action).await.unwrap();
 }
