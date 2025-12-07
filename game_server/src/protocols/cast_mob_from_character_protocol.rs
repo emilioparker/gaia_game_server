@@ -1,7 +1,7 @@
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc::Sender;
 
-use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{MobCommand, MobCommandInfo}};
+use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{HeroToMobData, MobCommand}};
 
 
 pub async fn process(data : &[u8],  channel_mob_tx : &GaiaSender<MobCommand>)
@@ -19,6 +19,10 @@ pub async fn process(data : &[u8],  channel_mob_tx : &GaiaSender<MobCommand>)
     let _faction = data[start];
     start = end;
 
+    end = start + 4;
+    let mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
+    start = end;
+
     end = start + 6;
     let mut buffer = [0u8;6];
     buffer.copy_from_slice(&data[start..end]);
@@ -33,19 +37,25 @@ pub async fn process(data : &[u8],  channel_mob_tx : &GaiaSender<MobCommand>)
     let required_time = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
     start = end;
 
-    end = start + 1;
-    let active_effect = data[start]; // 1 bytes
-    start = end;
+    // end = start + 1;
+    // let active_effect = data[start]; // 1 bytes
+    // start = end;
 
     end = start + 1;
     let missed = data[start]; // 1 bytes
     start = end;
 
-    cli_log::info!("active effect {active_effect}");
+    // cli_log::info!("active effect {active_effect}");
 
-    let info = MobCommandInfo::CastFromCharacterToMob(player_id, card_id, required_time, active_effect, missed);
-    let mob_action = MobCommand { tile_id, info };
+    let mob_action = MobCommand::CastFromHeroToMob(HeroToMobData
+    {
+        hero_id: player_id,
+        card_id,
+        time: required_time,
+        missed,
+        target_mob_id: mob_id,
+        target_mob_tile_id: tile_id,
+    });
     
-    // let map_action = MapCommand::from_bytes(data);
     channel_mob_tx.send(mob_action).await.unwrap();
 }

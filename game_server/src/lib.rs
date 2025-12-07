@@ -70,6 +70,7 @@ pub enum ServerChannels
 pub struct ServerState 
 {
     pub channels : HashMap<ServerChannels, AtomicU16>,
+    pub mob_id_generator:AtomicU32,
     pub received_packets:AtomicU64,
     pub received_bytes:AtomicU64,
     pub online_players: AtomicU32,

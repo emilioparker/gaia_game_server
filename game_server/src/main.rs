@@ -155,6 +155,7 @@ async fn run_server(tx: Sender<AppData>)
     let server_state = Arc::new(ServerState
     {
         channels: channels_status,
+        mob_id_generator: AtomicU32::new(0),
         online_players:AtomicU32::new(0),
         total_players:AtomicU32::new(0),
         received_packets: AtomicU64::new(0),

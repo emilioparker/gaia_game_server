@@ -1,14 +1,16 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const ATTACK_SIZE: usize = 27;
+
+pub const ATTACK_SIZE: usize = 29;
 
 #[derive(Debug, Clone)]
 pub struct Attack 
 {
     pub id:u16,// 2 bytes
-    pub attacker_character_id: u16, // 2 bytes
-    pub target_character_id: u16, // 2 bytes
-    pub attacker_mob_tile_id: TetrahedronId, // 6 bytes 
+    pub attacker_hero_id: u16, // 2 bytes
+    pub attacker_mob_id: u32, // 4 bytes 
+    pub target_hero_id: u16, // 2 bytes
+    pub target_mob_id: u32, // 4 bytes // sometimes we will throw arrows to mobs or even trees I guess. can be towers
     pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess. can be towers
     pub card_id: u32, // 4 bytes
     pub required_time:u32, // 4 bytes
@@ -30,18 +32,23 @@ impl Attack
         start = end;
 
         end = start + 2;
-        let player_id_bytes = u16::to_le_bytes(self.attacker_character_id); // 2 bytes
-        buffer[start..end].copy_from_slice(&player_id_bytes);
+        let attacker_hero_id_bytes = u16::to_le_bytes(self.attacker_hero_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&attacker_hero_id_bytes);
+        start = end;
+
+        end = start + 4;
+        let attacker_mob_id_bytes = u32::to_le_bytes(self.attacker_mob_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&attacker_mob_id_bytes);
         start = end;
 
         end = start + 2;
-        let target_character_id_bytes = u16::to_le_bytes(self.target_character_id); // 2 bytes
-        buffer[start..end].copy_from_slice(&target_character_id_bytes);
+        let target_hero_id_bytes = u16::to_le_bytes(self.target_hero_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&target_hero_id_bytes);
         start = end;
 
-        end = start + 6;
-        let attacker_tile_id_bytes = self.attacker_mob_tile_id.to_bytes();
-        buffer[start..end].copy_from_slice(&attacker_tile_id_bytes);
+        end = start + 4;
+        let target_mob_id_bytes = u32::to_le_bytes(self.target_mob_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&target_mob_id_bytes);
         start = end;
 
         end = start + 6;

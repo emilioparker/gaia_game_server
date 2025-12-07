@@ -86,7 +86,7 @@ pub struct AppContext
     // tx_mc_webservice_realtime : Sender<MapCommand>,
     db_client : mongodb ::Client,
     temp_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
-    temp_mobs_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>>,
+    temp_mobs_regions : Arc::<HashMap::<TetrahedronId, Arc<Mutex<TempMobBuffer>>>>,
     temp_towers : Arc::<Mutex::<(usize,[u8;100000])>>,
     temp_kingdoms : Arc::<Mutex::<(usize,[u8;10000])>>,
     old_messages : Arc::<Mutex::<HashMap<u8, ChatStorage>>>//index, offset, count, 20 messages
@@ -356,6 +356,23 @@ impl TempMapBuffer
     }
 }
 
+pub struct TempMobBuffer 
+{ 
+    pub index : usize,
+    pub mob_id_to_index : HashMap<u32, usize>,
+    pub defeated_mob_and_time: HashMap<u32, u32>,
+    pub buffer : [u8;100000]
+}
+
+impl TempMobBuffer 
+{
+    pub fn new() -> TempMobBuffer
+    {
+        TempMobBuffer { index: 0, buffer: [0; 100000], mob_id_to_index : HashMap::new(), defeated_mob_and_time : HashMap::new() }
+    }
+}
+
+
 pub fn start_server(
     presentation_cache : Vec<u8>,
     working_map: Arc<GameMap>,
@@ -390,12 +407,12 @@ pub fn start_server(
     let regions_reader_reference = regions_adder_reference.clone();
 
     // temp mobs
-    let mut arc_mob_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMapBuffer>>>::new();
+    let mut arc_mob_regions = HashMap::<TetrahedronId, Arc<Mutex<TempMobBuffer>>>::new();
 
     for id in regions.into_iter()
     {
         cli_log::info!("webservice -preload mob region {}", id.to_string());
-        arc_mob_regions.insert(id, Arc::new(Mutex::new(TempMapBuffer::new())));
+        arc_mob_regions.insert(id, Arc::new(Mutex::new(TempMobBuffer::new())));
     }
     cli_log::info!("mob regions len on preload {}",arc_mob_regions.len());
 
@@ -516,60 +533,68 @@ pub fn start_server(
     });
 
 
-    fn remove_mob_at_index(to_be_removed : TetrahedronId, mob_region_map_lock : &mut TempMapBuffer)
+    fn remove_mob_at_index(to_be_removed : u32, mob_region_map_lock : &mut TempMobBuffer)
     {
-        if let Some(index) = mob_region_map_lock.tile_to_index.get(&to_be_removed).map(|s| *s)
+        if let Some(index) = mob_region_map_lock.mob_id_to_index.get(&to_be_removed).map(|s| *s)
         {
             let current_index = mob_region_map_lock.index;
             // here we are mvoing the last one to the empty spot!, this way the list wont dumbly grow.
             if current_index == 0
             {
-                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
+                mob_region_map_lock.mob_id_to_index.remove(&to_be_removed);
             }
             else if index == current_index - MobEntity::get_size()
             {
                 mob_region_map_lock.index = index;
-                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
+                mob_region_map_lock.mob_id_to_index.remove(&to_be_removed);
             }
             else
             {
                 let last_index = current_index - MobEntity::get_size();
                 let last_entry = &mob_region_map_lock.buffer[last_index..last_index + MobEntity::get_size()]; // last one
 
-                let mut buffer = [0u8;6];
-                buffer.copy_from_slice(&last_entry[0..6]);
-                let tile_id = TetrahedronId::from_bytes(&buffer);
+                let mob_id = u32::from_le_bytes(last_entry[0..4].try_into().unwrap()); // 4 bytes
 
                 let mut buffer = [0u8;MOB_ENTITY_SIZE];
                 buffer.copy_from_slice(last_entry);
 
                 mob_region_map_lock.buffer[index.. index + MobEntity::get_size()].copy_from_slice(&buffer);
-                mob_region_map_lock.tile_to_index.remove(&tile_id);
-                mob_region_map_lock.tile_to_index.remove(&to_be_removed);
+                mob_region_map_lock.mob_id_to_index.remove(&mob_id);
+                mob_region_map_lock.mob_id_to_index.remove(&to_be_removed);
                 mob_region_map_lock.defeated_mob_and_time.remove(&to_be_removed);
-                mob_region_map_lock.tile_to_index.insert(tile_id, index);
+                mob_region_map_lock.mob_id_to_index.insert(mob_id, index);
                 mob_region_map_lock.index = last_index;
                 // cli_log::info!("-- replacing mob index {}", mob_region_map_lock.index);
             }
         }
     }
 
-// saves mobs to cache if health is 0, the mob is registered to be removed later.
+// saves mobs to cache, if health is 0 the mob is registered to be removed later.
 tokio::spawn(async move 
 {
     loop 
     {
         let message = rx_moe_realtime_webservice.recv().await.unwrap();
-        let region_id = message.tile_id.get_parent(7);
+        let end_region_id = message.end_position_id.get_parent(7);
+        let origin_region_id = message.start_position_id.get_parent(7);
+        
+        // mob moved to another area, we need to do crazy stuff
+        // you could have stayed in your #$%#$% area, but nooo, you wanted to go further....
+        if end_region_id != origin_region_id
+        {
+            let mob_region_map = mob_regions_adder_reference.get(&origin_region_id).unwrap();
+            let mut mob_region_map_lock = mob_region_map.lock().await;
+            remove_mob_at_index(message.mob_id, &mut mob_region_map_lock);
+        }
 
-        let mob_region_map = mob_regions_adder_reference.get(&region_id).unwrap();
+        let mob_region_map = mob_regions_adder_reference.get(&end_region_id).unwrap();
         let mut mob_region_map_lock = mob_region_map.lock().await;
 
-        if let Some(index) = mob_region_map_lock.tile_to_index.get(&message.tile_id).map(|s| *s)
+        if let Some(index) = mob_region_map_lock.mob_id_to_index.get(&message.mob_id).map(|s| *s)
         {
             if message.health <= 0
             {
-                mob_region_map_lock.defeated_mob_and_time.insert(message.tile_id.clone(), message.ownership_time);
+                mob_region_map_lock.defeated_mob_and_time.insert(message.mob_id, message.ownership_time);
             }
             else
             {
@@ -595,19 +620,19 @@ tokio::spawn(async move
         }
         else 
         {
-            // if message.health > 0
+            if message.health > 0
             {
                 let index = mob_region_map_lock.index;
                 if index + MobEntity::get_size() < mob_region_map_lock.buffer.len() 
                 {
                     mob_region_map_lock.buffer[index .. index + MobEntity::get_size()].copy_from_slice(&message.to_bytes());
                     mob_region_map_lock.index = index + MobEntity::get_size();
-                    mob_region_map_lock.tile_to_index.insert(message.tile_id.clone(), index);
+                    mob_region_map_lock.mob_id_to_index.insert(message.mob_id, index);
                     // cli_log::info!("-- updated mob index {}", mob_region_map_lock.index);
                 }
                 else 
                 {
-                    cli_log::info!("webservice - mob temp buffer at capacity {}", region_id);
+                    cli_log::info!("webservice - mob temp buffer at capacity {}", end_region_id);
                 }
             }
         }

@@ -560,7 +560,7 @@ pub fn start_service(
             mobs_summary.drain(..)
             .for_each(|d| 
             {
-                let region = map.definitions.regions_by_id.get(&d.tile_id.get_parent(7)).unwrap();
+                let region = map.definitions.regions_by_id.get(&d.end_position_id.get_parent(7)).unwrap();
                 let mut region_packets_data = packets_data.get_mut(*region as usize).unwrap();
                 let chunk = d.to_bytes();
                 let chunk_size = MobEntity::get_size();

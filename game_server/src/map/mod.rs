@@ -18,7 +18,7 @@ pub struct GameMap
     pub id_generator : AtomicU16,
     pub definitions : Definitions,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
-    pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>,
+    pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<u32, MobEntity>>>>,
     pub mob_positions : HashMap<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
     pub logged_in_players: Vec<AtomicU64>,
@@ -40,7 +40,7 @@ impl GameMap
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
-        let mut arc_mobs= HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>>::new();
+        let mut arc_mobs= HashMap::<TetrahedronId, Arc<Mutex<HashMap<u32, MobEntity>>>>::new();
         let mut arc_mob_positions= HashMap::<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>::new();
         let mut region_keys = Vec::<TetrahedronId>::new();
 
@@ -106,7 +106,7 @@ impl GameMap
         region.clone()
     }
 
-    pub fn get_mob_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<TetrahedronId, MobEntity>>>
+    pub fn get_mob_region_from_child(&self, tetrahedron_id : &TetrahedronId) -> Arc<Mutex<HashMap<u32, MobEntity>>>
     {
         let key = self.get_parent(tetrahedron_id);
         let mob_region = self.mobs.get(&key).unwrap();

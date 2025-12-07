@@ -1,4 +1,4 @@
-use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_command::{MobCommand, MobCommandInfo}};
+use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_command::{MobCommand, MobToHeroData}};
 
 
 pub async fn process(
@@ -18,6 +18,10 @@ pub async fn process(
         let _faction = data[start];
         start = end; // ignoring first byte
 
+        end = start + 4;
+        let attacker_mob_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); // 4 bytes
+        start = end;
+
         end = start + 6;
         let mut buffer = [0u8;6];
         buffer.copy_from_slice(&data[start..end]);
@@ -33,18 +37,18 @@ pub async fn process(
         start = end;
 
         end = start + 1;
-        let active_effect = data[start]; // 1 bytes
-        start = end;
-
-        end = start + 1;
         let missed = data[start]; // 1 bytes
         // start = end;
 
-        let mob_action = MobCommand
+        let mob_action = MobCommand::AttackFromMobToHero(MobToHeroData
         {
-            tile_id,
-            info: MobCommandInfo::AttackFromMobToWalker(player_id, card_id, required_time, active_effect, missed)
-        };
+            hero_id: player_id,
+            card_id,
+            time: required_time,
+            missed,
+            attacker_mob_id,
+            attacker_mob_tile_id: tile_id,
+        });
 
         cli_log::info!("got a {:?}", mob_action);
 

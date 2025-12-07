@@ -1,6 +1,6 @@
 use tokio::{sync::mpsc::Sender, net::UdpSocket};
 
-use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{MobCommand, MobCommandInfo}};
+use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}, mob::mob_command::{ControlMobData, MobCommand}};
 
 
 pub async fn process(
@@ -30,11 +30,12 @@ pub async fn process(
         let tile_id = TetrahedronId::from_bytes(&buffer);
         // start = end;
 
-        let mob_action = MobCommand
+        let mob_action = MobCommand::ControlMob(ControlMobData
         {
-            tile_id,
-            info: MobCommandInfo::ControlMob(player_id)
-        };
+            hero_id: player_id,
+            mob_id,
+            mob_tile_id: tile_id,
+        });
 
         // cli_log::info!("got a {:?}", map_action);
 

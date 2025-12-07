@@ -1,6 +1,6 @@
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const ATTACK_RESULT_SIZE: usize = 24;
+pub const ATTACK_RESULT_SIZE: usize = 26;
 
 pub const NORMAL_ATTACK_RESULT: u8 = 0;
 pub const BLOCKED_ATTACK_RESULT: u8 = 1;
@@ -20,8 +20,9 @@ pub struct AttackResult
     pub id:u16,// 2 bytes
     pub card_id:u32,// 4 bytes
     pub attacker_character_id: u16, // 2 bytes
-    pub attacker_mob_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
+    pub attacker_mob_id: u32, // 4 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub target_character_id: u16, // 2 bytes
+    pub target_mob_id: u32, // 4 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub target_tile_id: TetrahedronId, // 6 bytes // sometimes we will throw arrows to mobs or even trees I guess.
     pub battle_type: u8, // 1 byte
     pub result: u8, //1 byte
@@ -51,9 +52,9 @@ impl AttackResult
         buffer[start..end].copy_from_slice(&attacker_character_id_bytes);
         start = end;
 
-        end = start + 6;
-        let attacker_tile_id_bytes = self.attacker_mob_tile_id.to_bytes();
-        buffer[start..end].copy_from_slice(&attacker_tile_id_bytes);
+        end = start + 4;
+        let attacker_mob_id_bytes = u32::to_le_bytes(self.attacker_mob_id); // 4 bytes
+        buffer[start..end].copy_from_slice(&attacker_mob_id_bytes);
         start = end;
 
         end = start + 2;
@@ -61,9 +62,14 @@ impl AttackResult
         buffer[start..end].copy_from_slice(&target_character_id_bytes);
         start = end;
 
+        end = start + 4;
+        let target_mob_id_bytes = u32::to_le_bytes(self.target_mob_id); // 4 bytes
+        buffer[start..end].copy_from_slice(&target_mob_id_bytes);
+        start = end;
+
         end = start + 6;
-        let tile_id_bytes = self.target_tile_id.to_bytes();
-        buffer[start..end].copy_from_slice(&tile_id_bytes);
+        let target_tile_id_bytes = self.target_tile_id.to_bytes();
+        buffer[start..end].copy_from_slice(&target_tile_id_bytes);
         start = end;
 
         end = start + 1;

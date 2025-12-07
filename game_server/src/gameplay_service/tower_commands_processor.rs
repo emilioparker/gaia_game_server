@@ -90,13 +90,14 @@ pub async fn process_tower_commands (
                             let attack = Attack
                             {
                                 id : (current_time_in_milliseconds % 10000) as u16,
-                                attacker_character_id: *player_id,
-                                target_character_id: 0,
+                                attacker_hero_id: *player_id,
+                                target_hero_id: 0,
                                 card_id: *card_id,
                                 target_tile_id: tower_command.id.clone(),
                                 required_time : *required_time,
                                 battle_type: crate::ability_user::attack_result::BATTLE_CHAR_TOWER,
-                                attacker_mob_tile_id: TetrahedronId::default(),
+                                attacker_mob_id: 0,
+                                target_mob_id: 0,
                             };
                             player_attacks_summary.push(attack);
 
@@ -179,12 +180,13 @@ pub async fn process_delayed_tower_commands (
                         {
                             id: (current_time % 10000) as u16,
                             card_id : *card_id,
-                            attacker_mob_tile_id: TetrahedronId::default(),
+                            attacker_mob_id: 0,
                             attacker_character_id: *player_id,
                             target_character_id: 0,
                             target_tile_id: tower.tetrahedron_id.clone(),
                             battle_type: BATTLE_CHAR_TOWER,
                             result:NORMAL_ATTACK_RESULT,
+                            target_mob_id: 0,
                         });
 
                         // sending the updated tile somewhere.

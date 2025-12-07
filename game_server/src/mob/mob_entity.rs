@@ -1,11 +1,11 @@
 use crate::{ability_user::AbilityUser, buffs::buff::{self, Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
 
-pub const MOB_ENTITY_SIZE: usize = 39;
+pub const MOB_ENTITY_SIZE: usize = 37;
 
 #[derive(Debug, Clone)]
 pub struct MobEntity
 {
-    pub tile_id: TetrahedronId, // 6 bytes
+    pub mob_id: u32, // 4 bytes
     pub mob_definition_id: u16, // 2 bytes
     pub level:u8, // 1 byte
     pub version: u8, // 1 byte
@@ -48,9 +48,9 @@ impl MobEntity
         let mut end : usize;
         start = 0;
 
-        end = start + 6;
-        let tile_id = self.tile_id.to_bytes(); // 6 bytes
-        buffer[start..end].copy_from_slice(&tile_id);
+        end = start + 4;
+        let mob_id_bytes = u32::to_le_bytes(self.mob_id); // 2 bytes
+        buffer[start..end].copy_from_slice(&mob_id_bytes);
         start = end;
 
         end = start + 2;

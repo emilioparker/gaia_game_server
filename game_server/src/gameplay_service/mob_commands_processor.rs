@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use rand::rngs::StdRng;
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, hero::{hero_entity::{INSIDE_TOWER_FLAG, TRYING_TO_ENTER_TOWER_FLAG}, hero_inventory::InventoryItem}, map::{tetrahedron_id::TetrahedronId, GameMap}, mob::{mob_command::{self, MobCommand}, mob_entity::MobEntity}, ServerState};
+use crate::{ServerState, ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, hero::{hero_entity::{INSIDE_TOWER_FLAG, TRYING_TO_ENTER_TOWER_FLAG}, hero_inventory::InventoryItem}, map::{GameMap, tetrahedron_id::{self, TetrahedronId}}, mob::{mob_command::{self, MobCommand}, mob_entity::MobEntity}};
 use crate::hero::{hero_entity::HeroEntity, hero_reward::HeroReward};
 
 pub async fn process_mob_commands (
@@ -26,9 +26,9 @@ pub async fn process_mob_commands (
     {
         for mobs_command in mobs_commands_data.iter()
         {
-            match &mobs_command.info 
+            match mobs_command
             {
-                mob_command::MobCommandInfo::Touch() => 
+                mob_command::MobCommand::Touch(data) => 
                 {
                     check_buffs(
                         &map,
@@ -36,12 +36,14 @@ pub async fn process_mob_commands (
                         &server_state,
                         tx_moe_gameplay_webservice,
                         mobs_summary, 
-                        mobs_command.tile_id.clone()).await;
+                        data.mob_id,
+                        data.mob_tile_id.clone()
+                    ).await;
                 },
-                mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id,card_id,required_time,active_effect,missed) => 
+                mob_command::MobCommand::CastFromMobToMob(data) => 
                 {
-                    let end_time = current_time + *required_time as u64;
-                    if *required_time == 0
+                    let end_time = current_time + data.time as u64;
+                    if data.time == 0
                     {
                         cast_mob_from_mob(
                             &map,
@@ -50,32 +52,35 @@ pub async fn process_mob_commands (
                             tx_moe_gameplay_webservice,
                             mobs_summary,
                             attack_details_summary,
-                            *card_id,
-                            caster_mob_tile_id.clone(),
-                            mobs_command.tile_id.clone(),
-                            *missed,
+                            data.card_id,
+                            data.caster_mob_tile_id.clone(),
+                            data.caster_mob_id,
+                            data.target_mob_tile_id.clone(),
+                            data.target_mob_id,
+                            data.missed
                         ).await;
                     }
                     else
                     {
-                        cli_log::info!("------------ required time for cast to mob {required_time} current time: {current_time} {card_id}");
+                        // cli_log::info!("------------ required time for cast to mob {data.time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id.clone(), *card_id, *required_time, *active_effect, *missed);
-                        let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
-                        lock.push((end_time, mob_action));
+                        let delayed_command = mob_command::MobCommand::CastFromMobToMob(data.clone());
+                        // let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
+                        lock.push((end_time, delayed_command));
                         drop(lock);
 
                         // we only send attack messages if attack is delayed, for projectiles and other instances.
                         let attack = Attack
                         {
                             id: (current_time % 10000) as u16,
-                            attacker_character_id: 0,
-                            target_character_id: 0,
-                            attacker_mob_tile_id: caster_mob_tile_id.clone(),
-                            target_tile_id: mobs_command.tile_id.clone(),
-                            card_id: *card_id,
-                            required_time: *required_time,
+                            attacker_hero_id: 0,
+                            target_hero_id: 0,
+                            card_id: data.card_id,
+                            required_time: data.time,
                             battle_type : BATTLE_MOB_MOB,
+                            attacker_mob_id: data.caster_mob_id,
+                            target_tile_id: TetrahedronId::default(),
+                            target_mob_id: data.target_mob_id,
                         };
 
                         cli_log::info!("--- cast {} ", attack.required_time);
@@ -83,10 +88,10 @@ pub async fn process_mob_commands (
                     }
 
                 },
-                mob_command::MobCommandInfo::CastFromCharacterToMob(character_id, card_id, required_time, active_effect, missed) => 
+                mob_command::MobCommand::CastFromHeroToMob(data) => 
                 {
-                    let end_time = current_time + *required_time as u64;
-                    if *required_time == 0
+                    let end_time = current_time + data.time as u64;
+                    if data.time == 0
                     {
                         cast_mob_from_character(
                             &map,
@@ -98,31 +103,32 @@ pub async fn process_mob_commands (
                             characters_summary,
                             attack_details_summary,
                             rewards_summary,
-                            *card_id,
-                            *character_id,
-                            mobs_command.tile_id.clone(),
-                            *missed,
+                            data.card_id,
+                            data.hero_id,
+                            data.target_mob_id,
+                            data.target_mob_tile_id.clone(),
+                            data.missed,
                         ).await;
                     }
                     else 
                     {
-                        cli_log::info!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
+                        // cli_log::info!("------------ required time for attack to mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::CastFromCharacterToMob(*character_id, *card_id, *required_time, *active_effect, *missed);
-                        let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
-                        lock.push((end_time, mob_action));
+                        let delayed_command = mob_command::MobCommand::CastFromHeroToMob(data.clone());
+                        lock.push((end_time, delayed_command));
                         drop(lock);
 
                         // we only send attack messages if attack is delayed, for projectiles and other instances.
                         let attack = Attack
                         {
                             id: (current_time % 10000) as u16,
-                            attacker_character_id: *character_id,
-                            target_character_id: 0,
-                            attacker_mob_tile_id: TetrahedronId::default(),
-                            target_tile_id: mobs_command.tile_id.clone(),
-                            card_id: *card_id,
-                            required_time: *required_time,
+                            attacker_hero_id: data.hero_id,
+                            target_hero_id: 0,
+                            attacker_mob_id: 0,
+                            target_mob_id: data.target_mob_id,
+                            card_id: data.card_id,
+                            required_time: data.time,
+                            target_tile_id: TetrahedronId::default(),
                             battle_type : BATTLE_CHAR_MOB,
                         };
 
@@ -131,24 +137,24 @@ pub async fn process_mob_commands (
                     }
 
                 },
-                mob_command::MobCommandInfo::Spawn(character_id, mob_id, level) => 
+                mob_command::MobCommand::Spawn(data) => 
                 {
-                    spawn_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id, *mob_id, *level).await;
+                    spawn_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, data.tile_id.clone(), current_time, data.hero_id, data.mob_definition_id, data.level).await;
                 },
-                mob_command::MobCommandInfo::ControlMob(character_id) => 
+                mob_command::MobCommand::ControlMob(data) => 
                 {
-                    control_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id).await;
+                    control_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, data.mob_id, data.mob_tile_id.clone(), current_time, data.hero_id).await;
                 },
-                mob_command::MobCommandInfo::MoveMob(character_id , origin_position, end_position, path) => 
+                mob_command::MobCommand::MoveMob(data) => 
                 {
-                    move_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, mobs_command.tile_id.clone(), current_time, *character_id,  origin_position.clone(), end_position.clone(), *path).await;
+                    move_mob(&map, &server_state, tx_moe_gameplay_webservice, mobs_summary, current_time, data.hero_id, data.mob_id, data.new_origin_tile_id.clone(), data.new_end_tile_id.clone(), data.path).await;
                 },
-                mob_command::MobCommandInfo::AttackFromMobToWalker(character_id, card_id, required_time, active_effect, missed) => 
+                mob_command::MobCommand::AttackFromMobToHero(data) => 
                 {
-                    let end_time = current_time + *required_time as u64;
-                    if *required_time == 0
+                    let end_time = current_time + data.time as u64;
+                    if data.time == 0
                     {
-                        cast_character_from_mob(
+                        cast_hero_from_mob(
                             &map,
                             current_time,
                             &server_state,
@@ -157,31 +163,32 @@ pub async fn process_mob_commands (
                             mobs_summary,
                             characters_summary,
                             attack_details_summary,
-                            *card_id,
-                            *character_id,
-                            mobs_command.tile_id.clone(),
-                            *missed,
+                            data.card_id,
+                            data.hero_id,
+                            data.attacker_mob_id,
+                            data.attacker_mob_tile_id.clone(),
+                            data.missed,
                         ).await;
                     }
                     else 
                     {
-                        cli_log::info!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
+                        // cli_log::info!("------------ required time for attack to character from mob {required_time} current time: {current_time} {card_id}");
                         let mut lock = delayed_mob_commands_lock.lock().await;
-                        let info = mob_command::MobCommandInfo::AttackFromMobToWalker(*character_id, *card_id, *required_time, *active_effect, *missed);
-                        let mob_action = MobCommand { tile_id : mobs_command.tile_id.clone(), info };
-                        lock.push((end_time, mob_action));
+                        let delayed_command = mob_command::MobCommand::AttackFromMobToHero(data.clone());
+                        lock.push((end_time, delayed_command));
                         drop(lock);
 
                         // we only send attack messages if attack is delayed, for projectiles and other instances.
                         let attack = Attack
                         {
                             id: (current_time % 10000) as u16,
-                            attacker_character_id: 0,
-                            target_character_id: *character_id,
-                            attacker_mob_tile_id: mobs_command.tile_id.clone(),
+                            attacker_hero_id: 0,
+                            target_hero_id: data.hero_id,
+                            attacker_mob_id: data.attacker_mob_id,
+                            target_mob_id: 0,
+                            card_id: data.card_id,
+                            required_time: data.time,
                             target_tile_id: TetrahedronId::default(),
-                            card_id: *card_id,
-                            required_time: *required_time,
                             battle_type : BATTLE_MOB_CHAR,
                         };
 
@@ -210,13 +217,13 @@ pub async fn process_delayed_mob_commands (
 {
     for mobs_command in delayed_mob_commands_to_execute.iter()
     {
-        match &mobs_command.info 
+        match mobs_command
         {
-            mob_command::MobCommandInfo::Touch() => todo!(),
-            mob_command::MobCommandInfo::Spawn(_, _, _) => todo!(),
-            mob_command::MobCommandInfo::ControlMob(_) => todo!(),
-            mob_command::MobCommandInfo::MoveMob(_,_,_,_) => todo!(),
-            mob_command::MobCommandInfo::CastFromMobToMob(caster_mob_tile_id,card_id,required_time,active_effect,missed) => 
+            mob_command::MobCommand::Touch(_) => todo!(),
+            mob_command::MobCommand::Spawn(_) => todo!(),
+            mob_command::MobCommand::ControlMob(_) => todo!(),
+            mob_command::MobCommand::MoveMob(_) => todo!(),
+            mob_command::MobCommand::CastFromMobToMob(data) => 
             {
                 cast_mob_from_mob(
                     &map,
@@ -225,13 +232,15 @@ pub async fn process_delayed_mob_commands (
                     tx_moe_gameplay_webservice,
                     mobs_summary,
                     attack_details_summary,
-                    *card_id,
-                    caster_mob_tile_id.clone(),
-                    mobs_command.tile_id.clone(),
-                    *missed,
+                    data.card_id,
+                    data.caster_mob_tile_id.clone(),
+                    data.caster_mob_id,
+                    data.target_mob_tile_id.clone(),
+                    data.target_mob_id,
+                    data.missed,
                 ).await;
             }
-            mob_command::MobCommandInfo::CastFromCharacterToMob(character_id, card_id, _required_time, _active_effect, missed) => 
+            mob_command::MobCommand::CastFromHeroToMob(data) => 
             {
                 cast_mob_from_character(
                     &map,
@@ -243,15 +252,16 @@ pub async fn process_delayed_mob_commands (
                     characters_summary,
                     attack_details_summary,
                     rewards_summary,
-                    *card_id,
-                    *character_id,
-                    mobs_command.tile_id.clone(),
-                    *missed,
+                    data.card_id,
+                    data.hero_id,
+                    data.target_mob_id,
+                    data.target_mob_tile_id.clone(),
+                    data.missed,
                 ).await;
             },
-            mob_command::MobCommandInfo::AttackFromMobToWalker(character_id, card_id, _requirec_time, _active_effect, missed) => 
+            mob_command::MobCommand::AttackFromMobToHero(data) => 
             {
-                cast_character_from_mob(
+                cast_hero_from_mob(
                     &map,
                     current_time,
                     &server_state,
@@ -260,10 +270,11 @@ pub async fn process_delayed_mob_commands (
                     mobs_summary,
                     characters_summary,
                     attack_details_summary,
-                    *card_id,
-                    *character_id,
-                    mobs_command.tile_id.clone(),
-                    *missed,
+                    data.card_id,
+                    data.hero_id,
+                    data.attacker_mob_id,
+                    data.attacker_mob_tile_id.clone(),
+                    data.missed,
                 ).await;
             },
         }
@@ -287,7 +298,7 @@ pub async fn spawn_mob(
     let current_time_in_seconds = (current_time / 1000) as u32;
     let mut new_mob = MobEntity
     {
-        tile_id : tile_id.clone(),
+        mob_id : 0,
         mob_definition_id: definition_id as u16,
         level,
         version: 0,
@@ -323,30 +334,33 @@ pub async fn spawn_mob(
         return;
     }
 
-    if let Some(mob) = mobs.get_mut(&tile_id)
+
+    // if let Some(mob) = mobs.get_mut(&tile_id)
+    // {
+    //     if mob.health <= 0 // we can spawn a mob here.
+    //     {
+    //         new_mob.version = mob.version + 1;
+    //         // cli_log::info!("new mob {:?}", updated_tile);
+    //         *mob = new_mob.clone();
+    //         mob_positions.insert(tile_id);
+    //         drop(mobs);
+    //         drop(mob_positions);
+    //         mobs_summary.push(new_mob.clone());
+    //         tx_moe_gameplay_webservice.send(new_mob).await.unwrap();
+    //     }
+    //     else 
+    //     {
+    //         mobs_summary.push(mob.clone());
+    //         drop(mobs);
+    //         drop(mob_positions);
+    //     }
+    // }
+    // else
     {
-        if mob.health <= 0 // we can spawn a mob here.
-        {
-            new_mob.version = mob.version + 1;
-            // cli_log::info!("new mob {:?}", updated_tile);
-            *mob = new_mob.clone();
-            mob_positions.insert(tile_id);
-            drop(mobs);
-            drop(mob_positions);
-            mobs_summary.push(new_mob.clone());
-            tx_moe_gameplay_webservice.send(new_mob).await.unwrap();
-        }
-        else 
-        {
-            mobs_summary.push(mob.clone());
-            drop(mobs);
-            drop(mob_positions);
-        }
-    }
-    else
-    {
+        let new_id = server_state.mob_id_generator.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        new_mob.mob_id = new_id;
         mobs_summary.push(new_mob.clone());
-        mobs.insert(tile_id.clone(), new_mob.clone());
+        mobs.insert(new_id, new_mob.clone());
         mob_positions.insert(tile_id);
         drop(mobs);
         drop(mob_positions);
@@ -360,14 +374,15 @@ pub async fn control_mob(
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    tile_id: TetrahedronId,
+    mob_id: u32,
+    mob_tile_id: TetrahedronId,
     current_time : u64,
     player_id: u16
 )
 {
-    let mob_region = map.get_mob_region_from_child(&tile_id);
+    let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
-    if let Some(mob) = mobs.get_mut(&tile_id)
+    if let Some(mob) = mobs.get_mut(&mob_id)
     {
         let mut updated_mob = mob.clone();
         let current_time_in_seconds = (current_time / 1000) as u32;
@@ -408,16 +423,20 @@ pub async fn move_mob(
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    tile_id: TetrahedronId,
     current_time : u64,
-    player_id: u16,
+    hero_id: u16,
+    mob_id : u32,
     new_origin_position_id: TetrahedronId,
     new_end_position_id: TetrahedronId,
     path: [u8;6],
 )
 {
-    let mob_region = map.get_mob_region_from_child(&tile_id);
-    let region_for_positions = map.get_mob_positions_region_from_child(&tile_id);
+    let mob_region = map.get_mob_region_from_child(&new_end_position_id);
+    let previous_region_id = TetrahedronId::get_parent(&new_origin_position_id, 7);
+    let new_region_id = TetrahedronId::get_parent(&new_end_position_id, 7);
+
+    let region_for_positions = map.get_mob_positions_region_from_child(&new_end_position_id);
+
     let mut mobs = mob_region.lock().await;
     let mut mob_positions = region_for_positions.lock().await;
 
@@ -428,28 +447,40 @@ pub async fn move_mob(
         return;
     }
 
-    if let Some(mob) = mobs.get_mut(&tile_id)
+
+    if let Some(mob) = mobs.get_mut(&mob_id)
     {
         let mut updated_mob = mob.clone();
         let current_time_in_seconds = (current_time / 1000) as u32;
 
-        if updated_mob.health == 0 || updated_mob.owner_id != player_id || updated_mob.end_position_id != new_origin_position_id
+        if updated_mob.health == 0 || updated_mob.owner_id != hero_id || updated_mob.end_position_id != new_origin_position_id
         {
             drop(mobs);
             tx_moe_gameplay_webservice.send(updated_mob).await.unwrap();
             return;
         }
 
+        // somehow the compiler know that this lock is not the same as the above, there is not way for a deadlock to happen
+        if new_region_id != previous_region_id
+        {
+            let region_for_positions = map.get_mob_positions_region_from_child(&previous_region_id);
+            let mut mob_positions = region_for_positions.lock().await;
+            mob_positions.remove(&new_origin_position_id);
+            drop(mob_positions);
+        }
+
+        mob_positions.remove(&new_origin_position_id);
+        mob_positions.insert(new_end_position_id.clone());
+
         // let previous_end_position = updated_mob.end_position_id;
         updated_mob.version += 1;
         updated_mob.start_position_id = new_origin_position_id;
-        updated_mob.end_position_id = new_end_position_id.clone();
+        updated_mob.end_position_id = new_end_position_id;
         updated_mob.path = path;
         updated_mob.time = current_time_in_seconds;
 
         mobs_summary.push(updated_mob.clone());
 
-        mob_positions.insert(new_end_position_id);
         *mob = updated_mob.clone();
 
         drop(mobs);
@@ -468,8 +499,10 @@ pub async fn cast_mob_from_mob(
     mobs_summary : &mut Vec<MobEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     card_id: u32,
-    caster_mob_id: TetrahedronId,
-    target_mob_id: TetrahedronId,
+    caster_mob_tile_id: TetrahedronId,
+    caster_mob_id : u32,
+    target_mob_tile_id: TetrahedronId,
+    target_mob_id : u32,
     missed: u8,
 )
 {
@@ -477,7 +510,7 @@ pub async fn cast_mob_from_mob(
 
     // let key = self.get_parent(tetrahedron_id);
 
-    let mob_region = map.get_mob_region_from_child(&caster_mob_id);
+    let mob_region = map.get_mob_region_from_child(&caster_mob_tile_id);
     let mut mobs = mob_region.lock().await;
     let mob_caster_option = mobs.get(&caster_mob_id);
     let mob_target_option = mobs.get(&target_mob_id);
@@ -487,7 +520,7 @@ pub async fn cast_mob_from_mob(
     {
         let mut caster = mob_caster.clone();
         let mut target = mob_target.clone();
-        cli_log::info!("---- calling heal {} id: {}" , mob_target.health, mob_target.tile_id);
+        cli_log::info!("---- calling heal {} id: {}" , mob_target.health, mob_target.mob_id);
         let result = super::utils::heal::<MobEntity, MobEntity>(&map.definitions, card_id, current_time_in_seconds, &mut caster, &mut target);
 
         caster.version += 1;
@@ -512,10 +545,11 @@ pub async fn cast_mob_from_mob(
         {
             id: (current_time % 10000) as u16,
             card_id,
-            attacker_mob_tile_id: caster_mob_id,
+            attacker_mob_id:caster_mob_id,
             attacker_character_id: 0,
             target_character_id: 0,
-            target_tile_id: target_mob_id,
+            target_mob_id : target_mob_id,
+            target_tile_id: TetrahedronId::default(),
             battle_type: BATTLE_MOB_MOB,
             result,
         });
@@ -540,7 +574,8 @@ pub async fn cast_mob_from_character(
     characters_rewards_summary : &mut Vec<HeroReward>,
     card_id: u32,
     character_id:u16,
-    mob_id: TetrahedronId,
+    mob_id: u32,
+    mob_tile_id: TetrahedronId,
     missed: u8,
 )
 {
@@ -548,7 +583,7 @@ pub async fn cast_mob_from_character(
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let character_attacker_option = character_entities.get(&character_id);
 
-    let mob_region = map.get_mob_region_from_child(&mob_id);
+    let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
 
     let mob_defender_option = mobs.get(&mob_id);
@@ -643,14 +678,22 @@ pub async fn cast_mob_from_character(
         drop(character_entities);
         drop(mobs);
 
+        //here
+        let region_for_positions = map.get_mob_positions_region_from_child(&mob_tile_id);
+        let mut mob_positions = region_for_positions.lock().await;
+
+        mob_positions.remove(&mob_tile_id);
+        drop(mob_positions);
+
         attack_details_summary.push(AttackResult
         {
             id: (current_time % 10000) as u16,
             card_id,
-            attacker_mob_tile_id: TetrahedronId::default(),
+            attacker_mob_id: 0,
             attacker_character_id: character_id,
             target_character_id: 0,
-            target_tile_id: mob_id,
+            target_mob_id: mob_id,
+            target_tile_id: TetrahedronId::default(),
             battle_type: BATTLE_CHAR_MOB,
             result,
         });
@@ -665,7 +708,7 @@ pub async fn cast_mob_from_character(
 }
 
 
-pub async fn cast_character_from_mob(
+pub async fn cast_hero_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
     server_state: &Arc<ServerState>,
@@ -675,15 +718,16 @@ pub async fn cast_character_from_mob(
     characters_summary : &mut Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
     card_id: u32,
-    character_id:u16,
-    mob_id: TetrahedronId,
+    hero_id:u16,
+    mob_id: u32,
+    mob_tile_id: TetrahedronId,
     missed: u8,
 )
 {
     cli_log::info!("----- attack character ");
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
 
-    if let Some(defender)= character_entities.get_mut(&character_id)
+    if let Some(defender)= character_entities.get_mut(&hero_id)
     {
         if defender.get_flag_value(INSIDE_TOWER_FLAG)
         {
@@ -695,9 +739,9 @@ pub async fn cast_character_from_mob(
             defender.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
         }
     }
-    let character_defender_option = character_entities.get(&character_id);
+    let character_defender_option = character_entities.get(&hero_id);
 
-    let mob_region = map.get_mob_region_from_child(&mob_id);
+    let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
 
     let mob_attacker_option = mobs.get(&mob_id);
@@ -723,7 +767,7 @@ pub async fn cast_character_from_mob(
         let attacker_stored = attacker.clone();
         let defender_stored = defender.clone();
 
-        if let Some(character) = character_entities.get_mut(&character_id)
+        if let Some(character) = character_entities.get_mut(&hero_id)
         {
             *character = defender;
         }
@@ -738,9 +782,10 @@ pub async fn cast_character_from_mob(
         {
             id: (current_time % 10000) as u16,
             card_id,
-            attacker_mob_tile_id: mob_id,
+            attacker_mob_id: mob_id,
             attacker_character_id: 0,
-            target_character_id: character_id,
+            target_character_id: hero_id,
+            target_mob_id: 0,
             target_tile_id: TetrahedronId::default(),
             battle_type: BATTLE_MOB_CHAR,
             result,
@@ -760,10 +805,11 @@ pub async fn check_buffs(
     server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
-    mob_id: TetrahedronId,
+    mob_id : u32,
+    mob_tile_id: TetrahedronId,
 )
 {
-    let mob_region = map.get_mob_region_from_child(&mob_id);
+    let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
 
     let mob_attacker_option = mobs.get_mut(&mob_id);

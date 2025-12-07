@@ -114,11 +114,12 @@ pub async fn process_hero_commands (
                             let attack = Attack
                             {
                                 id: (current_time % 10000) as u16,
-                                attacker_character_id: cloned_data.player_id,
-                                target_character_id: *other_player_id,
-                                target_tile_id: TetrahedronId::default(),
-                                attacker_mob_tile_id: TetrahedronId::default(),
+                                attacker_hero_id: cloned_data.player_id,
+                                target_hero_id: *other_player_id,
+                                target_mob_id: 0,
+                                attacker_mob_id: 0,
                                 card_id: *card_id,
+                                target_tile_id: TetrahedronId::default(),
                                 required_time: *required_time,
                                 battle_type: BATTLE_CHAR_CHAR,
                             };
@@ -947,12 +948,13 @@ pub async fn attack_character(
         {
             id: (current_time % 10000) as u16,
             card_id,
-            attacker_mob_tile_id: TetrahedronId::default(),
+            attacker_mob_id: 0,
             attacker_character_id: character_id,
             target_character_id: other_character_id,
-            target_tile_id: TetrahedronId::default(),
+            target_mob_id: 0,
             battle_type: BATTLE_CHAR_CHAR,
             result,
+            target_tile_id: TetrahedronId::default(),
         });
 
         tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
