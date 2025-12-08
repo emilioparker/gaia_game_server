@@ -295,6 +295,12 @@ pub async fn spawn_mob(
     level: u8
 )
 {
+    if !tile_id.is_valid_for_lod(9) 
+    {
+        cli_log::error!("SpawnMob:Invalid tile id for {tile_id}");
+        return;
+    }
+
     let current_time_in_seconds = (current_time / 1000) as u32;
     let mut new_mob = MobEntity
     {
@@ -380,6 +386,12 @@ pub async fn control_mob(
     player_id: u16
 )
 {
+    if !mob_tile_id.is_valid_for_lod(9) 
+    {
+        cli_log::error!("ControlMob:Invalid tile id for {mob_id} -> {mob_tile_id}");
+        return;
+    }
+
     let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
     if let Some(mob) = mobs.get_mut(&mob_id)
@@ -431,6 +443,12 @@ pub async fn move_mob(
     path: [u8;6],
 )
 {
+    if !new_origin_position_id.is_valid_for_lod(9) || !new_end_position_id.is_valid_for_lod(9)
+    {
+        cli_log::error!("MoveMob:Invalid tile id for {mob_id} -> {new_origin_position_id}, {new_end_position_id}");
+        return;
+    }
+
     let mob_region = map.get_mob_region_from_child(&new_end_position_id);
     let previous_region_id = TetrahedronId::get_parent(&new_origin_position_id, 7);
     let new_region_id = TetrahedronId::get_parent(&new_end_position_id, 7);
@@ -508,7 +526,17 @@ pub async fn cast_mob_from_mob(
 {
     cli_log::info!("----- cast to mob from mob ");
 
-    // let key = self.get_parent(tetrahedron_id);
+    if !caster_mob_tile_id.is_valid_for_lod(9) || !target_mob_tile_id.is_valid_for_lod(9)
+    {
+        cli_log::error!("CastFromMobToMob:Invalid tile id for {caster_mob_id} {target_mob_id} -> {caster_mob_tile_id}, {target_mob_tile_id}");
+        return;
+    }
+
+    if caster_mob_tile_id.get_parent(7) != target_mob_tile_id.get_parent(7)
+    {
+        cli_log::error!("Can't cast magic from other regions, because it is hard to code");
+        return;
+    }
 
     let mob_region = map.get_mob_region_from_child(&caster_mob_tile_id);
     let mut mobs = mob_region.lock().await;
@@ -580,6 +608,12 @@ pub async fn cast_mob_from_character(
 )
 {
     cli_log::info!("----- attack mob ");
+
+    if !mob_tile_id.is_valid_for_lod(9)
+    {
+        cli_log::error!("AttackMob:Invalid tile id for {mob_id} -> {mob_tile_id}");
+        return;
+    }
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let character_attacker_option = character_entities.get(&character_id);
 
@@ -725,6 +759,11 @@ pub async fn cast_hero_from_mob(
 )
 {
     cli_log::info!("----- attack character ");
+    if !mob_tile_id.is_valid_for_lod(9)
+    {
+        cli_log::error!("AttackHeroFromMob:Invalid tile id for {mob_id} -> {mob_tile_id}");
+        return;
+    }
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
 
     if let Some(defender)= character_entities.get_mut(&hero_id)
@@ -809,6 +848,12 @@ pub async fn check_buffs(
     mob_tile_id: TetrahedronId,
 )
 {
+    if !mob_tile_id.is_valid_for_lod(9)
+    {
+        cli_log::error!("CheckBuffs:Invalid tile id for {mob_id} -> {mob_tile_id}");
+        return;
+    }
+
     let mob_region = map.get_mob_region_from_child(&mob_tile_id);
     let mut mobs = mob_region.lock().await;
 

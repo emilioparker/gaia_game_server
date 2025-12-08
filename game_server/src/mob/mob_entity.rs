@@ -11,7 +11,7 @@ pub struct MobEntity
     pub version: u8, // 1 byte
 
 
-    // 10 bytes
+    // 8 bytes
 
     // to handle who is commanding this tile with a timeout
     pub owner_id : u16, // 2 bytes
@@ -33,7 +33,7 @@ pub struct MobEntity
 
     // 7 bytes
 
-    //total 10 + 6 + 16 + 7 = 39 
+    //total 8 + 6 + 16 + 7 = 37 
 
 }
 

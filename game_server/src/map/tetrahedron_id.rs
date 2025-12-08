@@ -23,9 +23,11 @@ impl TetrahedronId {
         let mut current_id : u32 = self.id;
         let mut current_lod : u8 = self.lod;
 
-        for _i in 0..times{
+        for _i in 0..times
+        {
             let mut div_result: u32 = current_id;
-            for _j in 0..(current_lod - 1){
+            for _j in 0..(current_lod - 1)
+            {
                 div_result =  (div_result as f32 / 4f32).floor() as u32;
             }
 
@@ -33,11 +35,17 @@ impl TetrahedronId {
             current_lod = current_lod - 1;
         }
 
-        TetrahedronId {
+        TetrahedronId 
+        {
             area: self.area,
             id: current_id, 
             lod: current_lod,
         }
+    }
+
+    pub fn is_valid_for_lod(&self, lod : u8) -> bool
+    {
+        self.lod == lod
     }
 
     pub fn subdivide(&self, child_index : u8) -> TetrahedronId
