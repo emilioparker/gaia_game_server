@@ -655,7 +655,7 @@ pub async fn respawn(
     let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let hero_option = hero_entities.get_mut(&player_id);
 
-    cli_log::info!("respawn {}", player_id);
+    cli_log::info!("respawn {} to {}", player_id, respawn_tile_id.to_string());
     if let Some(hero_entity) = hero_option 
     {
         let character_definition = map.definitions.character_progression.get(hero_entity.level as usize).unwrap();
@@ -666,7 +666,8 @@ pub async fn respawn(
             time:0,
             health: character_definition.constitution,
             version: hero_entity.version + 1,
-            position: respawn_tile_id,
+            position: respawn_tile_id.clone(),
+            second_position : respawn_tile_id,
             path:[0,0,0,0,0,0],
             ..hero_entity.clone()
         };
