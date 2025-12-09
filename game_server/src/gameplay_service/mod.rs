@@ -501,6 +501,7 @@ pub fn start_service(
             heroes_summary.drain(..)
             .for_each(|d| 
             {
+                cli_log::info!("updated hero {} with pos {}", d.hero_id, d.position.to_string());
                 // cli_log::info!("hero pos {} region: {} len: {}", d.position, d.position.get_parent(7), map.definitions.regions_by_id.len());
                 let region = map.definitions.regions_by_id.get(&d.position.get_parent(7)).unwrap();
                 // cli_log::info!("region {} packets data len: {}", region, packets_data.len());
