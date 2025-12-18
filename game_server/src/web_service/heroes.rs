@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_entity::HeroEntity, hero_presentation::HeroPresentation, hero_tower_progress::HeroTowerProgress}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
+use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -447,17 +447,19 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
         let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
         let session_id = current_time.as_secs();
 
+        let mut output = Vec::<u8>::with_capacity(100);
+
+        let session_bytes = u64::to_le_bytes(session_id); // 8 bytes
+        output.extend_from_slice(&session_bytes);
         let encoded_player_data = player.to_bytes();
+        output.extend_from_slice(&encoded_player_data);
+        pack_inventory(&mut output, &player.inventory, &player.card_inventory, &player.weapon_inventory, player.inventory_version);
+
         drop(players);
 
         cli_log::info!("creating session id {} for {}", session_id, data.hero_id);
         let session = &context.working_game_map.logged_in_players[data.hero_id as usize];
         session.store(session_id, std::sync::atomic::Ordering::Relaxed);
-
-        let session_bytes = u64::to_le_bytes(session_id); // 8 bytes
-        let mut output = Vec::<u8>::new();
-        output.extend_from_slice(&session_bytes);
-        output.extend_from_slice(&encoded_player_data);
 
         Ok(Body::from(output))
     }
@@ -465,6 +467,60 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
     {
         return Err("hero_not_found".to_owned())
     }
+}
+
+
+pub fn pack_inventory(
+    output : &mut Vec<u8>,
+    inventory: &Vec<InventoryItem>, 
+    card_inventory: &Vec<CardItem>,
+    weapon_inventory : &Vec<WeaponItem>,
+    inventory_version: u8)
+{
+    // only need when using the inventory request protocol, here we only use it on login.
+    // we write the protocol
+    // let inventory_request = crate::protocols::Protocol::InventoryRequest as u8;
+    // let buffer = [inventory_request;1];
+
+    // output.extend_from_slice(&buffer);
+    // we write the amount of items.
+    let item_len_bytes = u32::to_le_bytes(inventory.len() as u32);
+    output.extend_from_slice(&item_len_bytes);
+
+    // cli_log::info!("--- inventory length {}", inventory.len());
+
+    for item in inventory 
+    {
+        // cli_log::info!("---- item {:?}", item);
+        let buffer = item.to_bytes();
+        output.extend_from_slice(&buffer);
+    }
+
+    // card inventory
+    let card_inventory_len_bytes = u32::to_le_bytes(card_inventory.len() as u32);
+    output.extend_from_slice(&card_inventory_len_bytes);
+
+    // cli_log::info!("--- inventory length {}", card_inventory.len());
+    for item in card_inventory 
+    {
+        // cli_log::info!("---- card {:?}", item);
+        let buffer = item.to_bytes();
+        output.extend_from_slice(&buffer);
+    }
+
+    // weapon inventory
+    let weapon_inventory_len_bytes = u32::to_le_bytes(weapon_inventory.len() as u32);
+    output.extend_from_slice(&weapon_inventory_len_bytes);
+
+    // cli_log::info!("--- weapon inventory length {}", weapon_inventory.len());
+    for item in weapon_inventory 
+    {
+        // cli_log::info!("---- card {:?}", item);
+        let buffer = item.to_bytes();
+        output.extend_from_slice(&buffer);
+    }
+
+    output.extend_from_slice(&[inventory_version]);
 }
 
 pub async fn handle_characters_request(context: AppContext) -> Result<Body, String> 
