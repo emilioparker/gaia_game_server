@@ -83,121 +83,125 @@ async fn handle_connection(
     tx_kc_clients_gameplay : gaia_mpsc::GaiaSender<KingdomCommand>,
     tx_cc_clients_gameplay : gaia_mpsc::GaiaSender<ChatCommand>,
     regions : Arc<HashMap<u16, [AtomicU16;3]>>)
+
 {
     cli_log::info!("New connection from {}", addr);
 
     // Perform the WebSocket handshake
-    let ws_stream = accept_async(stream)
-        .await
-        .expect("WebSocket handshake failed");
-
-    cli_log::info!("WebSocket connection established: {}", addr);
-
-    // Split into sender and receiver
-    let (write, mut read) = ws_stream.split();
-    let (kill_tx, mut kill_rx) = tokio::sync::watch::channel(1);
-
-
-    let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(100);
-    tokio::spawn(send_data_to_client(rx, write, kill_tx));
-
-    server_state.online_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let created = AtomicBool::new(false);
-
-    'main_loop : loop
+    if let Ok(ws_stream) = accept_async(stream).await
     {
-        let time_out = time::sleep(Duration::from_secs_f32(10.0)); 
-        tokio::select! 
+        cli_log::info!("WebSocket connection established: {}", addr);
+
+        // Split into sender and receiver
+        let (write, mut read) = ws_stream.split();
+        let (kill_tx, mut kill_rx) = tokio::sync::watch::channel(1);
+
+
+        let (tx, rx) = tokio::sync::mpsc::channel::<Bytes>(100);
+        tokio::spawn(send_data_to_client(rx, write, kill_tx));
+
+        server_state.online_players.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let created = AtomicBool::new(false);
+
+        'main_loop : loop
         {
-            _ = kill_rx.changed() => 
+            let time_out = time::sleep(Duration::from_secs_f32(10.0)); 
+            tokio::select! 
             {
-                break 'main_loop;
-            },
-            _ = time_out => 
-            {
-                cli_log::info!("we couldn't wait any longer sorry!");
-                break 'main_loop;
-            }
-            Some(msg) = read.next() =>
-            {
-                match msg 
+                _ = kill_rx.changed() => 
                 {
-                    Ok(msg) => 
+                    break 'main_loop;
+                },
+                _ = time_out => 
+                {
+                    cli_log::info!("we couldn't wait any longer sorry!");
+                    break 'main_loop;
+                }
+                Some(msg) = read.next() =>
+                {
+                    match msg 
                     {
-                        if msg.is_binary() 
+                        Ok(msg) => 
                         {
-                            let data = msg.into_data();
-
-                            if !created.load(std::sync::atomic::Ordering::Relaxed)
+                            if msg.is_binary() 
                             {
-                                cli_log::info!("websocket:creating client");
-                                created.store(true, std::sync::atomic::Ordering::Relaxed);
+                                let data = msg.into_data();
 
-                                let start = 1;
-                                let end = start + 8;
-                                let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
-
-                                let start = end;
-                                let end = start + 2;
-                                let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
-
-                                let start = end;
-                                let _end = start + 1;
-                                let faction = data[start];
-
-                                cli_log::info!("creating new websocket connection for {player_session_id} and hero id : {player_id}");
-
-                                let mut clients_lock = clients.lock().await;
-                                clients_lock.insert(addr, WebSocketConnection
+                                if !created.load(std::sync::atomic::Ordering::Relaxed)
                                 {
-                                    session_id : player_session_id,
-                                    address: addr,
-                                    link: tx.clone(),
-                                    hero_id: player_id,
-                                    faction,
-                                });
-                                drop(clients_lock);
-                            }
+                                    cli_log::info!("websocket:creating client");
+                                    created.store(true, std::sync::atomic::Ordering::Relaxed);
 
-                            // cli_log::info!("websocket:got data from client {}", data.len());
-                            // let _result = to_server.send(msg.into_data()).await;
-                            protocols::route_packet(
-                                addr,
-                                false,
-                                &data,
-                                data.len(),
-                                &map,
-                                &server_state,
-                                &regions,
-                                &tx_gc_clients_gameplay,
-                                &tx_pc_clients_gameplay, 
-                                &tx_mc_clients_gameplay,
-                                &tx_moc_clients_gameplay,
-                                &tx_tc_clients_gameplay,
-                                &tx_kc_clients_gameplay,
-                                &tx_cc_clients_gameplay,
-                            ).await;
+                                    let start = 1;
+                                    let end = start + 8;
+                                    let player_session_id = u64::from_le_bytes(data[start..end].try_into().unwrap());
+
+                                    let start = end;
+                                    let end = start + 2;
+                                    let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
+
+                                    let start = end;
+                                    let _end = start + 1;
+                                    let faction = data[start];
+
+                                    cli_log::info!("creating new websocket connection for {player_session_id} and hero id : {player_id}");
+
+                                    let mut clients_lock = clients.lock().await;
+                                    clients_lock.insert(addr, WebSocketConnection
+                                    {
+                                        session_id : player_session_id,
+                                        address: addr,
+                                        link: tx.clone(),
+                                        hero_id: player_id,
+                                        faction,
+                                    });
+                                    drop(clients_lock);
+                                }
+
+                                // cli_log::info!("websocket:got data from client {}", data.len());
+                                // let _result = to_server.send(msg.into_data()).await;
+                                protocols::route_packet(
+                                    addr,
+                                    false,
+                                    &data,
+                                    data.len(),
+                                    &map,
+                                    &server_state,
+                                    &regions,
+                                    &tx_gc_clients_gameplay,
+                                    &tx_pc_clients_gameplay, 
+                                    &tx_mc_clients_gameplay,
+                                    &tx_moc_clients_gameplay,
+                                    &tx_tc_clients_gameplay,
+                                    &tx_kc_clients_gameplay,
+                                    &tx_cc_clients_gameplay,
+                                ).await;
+                            }
+                            else if msg.is_close() 
+                            {
+                                break 'main_loop;
+                            }
                         }
-                        else if msg.is_close() 
+                        Err(e) => 
                         {
+                            cli_log::error!("Error processing connection: {}", e);
                             break 'main_loop;
                         }
-                    }
-                    Err(e) => 
-                    {
-                        cli_log::error!("Error processing connection: {}", e);
-                        break 'main_loop;
                     }
                 }
             }
         }
+
+        let mut clients_lock = clients.lock().await;
+        clients_lock.remove(&addr);
+
+        server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+        cli_log::info!("Connection {} closed", addr);
     }
-
-    let mut clients_lock = clients.lock().await;
-    clients_lock.remove(&addr);
-
-    server_state.online_players.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-    cli_log::info!("Connection {} closed", addr);
+    else 
+    {
+        cli_log::warn!("New connection failed from {}", addr);
+    }
 }
 
 async fn send_data_to_client(
