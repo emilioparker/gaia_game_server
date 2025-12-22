@@ -163,7 +163,6 @@ pub fn start_server(
     let modified_regions = HashSet::<TetrahedronId>::new();
 
     // used only for tracking
-    let modified_tiles= HashSet::<TetrahedronId>::new();
     let modified_regions_reference = Arc::new(Mutex::new(modified_regions));
 
     let modified_regions_update_lock = modified_regions_reference.clone();
@@ -221,6 +220,7 @@ pub fn start_server(
             tokio::time::sleep(tokio::time::Duration::from_secs(300)).await; // every 5 minutes
             let mut modified_regions = modified_regions_reader_lock.lock().await;
 
+            let mut stored_regions_binary_data = Vec::<(TetrahedronId, Vec<u8>)>:: new();
             let mut stored_regions = Vec::<StoredRegion>:: new();
             for region_id in modified_regions.iter()
             {
@@ -229,7 +229,7 @@ pub fn start_server(
                 let region = map_reader.get_region(region_id);
                 let locked_tiles = region.lock().await;
 
-                let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(9));
+                let mut encoder = ZlibEncoder::new(Vec::new(), Compression::new(2));
                 let mut region_object_id : Option<ObjectId> = None;
 
                 for tile in locked_tiles.iter()
@@ -240,12 +240,16 @@ pub fn start_server(
                 }
 
                 let compressed_bytes = encoder.reset(Vec::new()).unwrap();
-                let bson = bson::Bson::Binary(bson::Binary {
+
+                stored_regions_binary_data.push((region_id.clone(), compressed_bytes.clone()));
+                let bson = bson::Bson::Binary(bson::Binary 
+                {
                     subtype: bson::spec::BinarySubtype::Generic,
                     bytes: compressed_bytes,
                 });
 
-                let data = StoredRegion {
+                let data = StoredRegion 
+                {
                     id : region_object_id,
                     world_id : None,
                     world_name : "".to_owned(),
@@ -265,11 +269,13 @@ pub fn start_server(
                 {
                     // Update the document:
                     let update_result = data_collection.update_one(
-                        doc! {
+                        doc! 
+                        {
                             "world_id" : map_reader.world_id,
                             "_id": region.id,
                         },
-                    doc! {
+                    doc! 
+                        {
                             "$set": {"compressed_data": region.compressed_data},
                             "$inc": {"region_version": 1}
                         },
@@ -279,6 +285,16 @@ pub fn start_server(
                     cli_log::info!("updated region result {:?}", update_result);
                 }
             }
+
+            for data in stored_regions_binary_data
+            {
+                if let Some(region_data) = map_reader.stored_regions.get(&data.0)
+                {
+                    let mut lock = region_data.lock().await;
+                    *lock = data.1;
+                }
+            }
+
             let _result =  tx_saved_longterm_webservice.send(1).await;
 
             modified_regions.clear();

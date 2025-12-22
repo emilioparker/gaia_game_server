@@ -3,7 +3,7 @@ use std::{sync::{Arc, atomic::{AtomicU64, AtomicU16}}, collections::{HashMap, Ha
 use bson::oid::ObjectId;
 use tokio::sync::Mutex;
 
-use crate::{definitions::definitions_container::Definitions, hero::hero_entity::HeroEntity, kingdom::kingdom_entity::KingdomEntity, mob::mob_entity::MobEntity, tower::tower_entity::TowerEntity};
+use crate::{definitions::definitions_container::Definitions, hero::hero_entity::HeroEntity, kingdom::kingdom_entity::KingdomEntity, long_term_storage_service::db_region::StoredRegion, mob::mob_entity::MobEntity, tower::tower_entity::TowerEntity};
 
 use self::{map_entity::MapEntity, tetrahedron_id::TetrahedronId};
 
@@ -18,6 +18,7 @@ pub struct GameMap
     pub id_generator : AtomicU16,
     pub definitions : Definitions,
     pub regions : HashMap<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>,
+    pub stored_regions : HashMap<TetrahedronId, Arc<Mutex<Vec<u8>>>>,
     pub mobs : HashMap<TetrahedronId, Arc<Mutex<HashMap<u32, MobEntity>>>>,
     pub mob_positions : HashMap<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>,
     pub active_players: Arc<HashMap<u16, AtomicU64>>,
@@ -34,12 +35,14 @@ impl GameMap
         world_name: String,
         definitions: Definitions,
         regions: Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>,
+        stored_regions: Vec<(TetrahedronId, Vec<u8>)>,
         players : HashMap<u16, HeroEntity>,
         towers : HashMap<TetrahedronId, TowerEntity>,
         kingdomes : HashMap<TetrahedronId, KingdomEntity>,
     ) -> GameMap
     {
         let mut arc_regions = HashMap::<TetrahedronId, Arc<Mutex<HashMap<TetrahedronId, MapEntity>>>>::new();
+        let mut arc_stored_regions = HashMap::<TetrahedronId, Arc<Mutex<Vec<u8>>>>::new();
         let mut arc_mobs= HashMap::<TetrahedronId, Arc<Mutex<HashMap<u32, MobEntity>>>>::new();
         let mut arc_mob_positions= HashMap::<TetrahedronId, Arc<Mutex<HashSet<TetrahedronId>>>>::new();
         let mut region_keys = Vec::<TetrahedronId>::new();
@@ -50,6 +53,11 @@ impl GameMap
             arc_mobs.insert(key.clone(), Arc::new(Mutex::new(HashMap::new())));
             arc_mob_positions.insert(key.clone(), Arc::new(Mutex::new(HashSet::new())));
             region_keys.push(key);
+        }
+
+        for (key, value) in stored_regions.into_iter()
+        {
+            arc_stored_regions.insert(key.clone(), Arc::new(Mutex::new(value)));
         }
 
         let mut active_players_set = HashMap::<u16, AtomicU64>::new();
@@ -91,6 +99,7 @@ impl GameMap
             character : Arc::new(Mutex::new(players)),
             towers : Arc::new(Mutex::new(towers)),
             kingdomes : Arc::new(Mutex::new(kingdomes)),
+            stored_regions: arc_stored_regions,
         }
     }
 

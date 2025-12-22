@@ -214,7 +214,6 @@ async fn run_server(tx: Sender<AppData>)
         println!("reading regions into game maps");
         let regions_data = load_regions_data_into_game_map(&regions_db_data);
 
-
         for (_id, player) in &working_players
         {
             let name_with_padding = format!("{: <5}", player.hero_name);
@@ -237,8 +236,9 @@ async fn run_server(tx: Sender<AppData>)
         let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world.id, db_client.clone()).await;
         let kingdomes_db_data = long_term_storage_service::kingdom_service::get_kingdoms_from_db_by_world(world.id, db_client.clone()).await;
 
-        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
-        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data, storage_players, world_towers, kingdomes_db_data));
+        // for the working copy we don't need the stored regions binary data
+        working_game_map = Some(GameMap::new(world.id, world.world_name.clone(), definitions.0.clone(), regions_data.0.clone(), Vec::new(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
+        storage_game_map = Some(GameMap::new(world.id, world.world_name, definitions.0, regions_data.0, regions_data.1, storage_players, world_towers, kingdomes_db_data));
 
     }
     else
@@ -275,8 +275,9 @@ async fn run_server(tx: Sender<AppData>)
             let world_towers = long_term_storage_service::towers_service::get_towers_from_db_by_world(world_id, db_client.clone()).await;
             let kingdomes_db_data = long_term_storage_service::kingdom_service::get_kingdoms_from_db_by_world(world_id, db_client.clone()).await;
 
-            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0.clone(), regions_data.clone(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
-            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data, storage_players, world_towers, kingdomes_db_data));
+            // for the working copy we don't need the stored regions binary data
+            working_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0.clone(), regions_data.0.clone(), Vec::new(), working_players, world_towers.clone(), kingdomes_db_data.clone()));
+            storage_game_map = Some(GameMap::new(world_id, world_name.to_string(),definitions.0, regions_data.0, regions_data.1, storage_players, world_towers, kingdomes_db_data));
         }
         else 
         {
@@ -286,7 +287,8 @@ async fn run_server(tx: Sender<AppData>)
         }
     }
 
-    match (working_game_map, storage_game_map) {
+    match (working_game_map, storage_game_map) 
+    {
         (Some(working_game_map), Some(storage_game_map)) =>
         {
             let working_game_map_reference= Arc::new(working_game_map);
@@ -521,9 +523,13 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
 fn load_regions_data_into_game_map(
     regions_stored_data : &HashMap<TetrahedronId, StoredRegion>
 ) 
--> Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)> 
+->  (
+        Vec<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>, 
+        Vec<(TetrahedronId, Vec<u8>)>
+    ) 
 {
     let mut regions_data = Vec::<(TetrahedronId, HashMap<TetrahedronId, MapEntity>)>::new();
+    let mut regions_binary_data = Vec::<(TetrahedronId, Vec<u8>)>::new();
 
     let mut count = 0;
     let mut region_count = 0;
@@ -542,6 +548,9 @@ fn load_regions_data_into_game_map(
         };
         let region_id = region.0;
         let data : &[u8] = &binary_data;
+
+
+
         let decoder = ZlibDecoder::new(data);
 
         let decoded_data_result :  Result<Vec<u8>, _> = decoder.bytes().collect();
@@ -580,11 +589,13 @@ fn load_regions_data_into_game_map(
             count += 1;
 
         }
+
+        regions_binary_data.push((region_id.clone(), binary_data));
         regions_data.push((region_id.clone(), region_tiles));
     }
 
     cli_log::info!("finished loading data, starting services. regions: {} with {} tiles",region_total, count);
-    regions_data
+    (regions_data, regions_binary_data)
     // GameMap::new(regions_data)
 }
 
@@ -766,7 +777,7 @@ mod tests {
         map.insert(region_id.clone(), recovered_region);
 
         let regions_data = load_regions_data_into_game_map(&map);
-        let decoded_region = &regions_data[0];
+        let decoded_region = &regions_data.0[0];
         let tile = decoded_region.1.get(&tile_id).unwrap();
         assert!(tile.health == 50);
 
@@ -841,7 +852,7 @@ mod tests {
         map.insert(region_id.clone(), recovered_region);
 
         let regions_data = load_regions_data_into_game_map(&map);
-        let decoded_region = &regions_data[0];
+        let decoded_region = &regions_data.0[0];
         let tile = decoded_region.1.get(&tile_id).unwrap();
         assert!( tile.health == 20);
 
