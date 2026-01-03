@@ -29,8 +29,8 @@ pub async fn run()
         .layer(cors);
         // .layer(map_response(set_header));
 
-    cli_log::info!("Server running at http://localhost:8000");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    cli_log::info!("Server running at http://localhost:80");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:80").await.unwrap();
     axum::serve(listener, app.into_make_service()).await.unwrap();
 }
 
