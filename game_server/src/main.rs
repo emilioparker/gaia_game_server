@@ -73,12 +73,13 @@ fn main()
     // cli_log::info!("running http server");
     // println!("Running http server");
     // runtime.spawn(http_service::run()); 
+    runtime.block_on(http_service::run()); 
 
     println!("Running main server");
     cli_log::info!("running main server");
-    let (tx, rx) = oneshot::channel();
-    // runtime.spawn(run_server(tx)); 
-    runtime.block_on(run_server(tx)); 
+    // let (tx, rx) = oneshot::channel();
+    // // runtime.spawn(run_server(tx)); 
+    // runtime.block_on(run_server(tx)); 
 
 
     // cli_log::info!("running tui");
