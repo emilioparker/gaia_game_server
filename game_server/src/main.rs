@@ -77,7 +77,7 @@ fn main()
 
     println!("Running main server");
     cli_log::info!("running main server");
-    // let (tx, rx) = oneshot::channel();
+    let (tx, rx) = oneshot::channel();
     // // runtime.spawn(run_server(tx)); 
     runtime.block_on(run_server(tx)); 
 
