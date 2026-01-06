@@ -67,7 +67,7 @@ pub fn start_server(
     let udp_client_connections_receiver_lock = udp_client_connections_mutex.clone();
     let udp_client_connections_sender_lock = udp_client_connections_mutex.clone();
 
-    let udp_address: std::net::SocketAddr = "0.0.0.0:11004".parse().unwrap();
+    let udp_address: std::net::SocketAddr = "0.0.0.0:11002".parse().unwrap();
     let udp_socket = Arc::new(utils::create_reusable_udp_socket(udp_address));
     let send_udp_socket = udp_socket.clone();
     let send_directly_udp_socket = udp_socket.clone();

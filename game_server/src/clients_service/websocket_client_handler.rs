@@ -34,7 +34,7 @@ pub async fn run(
     regions : Arc<HashMap<u16, [AtomicU16;3]>>)
 {
     // Bind to a local TCP socket
-    let addr = "0.0.0.0:11005";
+    let addr = "0.0.0.0:11001";
     let listener = TcpListener::bind(&addr).await.expect("Can't bind");
     cli_log::info!("WebSocket server running at ws://{}", addr);
 
