@@ -30,6 +30,7 @@ pub mod craft_card_protocol;
 pub mod try_enter_tower_request_protocol;
 pub mod enter_tower_request_protocol;
 pub mod exit_tower_request_protocol;
+pub mod increase_skill_rank_protocol;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -83,6 +84,7 @@ pub enum Protocol
     EnterTower = 32,
     HeroData = 33,
     ExitTower = 34,
+    IncreaseSkillRank = 35,
 }
     
 pub async fn route_packet(
@@ -248,7 +250,11 @@ pub async fn route_packet(
             cli_log::info!("--------------------- process exit tower");
             exit_tower_request_protocol::process_request(tx_hc_clients_gameplay, tx_tc_clients_gameplay, data).await;
         },
-        unknown_protocol => 
+        Some(protocol) if *protocol == Protocol::IncreaseSkillRank as u8 =>
+        {
+            increase_skill_rank_protocol::process(data, tx_hc_clients_gameplay).await;
+        },
+        unknown_protocol =>
         {
             cli_log::error!("unknown protocol {:?}", unknown_protocol);
         }

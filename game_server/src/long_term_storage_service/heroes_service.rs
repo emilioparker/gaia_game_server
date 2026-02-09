@@ -71,6 +71,7 @@ pub async fn get_heroes_from_db_by_world(
                 {
                     id: item.id,
                     rank: item.rank,
+                    count: item.count,
                 }).collect();
 
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();

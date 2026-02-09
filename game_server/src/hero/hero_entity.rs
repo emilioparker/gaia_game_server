@@ -215,6 +215,7 @@ impl HeroEntity
             {
                 self.level += 1;
                 self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
+                self.reset_skill_counts();
             }
         }
         cli_log::info!("----- add xp:{} from battle {}", xp, self.experience);

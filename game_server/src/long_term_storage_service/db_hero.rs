@@ -121,12 +121,13 @@ pub struct StoredSkillItem
 {
     pub id : u8,
     pub rank : u8,
+    pub count : u8,
 }
 
 impl From<SkillData> for StoredSkillItem
 {
     fn from(skill: SkillData) -> Self
     {
-        StoredSkillItem { id: skill.id, rank: skill.rank }
+        StoredSkillItem { id: skill.id, rank: skill.rank, count: skill.count }
     }
 }

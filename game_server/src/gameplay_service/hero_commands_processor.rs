@@ -80,9 +80,13 @@ pub async fn process_hero_commands (
                     {
                         greet(&map, heros_presentation_summary, cloned_data.player_id).await;
                     },
-            hero_command::HeroCommandInfo::ActivateBuff(card_id) => 
+            hero_command::HeroCommandInfo::ActivateBuff(card_id) =>
                     {
                         activate_buff(&map, current_time, tx_he_gameplay_longterm, heros_summary, *card_id, cloned_data.player_id).await;
+                    },
+            hero_command::HeroCommandInfo::IncreaseSkillRank(skill_id) =>
+                    {
+                        increase_skill_rank(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id, *skill_id).await;
                     },
             hero_command::HeroCommandInfo::AttackCharacter(other_player_id, card_id, required_time, active_effect, missed) => 
                     {
@@ -963,6 +967,32 @@ pub async fn attack_character(
     }
 }
 
+pub async fn increase_skill_rank(
+    map : &Arc<GameMap>,
+    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    heros_summary : &mut Vec<HeroEntity>,
+    player_id: u16,
+    skill_id: u8)
+{
+    let mut hero_entities : tokio::sync::MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
+    let hero_option = hero_entities.get_mut(&player_id);
+
+    if let Some(hero_entity) = hero_option
+    {
+        if hero_entity.development_points > 0
+        {
+            hero_entity.development_points -= 1;
+            hero_entity.increase_skill_rank(skill_id);
+            tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
+            heros_summary.push(hero_entity.clone());
+        }
+        else
+        {
+            cli_log::info!("not enough development points for player {}", player_id);
+        }
+    }
+}
+
 pub async fn disconnect(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
@@ -972,7 +1002,7 @@ pub async fn disconnect(
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let character_option = character_entities.get_mut(&character_id);
 
-    if let Some(character_entity) = character_option 
+    if let Some(character_entity) = character_option
     {
         character_entity.action = 0;
         character_entity.version += 1;

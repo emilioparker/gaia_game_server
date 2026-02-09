@@ -29,6 +29,7 @@ pub enum HeroCommandInfo
     UseItem(u8,u32, u16),
     EquipItem(EquipItemCommandData),
     ActivateBuff(u32),
+    IncreaseSkillRank(u8),
     EnterTower(TetrahedronId, u8),
     ExitTower(TetrahedronId, u8, u8),
 }

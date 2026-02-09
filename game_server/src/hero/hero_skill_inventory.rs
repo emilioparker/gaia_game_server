@@ -1,6 +1,6 @@
 use super::hero_entity::HeroEntity;
 
-pub const HERO_SKILL_ITEM_SIZE: usize = 2;
+pub const HERO_SKILL_ITEM_SIZE: usize = 3;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -8,52 +8,48 @@ pub struct SkillData
 {
     pub id : u8, //1
     pub rank : u8, // 1
+    pub count : u8, // 1
 }
 
 impl SkillData
 {
     pub fn to_bytes(&self) -> [u8; HERO_SKILL_ITEM_SIZE]
     {
-        let buffer = [self.id, self.rank];
-        buffer
+        [self.id, self.rank, self.count]
     }
 }
 
 impl HeroEntity
 {
-    pub fn add_skill(&mut self, new_skill : SkillData)
+    pub fn increase_skill_rank(&mut self, skill_id : u8)
     {
         let mut found = false;
         for skill in &mut self.skills
         {
-            if skill.id == new_skill.id
+            if skill.id == skill_id
             {
-                skill.rank = new_skill.rank;
+                skill.rank += 1;
+                skill.count += 1;
                 found = true;
+                break;
             }
         }
 
         if !found
         {
-            self.skills.push(new_skill);
+            self.skills.push(SkillData { id: skill_id, rank: 1, count: 1 });
         }
 
         self.version += 1;
         self.inventory_version += 1;
     }
 
-    pub fn remove_skill(&mut self, skill_id : u8) -> bool
+    pub fn reset_skill_counts(&mut self)
     {
-        let initial_len = self.skills.len();
-        self.skills.retain(|s| s.id != skill_id);
-
-        if self.skills.len() < initial_len
+        for skill in &mut self.skills
         {
-            self.inventory_version += 1;
-            self.version += 1;
-            return true;
+            skill.count = 0;
         }
-        false
     }
 
     pub fn has_skill(&self, skill_id : u8) -> bool
