@@ -4,9 +4,10 @@ use std::sync::Arc;
 use crate::buffs::buff::{Buff, BuffUser};
 use crate::hero::hero_card_inventory::CardItem;
 use crate::hero::hero_inventory::InventoryItem;
+use crate::hero::hero_skill_inventory::SkillData;
 use crate::hero::hero_tower_progress::HeroTowerProgress;
 use crate::hero::hero_weapon_inventory::WeaponItem;
-use crate::long_term_storage_service::db_hero::{StoredBuff, StoredHero, StoredInventoryItem, StoredTowerProgress};
+use crate::long_term_storage_service::db_hero::{StoredBuff, StoredHero, StoredInventoryItem, StoredSkillItem, StoredTowerProgress};
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::map::GameMap;
 use crate::hero::hero_entity::HeroEntity;
@@ -66,6 +67,12 @@ pub async fn get_heroes_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
+                let skills = doc.skills.into_iter().map(|item| SkillData
+                {
+                    id: item.id,
+                    rank: item.rank,
+                }).collect();
+
                 let buffs : Vec<Buff> = doc.buffs.into_iter().map(|stored_buff| stored_buff.into()).collect();
                 let buffs_summary : [u8;5]= [0,0,0,0,0];
 
@@ -92,19 +99,19 @@ pub async fn get_heroes_from_db_by_world(
                     inventory,
                     card_inventory,
                     weapon_inventory,
+                    skills,
                     inventory_version: 1,
                     level: doc.level,
                     experience: doc.experience,
                     available_skill_points: doc.available_skill_points,
                     weapon:doc.weapon,
-                    strength_points: doc.strength_points,
-                    defense_points: doc.defense_points,
-                    intelligence_points: doc.intelligence_points,
-                    mana_points: doc.mana_points,
-                    base_defense: doc.defense,
-                    base_strength: doc.strength,
-                    base_intelligence: doc.intelligence,
-                    base_mana: doc.mana,
+                    development_points: doc.development_points,
+                    power_points: doc.power_points,
+                    stamina_points: doc.stamina_points,
+                    strength_stat: doc.strength_stat,
+                    endurance_stat: doc.endurance_stat,
+                    agility_stat: doc.agility_stat,
+                    will_stat: doc.will_stat,
                     health: doc.health,
                     buffs,
                     buffs_summary,
@@ -224,6 +231,12 @@ pub fn start_server(
                 .collect();
                 let weapon_inventory_serialized_data= bson::to_bson(&weapon_inventory).unwrap();
 
+                let skills : Vec<StoredSkillItem> = player.skills
+                .into_iter()
+                .map(|skill| StoredSkillItem::from(skill))
+                .collect();
+                let skills_serialized_data = bson::to_bson(&skills).unwrap();
+
                 let updated_buffs : Vec<StoredBuff> = player.buffs
                 .into_iter()
                 .map(|buff| StoredBuff ::from(buff))
@@ -255,15 +268,15 @@ pub fn start_server(
                             "experience" : bson::to_bson(&player.experience).unwrap(),
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
                             "weapon": bson::to_bson(&player.weapon).unwrap(),
-                            "defense_points": bson::to_bson(&player.defense_points).unwrap(),
-                            "strength_points": bson::to_bson(&player.strength_points).unwrap(),
-                            "mana_points": bson::to_bson(&player.mana_points).unwrap(),
-                            "intelligence_points": bson::to_bson(&player.intelligence_points).unwrap(),
+                            "development_points": bson::to_bson(&player.development_points).unwrap(),
+                            "power_points": bson::to_bson(&player.power_points).unwrap(),
+                            "stamina_points": bson::to_bson(&player.stamina_points).unwrap(),
                             "health": bson::to_bson(&player.health).unwrap(),
-                            "defense": bson::to_bson(&player.base_defense).unwrap(),
-                            "strength": bson::to_bson(&player.base_strength).unwrap(),
-                            "mana": bson::to_bson(&player.base_mana).unwrap(),
-                            "intelligence": bson::to_bson(&player.base_intelligence).unwrap(),
+                            "strength_stat": bson::to_bson(&player.strength_stat).unwrap(),
+                            "endurance_stat": bson::to_bson(&player.endurance_stat).unwrap(),
+                            "agility_stat": bson::to_bson(&player.agility_stat).unwrap(),
+                            "will_stat": bson::to_bson(&player.will_stat).unwrap(),
+                            "skills" : skills_serialized_data,
                             "buffs" : serialized_buffs_data,
                         }
                     },

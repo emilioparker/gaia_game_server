@@ -4,9 +4,9 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, hero::hero_tower_progress::HeroTowerProgress, map::tetrahedron_id::TetrahedronId};
 
-use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_weapon_inventory::WeaponItem};
+use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem};
 
-pub const HERO_ENTITY_SIZE: usize = 50;
+pub const HERO_ENTITY_SIZE: usize = 49;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
@@ -41,6 +41,7 @@ pub struct HeroEntity
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub card_inventory : Vec<CardItem>,// this one is not serializable  normally
     pub weapon_inventory : Vec<WeaponItem>,// this one is not serializable  normally
+    pub skills : Vec<SkillData>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
     pub tower_progress : HeroTowerProgress, // not serializable
@@ -53,18 +54,17 @@ pub struct HeroEntity
 
     // 6 bytes
 
-    // attributes 4 bytes
-    pub strength_points: u8, 
-    pub defense_points: u8,
-    pub intelligence_points: u8,
-    pub mana_points: u8,
+    // attributes 3 bytes
+    pub development_points: u8,
+    pub power_points: u8,
+    pub stamina_points: u8,
 
-    // 4 bytes
+    // 3 bytes
 
-    pub base_strength: u16,
-    pub base_defense: u16,
-    pub base_intelligence: u16,
-    pub base_mana: u16,
+    pub strength_stat: u16,
+    pub endurance_stat: u16,
+    pub agility_stat: u16,
+    pub will_stat: u16,
 
     // 8 bytes
 
@@ -75,7 +75,7 @@ pub struct HeroEntity
 
     // 7 bytes 
 
-    // 11 + 12 + 1 + 6 + 4 + 8 + 7 = 49
+    // 11 + 12 + 1 + 6 + 3 + 8 + 7 = 48 + 1(weapon) = 49
 }
 
 pub enum ItemType
@@ -159,39 +159,35 @@ impl HeroEntity
         offset = end;
 
         end = offset + 1;
-        buffer[offset] = self.strength_points;
+        buffer[offset] = self.development_points;
         offset = end;
 
         end = offset + 1;
-        buffer[offset] = self.defense_points;
+        buffer[offset] = self.power_points;
         offset = end;
 
         end = offset + 1;
-        buffer[offset] = self.intelligence_points;
-        offset = end;
-
-        end = offset + 1;
-        buffer[offset] = self.mana_points;
+        buffer[offset] = self.stamina_points;
         offset = end;
 
         end = offset + 2;
-        let strenght_bytes = u16::to_le_bytes(self.base_strength); // 2 bytes
-        buffer[offset..end].copy_from_slice(&strenght_bytes);
+        let strength_bytes = u16::to_le_bytes(self.strength_stat); // 2 bytes
+        buffer[offset..end].copy_from_slice(&strength_bytes);
         offset = end;
 
         end = offset + 2;
-        let defense_bytes = u16::to_le_bytes(self.base_defense); // 2 bytes
-        buffer[offset..end].copy_from_slice(&defense_bytes);
+        let endurance_bytes = u16::to_le_bytes(self.endurance_stat); // 2 bytes
+        buffer[offset..end].copy_from_slice(&endurance_bytes);
         offset = end;
 
         end = offset + 2;
-        let intelligence_bytes = u16::to_le_bytes(self.base_intelligence); // 2 bytes
-        buffer[offset..end].copy_from_slice(&intelligence_bytes);
+        let agility_bytes = u16::to_le_bytes(self.agility_stat); // 2 bytes
+        buffer[offset..end].copy_from_slice(&agility_bytes);
         offset = end;
 
-        let mana_bytes = u16::to_le_bytes(self.base_mana); // 4 bytes
+        let will_bytes = u16::to_le_bytes(self.will_stat); // 2 bytes
         end = offset + 2;
-        buffer[offset..end].copy_from_slice(&mana_bytes);
+        buffer[offset..end].copy_from_slice(&will_bytes);
         offset = end;
 
         let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
@@ -297,11 +293,11 @@ impl AbilityUser for HeroEntity
         character_definition.constitution
     }
     
-    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16 
+    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16
     {
         let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
-        let stat = HeroEntity::calculate_stat(self.base_strength, self.strength_points, 2.2f32, 1f32);
-        let added_strength : f32 = self.buffs.iter().map(|b| 
+        let stat = self.strength_stat;
+        let added_strength : f32 = self.buffs.iter().map(|b|
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
@@ -315,16 +311,14 @@ impl AbilityUser for HeroEntity
             })
             .sum();
 
-        let base = self.base_strength;
-        let points = self.strength_points;
-        cli_log::info!(" -- calculate total attack {card_attack} base {base} points {points}  stat {stat} buff {added_strength}");
+        cli_log::info!(" -- calculate total attack {card_attack} stat {stat} buff {added_strength}");
         (stat as f32 * card_attack).round() as u16  + added_strength.round() as u16
     }
-    
-    fn get_total_defense(&self, definition: &Definitions) -> u16 
+
+    fn get_total_defense(&self, definition: &Definitions) -> u16
     {
-        let stat = HeroEntity::calculate_stat(self.base_defense, self.defense_points, 2.2f32, 1f32);
-        let added_defense : f32 = self.buffs.iter().map(|b| 
+        let stat = self.endurance_stat;
+        let added_defense : f32 = self.buffs.iter().map(|b|
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
@@ -416,20 +410,20 @@ mod tests
             inventory: Vec::new(),
             card_inventory: Vec::new(),
             weapon_inventory: Vec::new(),
+            skills: Vec::new(),
             inventory_version: 1,
             health: 0,
             level: 1,
             experience: 0,
             available_skill_points: 0,
             weapon:0,
-            base_strength: 0,
-            base_defense: 0,
-            base_intelligence: 0,
-            base_mana: 0,
-            strength_points: 0,
-            defense_points: 0,
-            intelligence_points: 0,
-            mana_points: 0,
+            strength_stat: 0,
+            endurance_stat: 0,
+            agility_stat: 0,
+            will_stat: 0,
+            development_points: 0,
+            power_points: 0,
+            stamina_points: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
             tower_progress: HeroTowerProgress::default(),
@@ -478,19 +472,19 @@ mod tests
             inventory: Vec::new(),
             card_inventory: Vec::new(),
             weapon_inventory: Vec::new(),
+            skills: Vec::new(),
             inventory_version: 10,
             level: 0,
             experience: 0,
             available_skill_points: 0,
             weapon:0,
-            strength_points: 0,
-            defense_points: 0,
-            intelligence_points: 0,
-            mana_points: 0,
-            base_strength: 23,
-            base_defense: 10,
-            base_intelligence: 3,
-            base_mana: 3,
+            development_points: 0,
+            power_points: 0,
+            stamina_points: 0,
+            strength_stat: 23,
+            endurance_stat: 10,
+            agility_stat: 3,
+            will_stat: 3,
             health: 10,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],

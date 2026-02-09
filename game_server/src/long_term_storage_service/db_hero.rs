@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}};
+use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -32,20 +32,20 @@ pub struct StoredHero
     pub weapon:u8,
 
     // attributes
-    pub strength_points: u8,
-    pub defense_points: u8,
-    pub intelligence_points: u8,
-    pub mana_points: u8,
+    pub development_points: u8,
+    pub power_points: u8,
+    pub stamina_points: u8,
 
-    // attributes
-    pub strength: u16,
-    pub defense: u16,
-    pub intelligence: u16,
-    pub mana: u16,
+    // stats
+    pub strength_stat: u16,
+    pub endurance_stat: u16,
+    pub agility_stat: u16,
+    pub will_stat: u16,
 
     // stats
     pub health: u16,
     pub buffs: Vec<StoredBuff>,
+    pub skills: Vec<StoredSkillItem>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -113,5 +113,20 @@ impl From<Buff> for StoredBuff
     fn from(buff: Buff) -> Self
     {
         StoredBuff {buff_id : buff.buff_id, hits : buff.hits, expiration_time : buff.expiration_time}
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoredSkillItem
+{
+    pub id : u8,
+    pub rank : u8,
+}
+
+impl From<SkillData> for StoredSkillItem
+{
+    fn from(skill: SkillData) -> Self
+    {
+        StoredSkillItem { id: skill.id, rank: skill.rank }
     }
 }

@@ -243,7 +243,7 @@ pub async fn route_packet(
             cli_log::info!("--------------------- process enter tower");
             enter_tower_request_protocol::process_request(player_address, tx_hc_clients_gameplay, data, map).await;
         },
-        Some(protocol) if *protocol == Protocol::ExitTower as u8 => 
+        Some(protocol) if *protocol == Protocol::ExitTower as u8 =>
         {
             cli_log::info!("--------------------- process exit tower");
             exit_tower_request_protocol::process_request(tx_hc_clients_gameplay, tx_tc_clients_gameplay, data).await;

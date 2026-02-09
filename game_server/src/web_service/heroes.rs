@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
+use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_skill_inventory::SkillData, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -77,20 +77,20 @@ pub struct JoinWithHeroResponse
     pub experience:u32,
     pub available_points:u8,
     pub health:u16,
-    pub strength:u16,
-    pub defense:u16,
-    pub intelligence:u16,
-    pub mana:u16,
+    pub strength_stat:u16,
+    pub endurance_stat:u16,
+    pub agility_stat:u16,
+    pub will_stat:u16,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct ExchangeSkillPointsRequest 
+pub struct ExchangeSkillPointsRequest
 {
     pub character_id : u16,
     pub strength:u8,
-    pub defense:u8,
-    pub intelligence:u8,
-    pub mana:u8,
+    pub endurance:u8,
+    pub agility:u8,
+    pub will:u8,
 }
 
 
@@ -306,18 +306,18 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         inventory : Vec::new(),
         card_inventory : Vec::new(),
         weapon_inventory : Vec::new(),
+        skills : Vec::new(),
         level: 0,
         experience: 0,
         available_skill_points: 5,
         weapon:0,
-        strength_points: 0,
-        defense_points: 0,
-        intelligence_points: 0,
-        mana_points: 0,
-        strength: 10,
-        defense: 10,
-        intelligence: 10,
-        mana: 10,
+        development_points: 0,
+        power_points: 0,
+        stamina_points: 0,
+        strength_stat: 10,
+        endurance_stat: 10,
+        agility_stat: 10,
+        will_stat: 10,
         health: 10,
         buffs : Vec::new(),
         tower_progress: HeroTowerProgress::default().into(),
@@ -350,20 +350,20 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         inventory: Vec::new(), // fill this from storedcharacter
         card_inventory : Vec::new(),
         weapon_inventory : Vec::new(),
+        skills : Vec::new(),
         inventory_version : 1,
         flags:0,
         level: 0,
         experience: 0,
         available_skill_points: 5,
         weapon:0,
-        strength_points: 0,
-        defense_points: 0,
-        intelligence_points: 0,
-        mana_points: 0,
-        base_strength: 10,
-        base_defense: 10,
-        base_intelligence: 10,
-        base_mana: 10,
+        development_points: 0,
+        power_points: 0,
+        stamina_points: 0,
+        strength_stat: 10,
+        endurance_stat: 10,
+        agility_stat: 10,
+        will_stat: 10,
         health: 10,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
@@ -453,7 +453,7 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
         output.extend_from_slice(&session_bytes);
         let encoded_player_data = player.to_bytes();
         output.extend_from_slice(&encoded_player_data);
-        pack_inventory(&mut output, &player.inventory, &player.card_inventory, &player.weapon_inventory, player.inventory_version);
+        pack_inventory(&mut output, &player.inventory, &player.card_inventory, &player.weapon_inventory, &player.skills, player.inventory_version);
 
         drop(players);
 
@@ -472,9 +472,10 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
 
 pub fn pack_inventory(
     output : &mut Vec<u8>,
-    inventory: &Vec<InventoryItem>, 
+    inventory: &Vec<InventoryItem>,
     card_inventory: &Vec<CardItem>,
     weapon_inventory : &Vec<WeaponItem>,
+    skills: &Vec<SkillData>,
     inventory_version: u8)
 {
     // only need when using the inventory request protocol, here we only use it on login.
@@ -489,7 +490,7 @@ pub fn pack_inventory(
 
     // cli_log::info!("--- inventory length {}", inventory.len());
 
-    for item in inventory 
+    for item in inventory
     {
         // cli_log::info!("---- item {:?}", item);
         let buffer = item.to_bytes();
@@ -501,7 +502,7 @@ pub fn pack_inventory(
     output.extend_from_slice(&card_inventory_len_bytes);
 
     // cli_log::info!("--- inventory length {}", card_inventory.len());
-    for item in card_inventory 
+    for item in card_inventory
     {
         // cli_log::info!("---- card {:?}", item);
         let buffer = item.to_bytes();
@@ -513,10 +514,20 @@ pub fn pack_inventory(
     output.extend_from_slice(&weapon_inventory_len_bytes);
 
     // cli_log::info!("--- weapon inventory length {}", weapon_inventory.len());
-    for item in weapon_inventory 
+    for item in weapon_inventory
     {
         // cli_log::info!("---- card {:?}", item);
         let buffer = item.to_bytes();
+        output.extend_from_slice(&buffer);
+    }
+
+    // skills
+    let skills_len_bytes = u32::to_le_bytes(skills.len() as u32);
+    output.extend_from_slice(&skills_len_bytes);
+
+    for skill in skills
+    {
+        let buffer = skill.to_bytes();
         output.extend_from_slice(&buffer);
     }
 
@@ -542,18 +553,18 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
     if let Some(player) = players.get_mut(&data.character_id) 
     {
         cli_log::info!("player points exchange {:?}", player);
-        let total_points = data.strength + data.defense + data.mana + data.intelligence;
+        let total_points = data.strength + data.endurance + data.agility + data.will;
         if total_points > player.available_skill_points
         {
             return Err("not_enough_skill_points".to_owned());
         }
-        else 
+        else
         {
             player.available_skill_points -= total_points as u8;
-            player.strength_points += data.strength;
-            player.defense_points += data.defense;
-            player.intelligence_points += data.intelligence;
-            player.mana_points += data.mana;
+            player.strength_stat += data.strength as u16;
+            player.endurance_stat += data.endurance as u16;
+            player.agility_stat += data.agility as u16;
+            player.will_stat += data.will as u16;
             player.version += 1;
         }
         drop(players);
