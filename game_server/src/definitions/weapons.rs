@@ -7,7 +7,16 @@ pub struct Weapon
     pub name: String,
     pub weapon_type: String,
     pub card_name:String,
-    pub icon: String,
+
+    pub strength_stat: u16,
+    pub endurance_stat: u16,
+    pub agility_stat: u16,
+    pub will_stat: u16,
+
+    pub cooldown_factor: f32,
+    pub mana_cost_factor: f32,
+    pub hit_range_factor: f32,
+
     pub store_location: String,
     pub store_cost : u16
 }
