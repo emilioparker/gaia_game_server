@@ -979,16 +979,16 @@ pub async fn increase_skill_rank(
 
     if let Some(hero_entity) = hero_option
     {
-        if hero_entity.development_points > 0
+        if hero_entity.available_skill_points > 0
         {
-            hero_entity.development_points -= 1;
+            hero_entity.available_skill_points -= 1;
             hero_entity.increase_skill_rank(skill_id);
             tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
             heros_summary.push(hero_entity.clone());
         }
         else
         {
-            cli_log::info!("not enough development points for player {}", player_id);
+            cli_log::info!("not enough skill points for player {}", player_id);
         }
     }
 }

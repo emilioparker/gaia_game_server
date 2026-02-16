@@ -8,19 +8,25 @@ pub struct Card
     pub card_type: String,
     pub required_weapon: String,
     pub target_type: String,
-    pub icon: String,
-    pub asset: String,
-    pub rank:u8,
-    pub strength_factor:f32,
-    pub defense_factor:f32,
+
+    pub strength_stat: u16,
+    pub endurance_stat: u16,
+    pub agility_stat: u16,
+    pub will_stat: u16,
+
     pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
     pub store_cost: u16,
-    pub mana_cost: u16,
-    pub duration_time:f32,
-    pub hits:u8,
+
+    // esto podria ponerlo el arma o reducirlo mejor.
+    // el arma
     pub cooldown:f32,
+    pub mana_cost: u16,
     pub hit_range:f32,
+
+    pub hits:u8,
+    pub duration_time:f32,
+
     pub buff:String,
     pub effect_probability:f32,
 }

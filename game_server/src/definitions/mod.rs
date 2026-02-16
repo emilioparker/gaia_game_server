@@ -10,6 +10,10 @@ pub mod mobs_data;
 pub mod buffs_data;
 pub mod weapons;
 pub mod tower_difficulty;
+pub mod skills;
+pub mod professions;
+pub mod initial_stats;
+pub mod stat_bonus;
 
 
 pub trait Definition 

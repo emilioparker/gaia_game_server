@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}};
+use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem}};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -15,6 +15,7 @@ pub struct StoredHero
     pub version: u16, // 2 bytes
     pub character_id: u16,
     pub faction: u8,
+    pub profession: u8,
     pub character_name: String,
     pub position:String,
     pub vertex_id:i32,
@@ -24,17 +25,11 @@ pub struct StoredHero
     pub inventory: Vec<StoredInventoryItem>,
     pub card_inventory: Vec<StoredInventoryItem>,
     pub weapon_inventory: Vec<StoredInventoryItem>,
-    pub tower_progress : StoredTowerProgress,
 
     pub level:u8,
     pub experience:u32,
     pub available_skill_points:u8, // used for stats
     pub weapon:u8,
-
-    // attributes
-    pub development_points: u8,
-    pub power_points: u8,
-    pub stamina_points: u8,
 
     // stats
     pub strength_stat: u16,
@@ -44,28 +39,9 @@ pub struct StoredHero
 
     // stats
     pub health: u16,
+    pub mana: u16,
     pub buffs: Vec<StoredBuff>,
     pub skills: Vec<StoredSkillItem>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct StoredTowerProgress
-{
-    pub id : String, // 6
-    pub tower_floor: u32, //4
-    pub start_time : u64, // 8
-    pub points : u32 // 4
-}
-
-impl From<HeroTowerProgress> for StoredTowerProgress
-{
-    fn from(item: HeroTowerProgress) -> Self
-    {
-        StoredTowerProgress 
-        { 
-            id: item.id.to_string(), tower_floor: item.tower_floor, start_time: item.start_time, points: item.points
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

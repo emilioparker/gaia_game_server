@@ -1,0 +1,5 @@
+id,profession,pugilist_skill,sword_skill,bow_skill,staff_skill,body_development_skill,core_development_skill
+0,Initiate,0|4/8,0|2/6,0|4/8,0|3/7,0|2/4,0|2/4
+1,Tank,3|4/8,3|2/6,2|4/8,2|3/7,9|2/4,2|2/4
+2,Warrior,5|3/7,5|3/7,5|3/7,4|4/8,7|3/6,4|4/8
+3,Mage,2|6/12,3|5/10,3|5/10,4|3/7,4|5/10,9|2/4

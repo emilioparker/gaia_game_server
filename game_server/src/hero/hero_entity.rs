@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, hero::hero_tower_progress::HeroTowerProgress, map::tetrahedron_id::TetrahedronId};
+use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
 
 use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem};
 
@@ -23,9 +23,12 @@ pub struct HeroEntity
     pub hero_name: String,
     pub hero_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
+    pub profession:u8, // 1 byte
+    pub weapon:u8,// 1 byte
+
     pub position: TetrahedronId, // 6 bytes
 
-    // 11 bytes
+    // 13 bytes
 
     pub second_position: TetrahedronId, // not sent, when saving on the database, this on is stored. On login this on is used
     pub vertex_id:i32,// not sent, also saved in db, but only used on login to properly set the position of the player.
@@ -44,22 +47,11 @@ pub struct HeroEntity
     pub skills : Vec<SkillData>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
-    pub tower_progress : HeroTowerProgress, // not serializable
-    // 1 bytes
-
     pub level:u8, // 1 bytes
     pub experience:u32, // 4 bytes
     pub available_skill_points:u8, // 1 bytes used for stats
-    pub weapon:u8,// 1 byte
 
-    // 6 bytes
-
-    // attributes 3 bytes
-    pub development_points: u8,
-    pub power_points: u8,
-    pub stamina_points: u8,
-
-    // 3 bytes
+    // 7 bytes
 
     pub strength_stat: u16,
     pub endurance_stat: u16,
@@ -70,12 +62,13 @@ pub struct HeroEntity
 
     // stats
     pub health: u16, // 2 bytes
+    pub mana: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5] // this one is serialized but not saved 5 bytes
 
-    // 7 bytes 
+    // 9 bytes
 
-    // 11 + 12 + 1 + 6 + 3 + 8 + 7 = 48 + 1(weapon) = 49
+    // 13 + 12 + 7 + 8 + 9 = 49
 }
 
 pub enum ItemType
@@ -106,7 +99,11 @@ impl HeroEntity
         end = offset + 1;
         buffer[offset] = self.faction;
         offset = end;
-        // 5 bytes
+
+        end = offset + 1;
+        buffer[offset] = self.profession;
+        offset = end;
+        // 6 bytes
 
         end = offset + 6;
         let position_tile_id_bytes = self.position.to_bytes();
@@ -158,18 +155,6 @@ impl HeroEntity
         buffer[offset] = self.weapon;
         offset = end;
 
-        end = offset + 1;
-        buffer[offset] = self.development_points;
-        offset = end;
-
-        end = offset + 1;
-        buffer[offset] = self.power_points;
-        offset = end;
-
-        end = offset + 1;
-        buffer[offset] = self.stamina_points;
-        offset = end;
-
         end = offset + 2;
         let strength_bytes = u16::to_le_bytes(self.strength_stat); // 2 bytes
         buffer[offset..end].copy_from_slice(&strength_bytes);
@@ -190,9 +175,14 @@ impl HeroEntity
         buffer[offset..end].copy_from_slice(&will_bytes);
         offset = end;
 
-        let health_bytes = u16::to_le_bytes(self.health); // 4 bytes
+        let health_bytes = u16::to_le_bytes(self.health); // 2 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&health_bytes);
+        offset = end;
+
+        let mana_bytes = u16::to_le_bytes(self.mana); // 2 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
 
         // 5 pairs of 1 bytes, 10 bytes
@@ -296,7 +286,7 @@ impl AbilityUser for HeroEntity
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16
     {
-        let card_attack = definition.cards.get(card_id as usize).map_or(0f32, |d| d.strength_factor);
+        let card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
         let stat = self.strength_stat;
         let added_strength : f32 = self.buffs.iter().map(|b|
             {
@@ -312,8 +302,8 @@ impl AbilityUser for HeroEntity
             })
             .sum();
 
-        cli_log::info!(" -- calculate total attack {card_attack} stat {stat} buff {added_strength}");
-        (stat as f32 * card_attack).round() as u16  + added_strength.round() as u16
+        cli_log::info!(" -- calculate total attack {card_strength} stat {stat} buff {added_strength}");
+        stat + card_strength + added_strength.round() as u16
     }
 
     fn get_total_defense(&self, definition: &Definitions) -> u16
@@ -344,7 +334,7 @@ mod tests
     use std::num::Wrapping;
 
 
-    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE, hero_tower_progress::HeroTowerProgress}, map::tetrahedron_id::TetrahedronId};
+    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
 
     use super::HeroEntity;
 
@@ -401,6 +391,7 @@ mod tests
             hero_name: "a".to_owned(),
             hero_id: 1234,
             faction:0,
+            profession:0,
             action: 0,
             flags:0,
             position: TetrahedronId::default(),
@@ -414,6 +405,7 @@ mod tests
             skills: Vec::new(),
             inventory_version: 1,
             health: 0,
+            mana: 0,
             level: 1,
             experience: 0,
             available_skill_points: 0,
@@ -422,12 +414,8 @@ mod tests
             endurance_stat: 0,
             agility_stat: 0,
             will_stat: 0,
-            development_points: 0,
-            power_points: 0,
-            stamina_points: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
-            tower_progress: HeroTowerProgress::default(),
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -463,8 +451,9 @@ mod tests
             hero_name: "Park".to_string(),
             hero_id: 2,
             faction: 0,
+            profession: 0,
             position: TetrahedronId::default(),
-            second_position: TetrahedronId::default(), 
+            second_position: TetrahedronId::default(),
             vertex_id:-1,
             path:[0,0,0,0,0,0],
             time:0,
@@ -479,17 +468,14 @@ mod tests
             experience: 0,
             available_skill_points: 0,
             weapon:0,
-            development_points: 0,
-            power_points: 0,
-            stamina_points: 0,
             strength_stat: 23,
             endurance_stat: 10,
             agility_stat: 3,
             will_stat: 3,
             health: 10,
+            mana: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
-            tower_progress: HeroTowerProgress::default(),
         };
         let buffer = char.to_bytes();
         cli_log::info!("{:?}", buffer);

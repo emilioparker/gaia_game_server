@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{buffs::buff, map::tetrahedron_id::TetrahedronId};
 
-use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, props_data::PropData, tower_difficulty::TowerDifficulty, weapons::Weapon};
+use super::{buffs_data::BuffData, card::Card, character_progression::CharacterProgression, definition_versions::DefinitionVersion, initial_stats::InitialStats, items::Item, main_paths::MapPath, mob_progression::MobProgression, mobs_data::MobData, professions::Profession, props_data::PropData, skills::Skill, stat_bonus::StatToBonus, tower_difficulty::TowerDifficulty, weapons::Weapon};
 
 
 #[derive(Debug, Clone)]
@@ -22,6 +22,10 @@ pub struct Definitions
     pub buffs : HashMap<String, BuffData>,
     pub buffs_by_code : Vec<BuffData>,
     pub weapons : Vec<Weapon>,
+    pub skills : Vec<Skill>,
+    pub professions : HashMap<String, Profession>,
+    pub initial_stats : HashMap<String, InitialStats>,
+    pub stat_bonuses : Vec<StatToBonus>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +43,10 @@ pub struct DefinitionsData
     pub mobs_data : Vec<u8>,
     pub buffs_data : Vec<u8>,
     pub weapons_data : Vec<u8>,
+    pub skills_data : Vec<u8>,
+    pub professions_data : Vec<u8>,
+    pub initial_stats_data : Vec<u8>,
+    pub stat_bonus_data : Vec<u8>,
 }
 
 impl Definitions 

@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_skill_inventory::SkillData, hero_tower_progress::HeroTowerProgress, hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
+use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_skill_inventory::SkillData,  hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -22,11 +22,12 @@ pub struct PlayerCreationResponse
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct HeroCreationRequest 
+pub struct HeroCreationRequest
 {
     pub player_token: String,
     // pub character_name:String,
     pub faction:u32,
+    pub profession:String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -257,6 +258,18 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
 
     let stored_player = data_from_db.unwrap();
 
+    let initial_stats = context.working_game_map.definitions.initial_stats.get(&data.profession);
+    if initial_stats.is_none()
+    {
+        return Err("profession_not_found".to_owned());
+    }
+    let initial_stats = initial_stats.unwrap();
+
+    let profession_index = context.working_game_map.definitions.professions
+        .get(&data.profession)
+        .unwrap()
+        .id;
+
     let generator = &context.working_game_map.id_generator;
     let new_id = generator.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
@@ -271,23 +284,6 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         _ => "k121222222",
     };
 
-    // public TetrahedronId GetInitialTile()
-    // {
-    //     if (InitialCharacterState != null)
-    //     {
-    //         switch (InitialCharacterState.FactionCode)
-    //         {
-    //             case 1 :
-    //                 return TetrahedronId.GetTetrahedronId("t312222222");
-    //             case 2 :
-    //                 return TetrahedronId.GetTetrahedronId("m113222222");
-    //             case 3 :
-    //                 return TetrahedronId.GetTetrahedronId("k121222222");
-    //         }
-    //     }
-    //     return TetrahedronId.GetTetrahedronId("t312222222");
-    // }
-
 
     let stored_character = StoredHero
     {
@@ -301,6 +297,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         position:initial_position.to_owned(),
         vertex_id: -1,
         faction: data.faction as u8,
+        profession: profession_index,
         action: 0,
         flags: 0,
         inventory : Vec::new(),
@@ -311,29 +308,26 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         experience: 0,
         available_skill_points: 5,
         weapon:0,
-        development_points: 0,
-        power_points: 0,
-        stamina_points: 0,
-        strength_stat: 10,
-        endurance_stat: 10,
-        agility_stat: 10,
-        will_stat: 10,
+        strength_stat: initial_stats.strength.init,
+        endurance_stat: initial_stats.endurance.init,
+        agility_stat: initial_stats.agility.init,
+        will_stat: initial_stats.will.init,
         health: 10,
+        mana: 0,
         buffs : Vec::new(),
-        tower_progress: HeroTowerProgress::default().into(),
     };
 
     let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
     let result = data_collection.insert_one(stored_character, None).await.unwrap();
 
-    let object_id: Option<ObjectId> = match result.inserted_id 
+    let object_id: Option<ObjectId> = match result.inserted_id
     {
         bson::Bson::ObjectId(id) => Some(id),
         _ => None,
     };
 
     let initial_position_tile_id = TetrahedronId::from_string(initial_position);
-    let player_entity = HeroEntity 
+    let player_entity = HeroEntity
     {
         object_id,
         player_id: stored_player.id,
@@ -341,6 +335,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         hero_id: new_id,
         version:1,
         faction: data.faction as u8,
+        profession: profession_index,
         action: 0,
         position: initial_position_tile_id.clone(),
         second_position: initial_position_tile_id.clone(),
@@ -357,17 +352,14 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         experience: 0,
         available_skill_points: 5,
         weapon:0,
-        development_points: 0,
-        power_points: 0,
-        stamina_points: 0,
-        strength_stat: 10,
-        endurance_stat: 10,
-        agility_stat: 10,
-        will_stat: 10,
+        strength_stat: initial_stats.strength.init,
+        endurance_stat: initial_stats.endurance.init,
+        agility_stat: initial_stats.agility.init,
+        will_stat: initial_stats.will.init,
         health: 10,
+        mana: 0,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
-        tower_progress: HeroTowerProgress::default(),
     };
 
     let mut players = context.working_game_map.character.lock().await;

@@ -25,6 +25,10 @@ use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::mobs_data::MobData;
 use game_server::definitions::props_data::PropData;
 use game_server::definitions::tower_difficulty::TowerDifficulty;
+use game_server::definitions::initial_stats::InitialStats;
+use game_server::definitions::professions::Profession;
+use game_server::definitions::skills::Skill;
+use game_server::definitions::stat_bonus::StatToBonus;
 use game_server::definitions::weapons::Weapon;
 use game_server::definitions::Definition;
 use game_server::AppData;
@@ -421,7 +425,8 @@ where T: serde::de::DeserializeOwned + Definition
     let mut rdr = csv::Reader::from_reader(definition_versions_data.as_slice());
     for result in rdr.deserialize() 
     {
-        let record: T = result.unwrap();
+        let mut record: T = result.unwrap();
+        record.fill_details();
         data.push(record);
     }
     (data, definition_versions_data)
@@ -469,11 +474,37 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("weapons.csv");
     let weapons_result = load_definition_by_name::<Weapon>(file_name).await;
 
+    let file_name = format!("skills.csv");
+    let skills_result = load_definition_by_name::<Skill>(file_name).await;
+
+    let file_name = format!("professions.csv");
+    let professions_result = load_definition_by_name::<Profession>(file_name).await;
+
+    let file_name = format!("initial_stats.csv");
+    let initial_stats_result = load_definition_by_name::<InitialStats>(file_name).await;
+
+    let file_name = format!("stat_bonus.csv");
+    let stat_bonus_result = load_definition_by_name::<StatToBonus>(file_name).await;
+
     let mut buffs_hash = HashMap::new();
 
     for entry in &buffs_result.0
     {
         buffs_hash.insert(entry.id.clone(), entry.clone());
+    }
+
+    let mut professions_hash = HashMap::new();
+
+    for entry in professions_result.0
+    {
+        professions_hash.insert(entry.profession.clone(), entry);
+    }
+
+    let mut initial_stats_hash = HashMap::new();
+
+    for entry in initial_stats_result.0
+    {
+        initial_stats_hash.insert(entry.profession.clone(), entry);
     }
 
     let mut mob_progression_by_mob = vec![Vec::new(); mobs_result.0.len()];
@@ -499,6 +530,10 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_by_code: buffs_result.0,
         buffs : buffs_hash,
         weapons : weapons_result.0,
+        skills : skills_result.0,
+        professions : professions_hash,
+        initial_stats : initial_stats_hash,
+        stat_bonuses : stat_bonus_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -515,6 +550,10 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         mobs_data: mobs_result.1,
         buffs_data: buffs_result.1,
         weapons_data: weapons_result.1,
+        skills_data: skills_result.1,
+        professions_data: professions_result.1,
+        initial_stats_data: initial_stats_result.1,
+        stat_bonus_data: stat_bonus_result.1,
     };
 
     (definitions, definitions_data)
