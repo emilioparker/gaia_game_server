@@ -110,6 +110,7 @@ pub async fn get_heroes_from_db_by_world(
                     will_stat: doc.will_stat,
                     health: doc.health,
                     mana: doc.mana,
+                    stamina: doc.stamina,
                     buffs,
                     buffs_summary,
                 };
@@ -263,6 +264,7 @@ pub fn start_server(
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
                             "weapon": bson::to_bson(&player.weapon).unwrap(),
                             "health": bson::to_bson(&player.health).unwrap(),
+                            "stamina": bson::to_bson(&player.stamina).unwrap(),
                             "strength_stat": bson::to_bson(&player.strength_stat).unwrap(),
                             "endurance_stat": bson::to_bson(&player.endurance_stat).unwrap(),
                             "agility_stat": bson::to_bson(&player.agility_stat).unwrap(),

@@ -175,7 +175,7 @@ impl AbilityUser for MobEntity
         cli_log::info!("---- updated health {}" ,self.health)
     }
     
-    fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> u16 
+    fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> i16 
     {
         let card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
 
@@ -204,10 +204,11 @@ impl AbilityUser for MobEntity
             .sum();
 
         let stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
-        stat as u16 + card_strength + added_strength.round() as u16
+        // stat as u16 + card_strength + added_strength.round() as u16
+        return 0
     }
 
-    fn get_total_defense(&self, definition:&Definitions) -> u16
+    fn get_total_defense(&self, definition:&Definitions) -> i16
     {
         let mut base_defense = 0;
         let mut defense_points = 0;
@@ -235,6 +236,7 @@ impl AbilityUser for MobEntity
         let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
         let level = self.level;
         cli_log::info!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
-        stat + added_defense.round() as u16
+        // stat + added_defense.round() as u16
+        return 0;
     }
 }

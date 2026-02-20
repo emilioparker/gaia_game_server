@@ -40,6 +40,7 @@ pub struct StoredHero
     // stats
     pub health: u16,
     pub mana: u16,
+    pub stamina: u16,
     pub buffs: Vec<StoredBuff>,
     pub skills: Vec<StoredSkillItem>,
 }

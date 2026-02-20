@@ -18,10 +18,10 @@ pub struct Card
     pub store_location: String,
     pub store_cost: u16,
 
-    // esto podria ponerlo el arma o reducirlo mejor.
-    // el arma
+    // el arma lo afecta
     pub cooldown:f32,
     pub mana_cost: u16,
+    pub stamina_cost: u16,
     pub hit_range:f32,
 
     pub hits:u8,

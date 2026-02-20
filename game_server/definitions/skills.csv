@@ -1,6 +1,6 @@
 id,name
-0,pugilist
-1,sword
-2,bow
-3,staff
-4,body_development
+0,pugilist_skill
+1,sword_skill
+2,bow_skill
+3,staff_skill
+4,body_development_skill

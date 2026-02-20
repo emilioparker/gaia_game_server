@@ -314,6 +314,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         will_stat: initial_stats.will.init,
         health: 10,
         mana: 0,
+        stamina: 10,
         buffs : Vec::new(),
     };
 
@@ -358,6 +359,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         will_stat: initial_stats.will.init,
         health: 10,
         mana: 0,
+        stamina: 10,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
     };

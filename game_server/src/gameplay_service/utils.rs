@@ -26,10 +26,16 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     target.use_buffs(vec![BUFF_DEFENSE], definitions);
 
     let damage = attack.saturating_sub(defense);
+
+    if damage < 0
+    {
+        return BLOCKED_ATTACK_RESULT;
+    }
+
     cli_log::info!("--- attack {attack} def {defense} damage {damage}");
 
     let health = target.get_health();
-    let updated_health = health.saturating_sub(damage);
+    let updated_health = health.saturating_sub(damage as u16);
 
     cli_log::info!("--- attack {attack} def {defense} damage {damage} health {health} new health {updated_health}");
     target.update_health(updated_health, definitions);

@@ -10,8 +10,8 @@ pub trait AbilityUser
     fn get_constitution(&self, definition: &Definitions) -> u16;
 
     fn update_health(&mut self, new_health : u16, definition: &Definitions);
-    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16;
-    fn get_total_defense(&self, definition: &Definitions) -> u16;
+    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16;
+    fn get_total_defense(&self, definition: &Definitions) -> i16;
 
     fn calculate_stat(base : u16, points : u8, class_multiplier:f32, efficiency:f32) -> u16
     {

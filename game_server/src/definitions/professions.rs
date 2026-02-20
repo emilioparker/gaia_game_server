@@ -45,7 +45,7 @@ impl Profession
         SkillCostAndPoints { points, first_rank_cost, second_rank_cost }
     }
 
-    pub fn get_skill_cost(&self, skill_name: &str) -> Option<&SkillCostAndPoints>
+    pub fn get_skill_cost_and_points(&self, skill_name: &str) -> Option<&SkillCostAndPoints>
     {
         self.skill_costs.get(skill_name)
     }

@@ -2,16 +2,14 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{ability_user::AbilityUser, buffs::buff::{Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
+use crate::{ability_user::AbilityUser, buffs::buff::{BUFF_DEFENSE, BUFF_STRENGTH, Buff, BuffUser}, definitions::{definitions_container::Definitions, stat_bonus}, map::tetrahedron_id::TetrahedronId};
 
 use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem};
 
-pub const HERO_ENTITY_SIZE: usize = 49;
+pub const HERO_ENTITY_SIZE: usize = 51;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
-pub const TRYING_TO_ENTER_TOWER_FLAG : u8 = 0b00000100;
-pub const INSIDE_TOWER_FLAG : u8 = 0b00001000;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -63,12 +61,13 @@ pub struct HeroEntity
     // stats
     pub health: u16, // 2 bytes
     pub mana: u16, // 2 bytes
+    pub stamina: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5] // this one is serialized but not saved 5 bytes
 
-    // 9 bytes
+    // 11 bytes
 
-    // 13 + 12 + 7 + 8 + 9 = 49
+    // 13 + 12 + 7 + 8 + 11 = 51
 }
 
 pub enum ItemType
@@ -185,6 +184,11 @@ impl HeroEntity
         buffer[offset..end].copy_from_slice(&mana_bytes);
         offset = end;
 
+        let stamina_bytes = u16::to_le_bytes(self.stamina); // 2 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&stamina_bytes);
+        offset = end;
+
         // 5 pairs of 1 bytes, 10 bytes
         for buff_id in self.buffs_summary
         {
@@ -284,47 +288,111 @@ impl AbilityUser for HeroEntity
         character_definition.constitution
     }
     
-    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> u16
+    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16
     {
-        let card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
-        let stat = self.strength_stat;
-        let added_strength : f32 = self.buffs.iter().map(|b|
-            {
-                if let Some(def) = definition.get_buff_by_code(b.buff_id)
-                {
-                    if def.buff_type == BUFF_STRENGTH
-                    {
-                        return def.base_value;
-                    }
-                }
+        let (str, end, agi, will) = definition.cards.get(card_id as usize).map_or((0u16, 0, 0, 0), |d| (d.strength_stat, d.endurance_stat, d.agility_stat, d.will_stat));
 
-                return 0f32;
-            })
-            .sum();
+        let mut total_bonus = 0;
 
-        cli_log::info!(" -- calculate total attack {card_strength} stat {stat} buff {added_strength}");
-        stat + card_strength + added_strength.round() as u16
+        if str > 0
+        {
+            let bonus = stat_bonus::get_stat_bonus(self.strength_stat + str, &definition.stat_bonuses);
+            total_bonus += bonus;
+        }
+
+        if end > 0
+        {
+            let bonus = stat_bonus::get_stat_bonus(self.endurance_stat + end, &definition.stat_bonuses);
+            total_bonus += bonus;
+        }
+
+        if agi > 0
+        {
+            let bonus = stat_bonus::get_stat_bonus(self.agility_stat + agi, &definition.stat_bonuses);
+            total_bonus += bonus;
+        }
+
+        if will > 0
+        {
+            let bonus = stat_bonus::get_stat_bonus(self.will_stat + will, &definition.stat_bonuses);
+            total_bonus += bonus;
+        }
+
+        let weapon_definition =  definition.weapons.iter().find(|w| w.id == self.weapon as u32).unwrap();
+        let skill_definition =  definition.skills.iter().find(|w| w.name == weapon_definition.skill).unwrap();
+
+        let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
+
+        let profession = definition.professions.iter().find(|p| p.1.id == self.profession).unwrap();
+
+        let points = profession.1.get_skill_cost_and_points(&skill_definition.name).map_or(0, |s| s.points);
+        total_bonus += (rank as u16 * points) as i16;
+
+        // let stat = self.strength_stat;
+        // let added_strength : f32 = self.buffs.iter().map(|b|
+        //     {
+        //         if let Some(def) = definition.get_buff_by_code(b.buff_id)
+        //         {
+        //             if def.buff_type == BUFF_STRENGTH
+        //             {
+        //                 return def.base_value;
+        //             }
+        //         }
+
+        //         return 0f32;
+        //     })
+        //     .sum();
+
+        // cli_log::info!(" -- calculate total attack {card_strength} stat {stat} buff {added_strength}");
+        // stat + card_strength + added_strength.round() as u16
+
+        total_bonus
     }
 
-    fn get_total_defense(&self, definition: &Definitions) -> u16
+    fn get_total_defense(&self, definition: &Definitions) -> i16
     {
-        let stat = self.endurance_stat;
-        let added_defense : f32 = self.buffs.iter().map(|b|
-            {
-                if let Some(def) = definition.get_buff_by_code(b.buff_id)
-                {
-                    if def.buff_type == BUFF_DEFENSE
-                    {
-                        return def.base_value;
-                    }
-                }
-                return 0f32;
-            })
-            .sum();
 
-        cli_log::info!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
-        stat + added_defense.round() as u16
+//         Defensive Bonus (DB) =
+//     Armor DB
+//   + Shield Bonus
+//   + Quickness Stat Bonus
+//   + Adrenal / Skill Bonuses
+//   + Magical Bonuses
+//   + Misc Modifiers
+
+        for equipment in &self.weapon_inventory
+        {
+
+        }
+
+        // let stat = self.endurance_stat;
+        // let added_defense : f32 = self.buffs.iter().map(|b|
+        //     {
+        //         if let Some(def) = definition.get_buff_by_code(b.buff_id)
+        //         {
+        //             if def.buff_type == BUFF_DEFENSE
+        //             {
+        //                 return def.base_value;
+        //             }
+        //         }
+        //         return 0f32;
+        //     })
+        //     .sum();
+
+        // cli_log::info!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
+        // stat + added_defense.round() as i16
+        return 0;
     }
+
+    // fn get_offensive_bonus(&self, definition: &Definitions) -> u16
+    // {
+    //     return 0;
+    // }
+
+    // fn get_defensive_bonus(&self, definition: &Definitions) -> u16
+    // {
+    //     return 0;
+    // }
 }
 
 
@@ -416,6 +484,7 @@ mod tests
             will_stat: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
+            stamina: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -474,6 +543,7 @@ mod tests
             will_stat: 3,
             health: 10,
             mana: 0,
+            stamina: 10,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
         };

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc, u16};
 use rand::rngs::StdRng;
 use tokio::sync::{mpsc::Sender, Mutex};
-use crate::{ServerState, ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, hero::{hero_entity::{INSIDE_TOWER_FLAG, TRYING_TO_ENTER_TOWER_FLAG}, hero_inventory::InventoryItem}, map::{GameMap, tetrahedron_id::{self, TetrahedronId}}, mob::{mob_command::{self, MobCommand}, mob_entity::MobEntity}};
+use crate::{ServerState, ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_MOB, BATTLE_MOB_CHAR, BATTLE_MOB_MOB}}, buffs::buff::BuffUser, definitions::definitions_container::Definitions, gaia_mpsc::GaiaSender, hero::hero_inventory::InventoryItem, map::{GameMap, tetrahedron_id::{self, TetrahedronId}}, mob::{mob_command::{self, MobCommand}, mob_entity::MobEntity}};
 use crate::hero::{hero_entity::HeroEntity, hero_reward::HeroReward};
 
 pub async fn process_mob_commands (
@@ -766,18 +766,6 @@ pub async fn cast_hero_from_mob(
     }
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
 
-    if let Some(defender)= character_entities.get_mut(&hero_id)
-    {
-        if defender.get_flag_value(INSIDE_TOWER_FLAG)
-        {
-            // cannot touch someone in the tower
-            return;
-        }
-        else if defender.get_flag_value(TRYING_TO_ENTER_TOWER_FLAG)
-        {
-            defender.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
-        }
-    }
     let character_defender_option = character_entities.get(&hero_id);
 
     let mob_region = map.get_mob_region_from_child(&mob_tile_id);

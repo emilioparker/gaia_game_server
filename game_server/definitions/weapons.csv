@@ -1,5 +1,5 @@
-id,name,weapon_type,card_name,store_location,store_cost
-0,bare_fist,pugilist,punch_1,weapons,5
-1,normal_sword,sword,strike_1,weapons_swords,5
-2,normal_bow,bow,basic_arrow,weapons_bows,5
-3,normal_staff,staff,mana_burst,weapons_staffs,5
+id,name,skill,card_name,cooldown_factor,mana_cost_factor,stamina_cost_factor,hit_range_factor,store_location,store_cost
+0,bare_fist,pugilist_skill,punch_1,1.0,1.0,1.0,1.0,weapons,5
+1,normal_sword,sword_skill,strike_1,1.0,1.0,1.0,1.0,weapons_swords,5
+2,normal_bow,bow_skill,basic_arrow,1.0,1.0,1.0,1.0,weapons_bows,5
+3,normal_staff,staff_skill,mana_burst,1.0,1.0,1.0,1.0,weapons_staffs,5

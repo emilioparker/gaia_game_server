@@ -5,16 +5,12 @@ pub struct Weapon
 {
     pub id: u32,
     pub name: String,
-    pub weapon_type: String,
-    pub card_name:String,
-
-    pub strength_stat: u16,
-    pub endurance_stat: u16,
-    pub agility_stat: u16,
-    pub will_stat: u16,
+    pub skill: String,
+    pub card_name:String, // the card gives the properties when using the basic attack
 
     pub cooldown_factor: f32,
     pub mana_cost_factor: f32,
+    pub stamina_cost_factor: f32,
     pub hit_range_factor: f32,
 
     pub store_location: String,

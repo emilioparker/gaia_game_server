@@ -27,9 +27,6 @@ pub mod disconnect_protocol;
 pub mod touch_mob_protocol;
 pub mod cast_mob_from_mob_protocol;
 pub mod craft_card_protocol;
-pub mod try_enter_tower_request_protocol;
-pub mod enter_tower_request_protocol;
-pub mod exit_tower_request_protocol;
 pub mod increase_skill_rank_protocol;
 
 use std::collections::HashMap;
@@ -80,7 +77,6 @@ pub enum Protocol
     TouchMob = 28,
     CastMobFromMob = 29,
     CraftCard = 30,
-    TryEnterTower = 31,
     EnterTower = 32,
     HeroData = 33,
     ExitTower = 34,
@@ -234,21 +230,6 @@ pub async fn route_packet(
         {
             cli_log::info!("--------------------- process craft card");
             craft_card_protocol::process_request(player_address, is_udp, tx_gc_clients_gameplay, data, map).await;
-        },
-        Some(protocol) if *protocol == Protocol::TryEnterTower as u8 => 
-        {
-            cli_log::info!("--------------------- process try enter tower");
-            try_enter_tower_request_protocol::process_request(player_address, is_udp, tx_gc_clients_gameplay, data, map).await;
-        },
-        Some(protocol) if *protocol == Protocol::EnterTower as u8 => 
-        {
-            cli_log::info!("--------------------- process enter tower");
-            enter_tower_request_protocol::process_request(player_address, tx_hc_clients_gameplay, data, map).await;
-        },
-        Some(protocol) if *protocol == Protocol::ExitTower as u8 =>
-        {
-            cli_log::info!("--------------------- process exit tower");
-            exit_tower_request_protocol::process_request(tx_hc_clients_gameplay, tx_tc_clients_gameplay, data).await;
         },
         Some(protocol) if *protocol == Protocol::IncreaseSkillRank as u8 =>
         {

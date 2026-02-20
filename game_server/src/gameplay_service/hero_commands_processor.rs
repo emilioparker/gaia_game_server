@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG, INSIDE_TOWER_FLAG, TRYING_TO_ENTER_TOWER_FLAG}, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward, hero_weapon_inventory::WeaponItem}, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, tower::tower_entity::TowerEntity, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG}, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward, hero_weapon_inventory::WeaponItem}, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_hero_commands (
@@ -137,28 +137,6 @@ pub async fn process_hero_commands (
                     {
                         disconnect(&map, tx_he_gameplay_longterm, heros_summary, cloned_data.player_id).await;
                     },
-            hero_command::HeroCommandInfo::EnterTower(tower_id, hero_faction) => 
-                    {
-                        enter_tower(
-                            &map,
-                            tx_he_gameplay_longterm,
-                            heros_summary,
-                            cloned_data.player_id,
-                            *hero_faction,
-                            tower_id.clone(),
-                            current_time
-                        ).await;
-                    },
-            HeroCommandInfo::ExitTower(tower_id, hero_faction, points) => 
-                    {
-                        exit_tower(
-                            &map,
-                            tx_he_gameplay_longterm,
-                            heros_summary,
-                            cloned_data.player_id,
-                            *hero_faction, tower_id.clone(),
-                            current_time).await;
-                    },
         }
     }
     hero_commands_data.clear();
@@ -205,104 +183,6 @@ pub async fn process_delayed_hero_commands(
                 cli_log::info!("delayed command not supported");
             }
         }
-    }
-}
-
-pub async fn enter_tower(
-    map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
-    heros_summary : &mut Vec<HeroEntity>,
-    player_id: u16,
-    faction: u8,
-    tower_id : TetrahedronId,
-    current_time : u64
-)
-{
-    let current_time_in_seconds = (current_time / 1000) as u32;
-
-    let mut tower_entities : tokio::sync:: MutexGuard<HashMap<TetrahedronId, TowerEntity>> = map.towers.lock().await;
-    let tower_option = tower_entities.get_mut(&tower_id);
-
-    let valid = if let Some(tower) = tower_option 
-    {
-        tower.is_active(faction, current_time_in_seconds)
-    }
-    else
-    {
-        false
-    };
-
-    drop(tower_entities);
-
-    let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
-    let hero_option = hero_entities.get_mut(&player_id);
-
-    // cli_log::info!("set action {} {action}", player_id);
-    if let Some(hero_entity) = hero_option 
-    {
-        if valid
-        {
-            hero_entity.set_flag(INSIDE_TOWER_FLAG, true);
-            hero_entity.position = tower_id;
-        }
-        else
-        {
-            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
-            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
-        }
-
-        hero_entity.version += 1;
-        tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-        heros_summary.push(hero_entity.clone());
-    }
-}
-
-pub async fn exit_tower(
-    map : &Arc<GameMap>,
-    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
-    heros_summary : &mut Vec<HeroEntity>,
-    player_id: u16,
-    faction: u8,
-    tower_id : TetrahedronId,
-    current_time : u64
-)
-{
-    let current_time_in_seconds = (current_time / 1000) as u32;
-
-    let mut tower_entities : tokio::sync:: MutexGuard<HashMap<TetrahedronId, TowerEntity>> = map.towers.lock().await;
-    let tower_option = tower_entities.get_mut(&tower_id);
-
-    let can_score = if let Some(tower) = tower_option 
-    {
-        tower.is_active(faction, current_time_in_seconds)
-    }
-    else
-    {
-        false
-    };
-
-    drop(tower_entities);
-
-    let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
-    let hero_option = hero_entities.get_mut(&player_id);
-
-    // cli_log::info!("set action {} {action}", player_id);
-    if let Some(hero_entity) = hero_option 
-    {
-        if can_score
-        {
-            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
-            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
-        }
-        else
-        {
-            hero_entity.set_flag(INSIDE_TOWER_FLAG, false);
-            hero_entity.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
-        }
-
-        hero_entity.version += 1;
-        tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-        heros_summary.push(hero_entity.clone());
     }
 }
 
@@ -700,16 +580,9 @@ pub async fn move_character(
     let current_time_in_seconds = (current_time / 1000) as u32;
 
     cli_log::info!("move {} vertex id {}", player_id, vertex_id);
-    if let Some(hero_entity) = hero_option 
+    if let Some(hero_entity) = hero_option
     {
-        if hero_entity.get_flag_value(INSIDE_TOWER_FLAG)
-        {
-            cli_log::info!("move {} vertex id {} not valid inside tower", player_id, vertex_id);
-            // cannot touch someone in the tower
-            return;
-        }
-
-        let updated_hero_entity = HeroEntity 
+        let updated_hero_entity = HeroEntity
         {
             action: hero_command::WALK_ACTION,
             version: hero_entity.version + 1,
@@ -868,19 +741,6 @@ pub async fn attack_character(
     missed: u8)
 {
     let mut character_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
-
-    if let Some(defender)= character_entities.get_mut(&other_character_id)
-    {
-        if defender.get_flag_value(INSIDE_TOWER_FLAG)
-        {
-            // cannot touch someone in the tower
-            return;
-        }
-        else if defender.get_flag_value(TRYING_TO_ENTER_TOWER_FLAG)
-        {
-            defender.set_flag(TRYING_TO_ENTER_TOWER_FLAG, false);
-        }
-    }
 
     let attacker_option= character_entities.get(&character_id);
     let defender_option= character_entities.get(&other_character_id);
