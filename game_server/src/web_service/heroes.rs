@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use hyper::{body, http::Error, Body, Request, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 
-use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_skill_inventory::SkillData,  hero_weapon_inventory::WeaponItem}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
+use crate::{hero::{hero_card_inventory::CardItem, hero_entity::HeroEntity, hero_equipment_inventory::EquipmentItem, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_skill_inventory::SkillData}, long_term_storage_service::{db_hero::StoredHero, db_player::StoredPlayer, db_world::StoredWorld}, map::tetrahedron_id::TetrahedronId, web_service::create_response_builder};
 
 use super::AppContext;
 
@@ -302,7 +302,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         flags: 0,
         inventory : Vec::new(),
         card_inventory : Vec::new(),
-        weapon_inventory : Vec::new(),
+        equipment_inventory : Vec::new(),
         skills : Vec::new(),
         level: 0,
         experience: 0,
@@ -345,14 +345,14 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         time:0,
         inventory: Vec::new(), // fill this from storedcharacter
         card_inventory : Vec::new(),
-        weapon_inventory : Vec::new(),
+        equipment_inventory : Vec::new(),
         skills : Vec::new(),
         inventory_version : 1,
         flags:0,
         level: 0,
         experience: 0,
         available_skill_points: 5,
-        weapon:0,
+        equipped_item:0,
         strength_stat: initial_stats.strength.init,
         endurance_stat: initial_stats.endurance.init,
         agility_stat: initial_stats.agility.init,
@@ -447,7 +447,7 @@ pub async fn handle_login_with_hero(context: AppContext, mut req: Request<Body>)
         output.extend_from_slice(&session_bytes);
         let encoded_player_data = player.to_bytes();
         output.extend_from_slice(&encoded_player_data);
-        pack_inventory(&mut output, &player.inventory, &player.card_inventory, &player.weapon_inventory, &player.skills, player.inventory_version);
+        pack_inventory(&mut output, &player.inventory, &player.card_inventory, &player.equipment_inventory, &player.skills, player.inventory_version);
 
         drop(players);
 
@@ -468,7 +468,7 @@ pub fn pack_inventory(
     output : &mut Vec<u8>,
     inventory: &Vec<InventoryItem>,
     card_inventory: &Vec<CardItem>,
-    weapon_inventory : &Vec<WeaponItem>,
+    equipment_inventory : &Vec<EquipmentItem>,
     skills: &Vec<SkillData>,
     inventory_version: u8)
 {
@@ -503,12 +503,12 @@ pub fn pack_inventory(
         output.extend_from_slice(&buffer);
     }
 
-    // weapon inventory
-    let weapon_inventory_len_bytes = u32::to_le_bytes(weapon_inventory.len() as u32);
-    output.extend_from_slice(&weapon_inventory_len_bytes);
+    // equipment inventory
+    let equipment_inventory_len_bytes = u32::to_le_bytes(equipment_inventory.len() as u32);
+    output.extend_from_slice(&equipment_inventory_len_bytes);
 
-    // cli_log::info!("--- weapon inventory length {}", weapon_inventory.len());
-    for item in weapon_inventory
+    // cli_log::info!("--- equipment inventory length {}", equipment_inventory.len());
+    for item in equipment_inventory
     {
         // cli_log::info!("---- card {:?}", item);
         let buffer = item.to_bytes();

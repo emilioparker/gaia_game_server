@@ -1,7 +1,7 @@
 use bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
-use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem}};
+use crate::{buffs::buff::Buff, hero::{hero_card_inventory::CardItem, hero_equipment_inventory::EquipmentItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData}};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -24,7 +24,7 @@ pub struct StoredHero
     pub flags:u8,
     pub inventory: Vec<StoredInventoryItem>,
     pub card_inventory: Vec<StoredInventoryItem>,
-    pub weapon_inventory: Vec<StoredInventoryItem>,
+    pub equipment_inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,
     pub experience:u32,
@@ -69,11 +69,11 @@ impl From<CardItem> for StoredInventoryItem
     }
 }
 
-impl From<WeaponItem> for StoredInventoryItem
+impl From<EquipmentItem> for StoredInventoryItem
 {
-    fn from(item: WeaponItem) -> Self
+    fn from(item: EquipmentItem) -> Self
     {
-        StoredInventoryItem { item_id: item.weapon_id, equipped: item.equipped, amount: item.amount }
+        StoredInventoryItem { item_id: item.equipment_id, equipped: item.equipped, amount: item.amount }
     }
 }
 

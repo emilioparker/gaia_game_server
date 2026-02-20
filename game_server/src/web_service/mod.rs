@@ -237,9 +237,9 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 Some(context.definitions_data.buffs_data)
             }
-            else if definition_data.version == data.version && data.name == "weapons"
+            else if definition_data.version == data.version && data.name == "equipment"
             {
-                Some(context.definitions_data.weapons_data)
+                Some(context.definitions_data.equipment_data)
             }
             else if definition_data.version == data.version && data.name == "towers_difficulty"
             {

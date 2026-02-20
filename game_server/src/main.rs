@@ -29,7 +29,7 @@ use game_server::definitions::initial_stats::InitialStats;
 use game_server::definitions::professions::Profession;
 use game_server::definitions::skills::Skill;
 use game_server::definitions::stat_bonus::StatToBonus;
-use game_server::definitions::weapons::Weapon;
+use game_server::definitions::equipment::Equipment;
 use game_server::definitions::Definition;
 use game_server::AppData;
 use game_server::ServerChannels;
@@ -471,8 +471,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("buffs.csv");
     let buffs_result = load_definition_by_name::<BuffData>(file_name).await;
 
-    let file_name = format!("weapons.csv");
-    let weapons_result = load_definition_by_name::<Weapon>(file_name).await;
+    let file_name = format!("equipment.csv");
+    let equipment_result = load_definition_by_name::<Equipment>(file_name).await;
 
     let file_name = format!("skills.csv");
     let skills_result = load_definition_by_name::<Skill>(file_name).await;
@@ -529,7 +529,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         mobs: mobs_result.0,
         buffs_by_code: buffs_result.0,
         buffs : buffs_hash,
-        weapons : weapons_result.0,
+        equipment : equipment_result.0,
         skills : skills_result.0,
         professions : professions_hash,
         initial_stats : initial_stats_hash,
@@ -549,7 +549,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         cards_data: cards_result.1,
         mobs_data: mobs_result.1,
         buffs_data: buffs_result.1,
-        weapons_data: weapons_result.1,
+        equipment_data: equipment_result.1,
         skills_data: skills_result.1,
         professions_data: professions_result.1,
         initial_stats_data: initial_stats_result.1,

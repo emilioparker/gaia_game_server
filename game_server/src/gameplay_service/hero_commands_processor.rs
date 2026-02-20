@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 use tokio::{sync::{mpsc::Sender, Mutex}, time::error::Elapsed};
-use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG}, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward, hero_weapon_inventory::WeaponItem}, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
+use crate::{ability_user::{attack::Attack, attack_result::{AttackResult, BATTLE_CHAR_CHAR, BLOCKED_ATTACK_RESULT}, AbilityUser}, definitions::items::ItemUsage, gaia_mpsc::GaiaSender, gameplay_service::tile_commands_processor::attack_walker, hero::{hero_card_inventory::CardItem, hero_command::{self, HeroCommand, HeroCommandInfo, HeroMovement}, hero_entity::{self, HeroEntity, CHAT_FLAG, DASH_FLAG}, hero_equipment_inventory::EquipmentItem, hero_inventory::InventoryItem, hero_presentation::HeroPresentation, hero_reward::HeroReward}, map::{tetrahedron_id::{self, TetrahedronId}, GameMap}, ServerState};
 use crate::buffs::buff::BuffUser;
 
 pub async fn process_hero_commands (
@@ -280,8 +280,8 @@ pub async fn equip_item(
             }
             else if inventory_type == 2
             {
-                let result = hero_entity.equip_weapon(item_id, current_slot, new_slot);
-                cli_log::info!("equip weapon with result {}",result);
+                let result = hero_entity.equip_equipment(item_id, current_slot, new_slot);
+                cli_log::info!("equip equipment with result {}",result);
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
                 heros_summary.push(hero_entity.clone());
@@ -378,11 +378,11 @@ pub async fn buy_item(
     }
     else if inventory_type == 2
     {
-        let cost  = map.definitions.weapons.get(item_id as usize).map(|d| d.store_cost);
-        cli_log::info!("weapon cost {cost:?}");
-        match (hero_option, cost) 
+        let cost  = map.definitions.equipment.get(item_id as usize).map(|d| d.store_cost);
+        cli_log::info!("equipment cost {cost:?}");
+        match (hero_option, cost)
         {
-            (Some(hero_entity), Some(cost)) => 
+            (Some(hero_entity), Some(cost)) =>
             {
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
@@ -393,9 +393,9 @@ pub async fn buy_item(
 
                 if result || cost == 0
                 {
-                    hero_entity.add_weapon(WeaponItem
+                    hero_entity.add_equipment(EquipmentItem
                     {
-                        weapon_id: item_id,
+                        equipment_id: item_id,
                         equipped : 0,
                         amount
                     });// add item currency
@@ -495,20 +495,20 @@ pub async fn sell_item(
     }
     else if inventory_type == 2
     {
-        let cost  = map.definitions.weapons.get(item_id as usize).map(|d| d.store_cost);
-        match (hero_option, cost) 
+        let cost  = map.definitions.equipment.get(item_id as usize).map(|d| d.store_cost);
+        match (hero_option, cost)
         {
-            (Some(hero_entity), Some(cost)) => 
+            (Some(hero_entity), Some(cost)) =>
             {
-                let result = hero_entity.remove_weapon(WeaponItem
+                let result = hero_entity.remove_equipment(EquipmentItem
                 {
-                    weapon_id : item_id,
+                    equipment_id : item_id,
                     equipped:0,
                     amount,
                 });
 
                 // add soft currency
-                if result 
+                if result
                 {
                     hero_entity.add_inventory_item(InventoryItem
                     {
@@ -521,9 +521,9 @@ pub async fn sell_item(
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
                 heros_summary.push(hero_entity.clone());
             },
-            _ => 
+            _ =>
             {
-                cli_log::info!("error selling weapon")
+                cli_log::info!("error selling equipment")
             }
         }
     }

@@ -8,7 +8,7 @@ pub mod items;
 pub mod card;
 pub mod mobs_data;
 pub mod buffs_data;
-pub mod weapons;
+pub mod equipment;
 pub mod tower_difficulty;
 pub mod skills;
 pub mod professions;

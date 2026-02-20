@@ -4,7 +4,7 @@ use bson::oid::ObjectId;
 
 use crate::{ability_user::AbilityUser, buffs::buff::{BUFF_DEFENSE, BUFF_STRENGTH, Buff, BuffUser}, definitions::{definitions_container::Definitions, stat_bonus}, map::tetrahedron_id::TetrahedronId};
 
-use super::{hero_card_inventory::CardItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData, hero_weapon_inventory::WeaponItem};
+use super::{hero_card_inventory::CardItem, hero_equipment_inventory::EquipmentItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData};
 
 pub const HERO_ENTITY_SIZE: usize = 51;
 
@@ -22,7 +22,7 @@ pub struct HeroEntity
     pub hero_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub profession:u8, // 1 byte
-    pub weapon:u8,// 1 byte
+    pub equipped_item:u8,// 1 byte
 
     pub position: TetrahedronId, // 6 bytes
 
@@ -41,7 +41,7 @@ pub struct HeroEntity
     
     pub inventory : Vec<InventoryItem>,// this one is not serializable  normally
     pub card_inventory : Vec<CardItem>,// this one is not serializable  normally
-    pub weapon_inventory : Vec<WeaponItem>,// this one is not serializable  normally
+    pub equipment_inventory : Vec<EquipmentItem>,// this one is not serializable  normally
     pub skills : Vec<SkillData>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
 
@@ -151,7 +151,7 @@ impl HeroEntity
         offset = end;
 
         end = offset + 1;
-        buffer[offset] = self.weapon;
+        buffer[offset] = self.equipped_item;
         offset = end;
 
         end = offset + 2;
@@ -318,8 +318,8 @@ impl AbilityUser for HeroEntity
             total_bonus += bonus;
         }
 
-        let weapon_definition =  definition.weapons.iter().find(|w| w.id == self.weapon as u32).unwrap();
-        let skill_definition =  definition.skills.iter().find(|w| w.name == weapon_definition.skill).unwrap();
+        let equipment_definition =  definition.equipment.iter().find(|w| w.id == self.equipped_item as u32).unwrap();
+        let skill_definition =  definition.skills.iter().find(|w| w.name == equipment_definition.skill).unwrap();
 
         let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
 
@@ -360,7 +360,7 @@ impl AbilityUser for HeroEntity
 //   + Magical Bonuses
 //   + Misc Modifiers
 
-        for equipment in &self.weapon_inventory
+        for equipment in &self.equipment_inventory
         {
 
         }
@@ -469,7 +469,7 @@ mod tests
             time:0,
             inventory: Vec::new(),
             card_inventory: Vec::new(),
-            weapon_inventory: Vec::new(),
+            equipment_inventory: Vec::new(),
             skills: Vec::new(),
             inventory_version: 1,
             health: 0,
@@ -477,7 +477,7 @@ mod tests
             level: 1,
             experience: 0,
             available_skill_points: 0,
-            weapon:0,
+            equipped_item:0,
             strength_stat: 0,
             endurance_stat: 0,
             agility_stat: 0,
@@ -530,13 +530,13 @@ mod tests
             flags:0,
             inventory: Vec::new(),
             card_inventory: Vec::new(),
-            weapon_inventory: Vec::new(),
+            equipment_inventory: Vec::new(),
             skills: Vec::new(),
             inventory_version: 10,
             level: 0,
             experience: 0,
             available_skill_points: 0,
-            weapon:0,
+            equipped_item:0,
             strength_stat: 23,
             endurance_stat: 10,
             agility_stat: 3,

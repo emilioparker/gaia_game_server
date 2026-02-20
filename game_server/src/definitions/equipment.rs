@@ -1,7 +1,7 @@
 use super::Definition;
 
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct Weapon 
+pub struct Equipment
 {
     pub id: u32,
     pub name: String,
@@ -17,7 +17,7 @@ pub struct Weapon
     pub store_cost : u16
 }
 
-impl Definition for Weapon
+impl Definition for Equipment
 {
     fn fill_details(&mut self)
     {
