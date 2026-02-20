@@ -1,15 +1,41 @@
-use std::{cmp::max, env::consts, time::Duration};
+use std::cmp::max;
+use std::env::consts;
+use std::time::Duration;
 
-use crossterm::{event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers}, terminal};
-use ratatui::{
-    layout::{Constraint, Direction, Layout}, style::{Color, Style, Stylize}, symbols::{block, border}, text::Line, widgets::{Bar, BarChart, BarGroup, Block, Borders, Paragraph, Sparkline, Widget}, DefaultTerminal, Frame
-};
+use crossterm::event;
+use crossterm::event::Event;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyEventKind;
+use crossterm::event::KeyModifiers;
+use crossterm::terminal;
+use ratatui::layout::Constraint;
+use ratatui::layout::Direction;
+use ratatui::layout::Layout;
+use ratatui::style::Color;
+use ratatui::style::Style;
+use ratatui::style::Stylize;
+use ratatui::symbols::block;
+use ratatui::symbols::border;
+use ratatui::text::Line;
+use ratatui::widgets::Bar;
+use ratatui::widgets::BarChart;
+use ratatui::widgets::BarGroup;
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Paragraph;
+use ratatui::widgets::Sparkline;
+use ratatui::widgets::Widget;
+use ratatui::DefaultTerminal;
+use ratatui::Frame;
 use strum::IntoEnumIterator;
-use strum_macros::{EnumString, Display};
+use strum_macros::EnumString;
+use strum_macros::Display;
 
 
 
-use crate::{AppData, ServerChannels};
+use crate::AppData;
+use crate::ServerChannels;
 
 pub struct App {
     pub running: bool,

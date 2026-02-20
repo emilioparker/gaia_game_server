@@ -1,5 +1,6 @@
 use bson::oid::ObjectId;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::Deserialize;
 
 
 #[derive(Serialize, Deserialize, Debug)]

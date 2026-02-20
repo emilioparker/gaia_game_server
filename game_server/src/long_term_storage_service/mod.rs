@@ -14,10 +14,14 @@ pub mod db_kingdom;
 #[cfg(test)]
 mod tests {
     use bson::oid::ObjectId;
-    use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
-    use chrono::{TimeZone, Utc};
+    use mongodb::Client;
+    use mongodb::options::ClientOptions;
+    use mongodb::options::ResolverConfig;
+    use chrono::TimeZone;
+    use chrono::Utc;
     use mongodb::bson::doc;
-    use serde::{Serialize, Deserialize};
+    use serde::Serialize;
+    use serde::Deserialize;
 
     #[test]
     fn test_doc() {

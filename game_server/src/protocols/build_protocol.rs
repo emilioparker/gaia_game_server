@@ -1,4 +1,7 @@
-use crate::{gaia_mpsc::GaiaSender, map::{map_entity::{MapCommand, MapCommandInfo}, tetrahedron_id::TetrahedronId}};
+use crate::gaia_mpsc::GaiaSender;
+use crate::map::map_entity::MapCommand;
+use crate::map::map_entity::MapCommandInfo;
+use crate::map::tetrahedron_id::TetrahedronId;
 
 
 pub async fn process(

@@ -57,7 +57,8 @@ use tokio::sync::oneshot;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
 
-use std::panic::{set_hook, take_hook};
+use std::panic::set_hook;
+use std::panic::take_hook;
 
 fn main() 
 {
@@ -693,12 +694,18 @@ async fn load_files_into_regions_hashset(world_id : &str) -> (Vec<TetrahedronId>
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Write, collections::HashMap};
+    use std::io::Write;
+    use std::collections::HashMap;
     
-    use game_server::{long_term_storage_service::db_region::StoredRegion, map::{tetrahedron_id::TetrahedronId, map_entity::MapEntity}};
-    use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
+    use game_server::long_term_storage_service::db_region::StoredRegion;
+    use game_server::map::tetrahedron_id::TetrahedronId;
+    use game_server::map::map_entity::MapEntity;
+    use mongodb::Client;
+    use mongodb::options::ClientOptions;
+    use mongodb::options::ResolverConfig;
     use mongodb::bson::doc;
-    use flate2::{write::ZlibEncoder, Compression};
+    use flate2::write::ZlibEncoder;
+    use flate2::Compression;
 
     use crate::load_regions_data_into_game_map;
 

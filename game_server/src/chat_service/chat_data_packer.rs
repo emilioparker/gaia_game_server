@@ -1,4 +1,5 @@
-use crate::chat::chat_entry::{CHAT_ENTRY_SIZE, ChatEntry};
+use crate::chat::chat_entry::CHAT_ENTRY_SIZE;
+use crate::chat::chat_entry::ChatEntry;
 use crate::clients_service::DataType;
 
 

@@ -1,6 +1,10 @@
-use tokio::{sync::mpsc::Sender, net::UdpSocket};
+use tokio::sync::mpsc::Sender;
+use tokio::net::UdpSocket;
 
-use crate::{hero::hero_command::{HeroCommand, HeroCommandInfo, EquipItemCommandData}, gaia_mpsc::GaiaSender};
+use crate::hero::hero_command::HeroCommand;
+use crate::hero::hero_command::HeroCommandInfo;
+use crate::hero::hero_command::EquipItemCommandData;
+use crate::gaia_mpsc::GaiaSender;
 
 
 // we cant do the same is inventory request, because selling modifies the faction inventory and we need to propagate those changes.

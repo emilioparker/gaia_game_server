@@ -1,4 +1,5 @@
-use socket2::{Socket, Type};
+use socket2::Socket;
+use socket2::Type;
 
 
 pub fn create_reusable_udp_socket(address :std::net::SocketAddr) -> tokio::net::UdpSocket

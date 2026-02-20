@@ -1,5 +1,6 @@
 use bson::oid::ObjectId;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::Deserialize;
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -18,7 +19,9 @@ pub struct StoredRegion
 #[cfg(test)]
 mod tests {
     use bson::doc;
-    use mongodb::{Client, options::{ClientOptions, ResolverConfig}};
+    use mongodb::Client;
+    use mongodb::options::ClientOptions;
+    use mongodb::options::ResolverConfig;
 
     use crate::long_term_storage_service::db_region::StoredRegion;
 

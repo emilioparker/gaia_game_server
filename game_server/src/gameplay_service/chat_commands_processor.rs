@@ -1,7 +1,11 @@
 use std::sync::Arc;
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 
-use crate::{chat::{ChatCommand, chat_entry::ChatEntry}, map::GameMap, ServerState};
+use crate::chat::ChatCommand;
+use crate::chat::chat_entry::ChatEntry;
+use crate::map::GameMap;
+use crate::ServerState;
 
 
 pub async fn process_chat_commands (

@@ -5,7 +5,8 @@ use bytes::Bytes;
 use crate::gaia_mpsc::GaiaSender;
 use crate::gameplay_service::generic_command::GenericCommand;
 use crate::map::GameMap;
-use crate::hero::hero_command::{HeroCommand, HeroMovement};
+use crate::hero::hero_command::HeroCommand;
+use crate::hero::hero_command::HeroMovement;
 use crate::protocols::inventory_request_protocol::pack_inventory;
 
 pub async fn process_request(

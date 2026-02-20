@@ -1,8 +1,10 @@
-use std::{cmp, time::SystemTime};
+use std::cmp;
+use std::time::SystemTime;
 
 use bson::oid::ObjectId;
 
-use crate::map::tetrahedron_id::{self, TetrahedronId};
+use crate::map::tetrahedron_id;
+use crate::map::tetrahedron_id::TetrahedronId;
 
 pub const TOWER_ENTITY_SIZE: usize = 61;
 pub const TOWER_DAMAGE_RECORD_SIZE: usize = 5;
@@ -233,7 +235,8 @@ impl TowerEntity
 #[cfg(test)]
 mod tests {
 
-    use crate::{tower::tower_entity::TOWER_ENTITY_SIZE, map::tetrahedron_id::TetrahedronId};
+    use crate::tower::tower_entity::TOWER_ENTITY_SIZE;
+    use crate::map::tetrahedron_id::TetrahedronId;
 
     use super::TowerEntity;
 

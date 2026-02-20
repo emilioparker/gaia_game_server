@@ -1,4 +1,11 @@
-use crate::{ability_user::AbilityUser, buffs::buff::{self, Buff, BuffUser, BUFF_DEFENSE, BUFF_STRENGTH}, definitions::definitions_container::Definitions, map::tetrahedron_id::TetrahedronId};
+use crate::ability_user::AbilityUser;
+use crate::buffs::buff;
+use crate::buffs::buff::Buff;
+use crate::buffs::buff::BuffUser;
+use crate::buffs::buff::BUFF_DEFENSE;
+use crate::buffs::buff::BUFF_STRENGTH;
+use crate::definitions::definitions_container::Definitions;
+use crate::map::tetrahedron_id::TetrahedronId;
 
 pub const MOB_ENTITY_SIZE: usize = 37;
 

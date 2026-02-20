@@ -1,4 +1,7 @@
-use crate::{gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId, mob::mob_command::{MobCommand, SpawnMobData}};
+use crate::gaia_mpsc::GaiaSender;
+use crate::map::tetrahedron_id::TetrahedronId;
+use crate::mob::mob_command::MobCommand;
+use crate::mob::mob_command::SpawnMobData;
 
 
 pub async fn process(

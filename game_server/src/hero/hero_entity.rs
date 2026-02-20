@@ -2,9 +2,19 @@ use std::hash::Hash;
 
 use bson::oid::ObjectId;
 
-use crate::{ability_user::AbilityUser, buffs::buff::{BUFF_DEFENSE, BUFF_STRENGTH, Buff, BuffUser}, definitions::{definitions_container::Definitions, stat_bonus}, map::tetrahedron_id::TetrahedronId};
+use crate::ability_user::AbilityUser;
+use crate::buffs::buff::BUFF_DEFENSE;
+use crate::buffs::buff::BUFF_STRENGTH;
+use crate::buffs::buff::Buff;
+use crate::buffs::buff::BuffUser;
+use crate::definitions::definitions_container::Definitions;
+use crate::definitions::stat_bonus;
+use crate::map::tetrahedron_id::TetrahedronId;
 
-use super::{hero_card_inventory::CardItem, hero_equipment_inventory::EquipmentItem, hero_inventory::InventoryItem, hero_skill_inventory::SkillData};
+use super::hero_card_inventory::CardItem;
+use super::hero_equipment_inventory::EquipmentItem;
+use super::hero_inventory::InventoryItem;
+use super::hero_skill_inventory::SkillData;
 
 pub const HERO_ENTITY_SIZE: usize = 51;
 
@@ -402,7 +412,9 @@ mod tests
     use std::num::Wrapping;
 
 
-    use crate::{hero::{hero_entity::HERO_ENTITY_SIZE, hero_inventory::HERO_INVENTORY_ITEM_SIZE}, map::tetrahedron_id::TetrahedronId};
+    use crate::hero::hero_entity::HERO_ENTITY_SIZE;
+    use crate::hero::hero_inventory::HERO_INVENTORY_ITEM_SIZE;
+    use crate::map::tetrahedron_id::TetrahedronId;
 
     use super::HeroEntity;
 

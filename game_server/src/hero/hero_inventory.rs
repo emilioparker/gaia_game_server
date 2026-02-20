@@ -1,6 +1,8 @@
 use rand::rngs::StdRng;
 
-use crate::{hero::hero_card_inventory::CardItem, definitions::{definitions_container::Definitions, Definition}};
+use crate::hero::hero_card_inventory::CardItem;
+use crate::definitions::definitions_container::Definitions;
+use crate::definitions::Definition;
 
 use super::hero_entity::HeroEntity;
 

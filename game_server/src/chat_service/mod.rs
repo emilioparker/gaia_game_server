@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::{gaia_mpsc, ServerState};
+use crate::gaia_mpsc;
+use crate::ServerState;
 use crate::chat::ChatCommand;
 use crate::chat::chat_entry::ChatEntry;
 use crate::map::GameMap;

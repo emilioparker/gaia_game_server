@@ -1,7 +1,9 @@
 use bson::oid::ObjectId;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
+use serde::Deserialize;
 
-use crate::{tower::tower_entity::DamageByFaction, get_faction_from_code};
+use crate::tower::tower_entity::DamageByFaction;
+use crate::get_faction_from_code;
 
 
 #[derive(Serialize, Deserialize, Debug)]

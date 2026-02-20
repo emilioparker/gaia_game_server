@@ -1,6 +1,9 @@
-use tokio::{sync::mpsc::Sender, net::UdpSocket};
+use tokio::sync::mpsc::Sender;
+use tokio::net::UdpSocket;
 
-use crate::{chat::ChatCommand, gaia_mpsc::GaiaSender, map::tetrahedron_id::TetrahedronId};
+use crate::chat::ChatCommand;
+use crate::gaia_mpsc::GaiaSender;
+use crate::map::tetrahedron_id::TetrahedronId;
 
 
 pub async fn process(

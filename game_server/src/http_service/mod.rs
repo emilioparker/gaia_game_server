@@ -1,11 +1,21 @@
-use axum::{
-    body::Body, extract::{Request, State}, http::{header, HeaderValue, Method, StatusCode}, middleware::{self, map_response, map_response_with_state, Next}, response::{IntoResponse, Response}, Router
-};
+use axum::body::Body;
+use axum::extract::Request;
+use axum::extract::State;
+use axum::http::header;
+use axum::http::HeaderValue;
+use axum::http::Method;
+use axum::http::StatusCode;
+use axum::middleware;
+use axum::middleware::map_response;
+use axum::middleware::map_response_with_state;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::Router;
 
-use tower_http::{
-    services::ServeDir,
-    cors::{CorsLayer, Any},
-};
+use tower_http::services::ServeDir;
+use tower_http::cors::CorsLayer;
+use tower_http::cors::Any;
 
 // pub mod compression_layer;
 
