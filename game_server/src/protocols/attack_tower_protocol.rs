@@ -1,5 +1,3 @@
-use tokio::sync::mpsc::Sender;
-use tokio::net::UdpSocket;
 
 use crate::gaia_mpsc::GaiaSender;
 use crate::map::tetrahedron_id::TetrahedronId;

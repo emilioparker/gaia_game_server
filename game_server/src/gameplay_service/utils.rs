@@ -1,7 +1,5 @@
-use std::sync::Arc;
 
 use rand::rngs::StdRng;
-use tokio::sync::mpsc::Sender;
 
 use crate::ability_user::attack_result::BLOCKED_ATTACK_RESULT;
 use crate::ability_user::attack_result::MISSED_ATTACK_RESULT;
@@ -11,16 +9,10 @@ use crate::buffs::buff::BuffUser;
 use crate::buffs::buff::BUFF_DEFENSE;
 use crate::buffs::buff::BUFF_STRENGTH;
 use crate::hero::hero_command::HeroCommand;
-use crate::hero::hero_entity::HeroEntity;
-use crate::hero::hero_reward::HeroReward;
 use crate::definitions::definitions_container::Definitions;
 use crate::map::map_entity::MapCommand;
-use crate::map::map_entity::MapEntity;
 use crate::mob::mob_command::MobCommand;
-use crate::tower::tower_entity::TowerEntity;
 use crate::tower::TowerCommand;
-use crate::web_service::heroes::PlayerCreationRequest;
-use crate::ServerState;
 
 
 pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(

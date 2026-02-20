@@ -1,9 +1,5 @@
 use hyper::Body;
-use hyper::Response;
-use hyper::http::Error;
-use crate::long_term_storage_service::db_region::StoredRegion;
 use crate::map::tetrahedron_id::TetrahedronId;
-use super::create_response_builder;
 use super::AppContext;
 
 

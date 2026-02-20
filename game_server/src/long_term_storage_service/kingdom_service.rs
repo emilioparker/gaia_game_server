@@ -8,7 +8,6 @@ use crate::gaia_mpsc;
 use crate::get_faction_code;
 use crate::get_faction_from_code;
 use crate::ServerState;
-use crate::long_term_storage_service::db_tower::StoredDamageByFaction;
 use crate::map::GameMap;
 use crate::map::tetrahedron_id::TetrahedronId;
 use bson::doc;

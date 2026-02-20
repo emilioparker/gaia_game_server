@@ -10,7 +10,6 @@ use tokio::sync::Mutex;
 use crate::definitions::definitions_container::Definitions;
 use crate::hero::hero_entity::HeroEntity;
 use crate::kingdom::kingdom_entity::KingdomEntity;
-use crate::long_term_storage_service::db_region::StoredRegion;
 use crate::mob::mob_entity::MobEntity;
 use crate::tower::tower_entity::TowerEntity;
 

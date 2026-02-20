@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::vec;
 
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
@@ -14,18 +13,15 @@ use crate::gaia_mpsc;
 use crate::ServerChannels;
 use crate::ServerState;
 use crate::hero::hero_command::HeroCommand;
-use crate::hero::hero_command::HeroMovement;
 use crate::map::GameMap;
 use crate::map::map_entity::MapCommand;
 use crate::hero::hero_entity::HeroEntity;
 use crate::hero::hero_reward::HeroReward;
 use crate::map::map_entity::MapEntity;
-use crate::clients_service::client_handler::StateUpdate;
 use crate::tower::TowerCommand;
 use crate::tower::tower_entity::TowerEntity;
 use bytes::Bytes;
 use tokio::sync::mpsc::Receiver;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use utils::get_mob_commands_to_execute;
 
@@ -529,7 +525,7 @@ pub fn start_service(
             attacks_summary.drain(..)
             .for_each(|d| 
             {
-                let mut region_packets_data = packets_data.get_mut(0).unwrap();
+                let region_packets_data = packets_data.get_mut(0).unwrap();
                 let a = d.battle_type;
                 cli_log::info!("--- sending an attack summary {a}");
                 let chunk = d.to_bytes();

@@ -1,4 +1,3 @@
-use hyper::Response;
 use hyper::Body;
 
 use super::AppContext;

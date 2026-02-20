@@ -1,5 +1,4 @@
 use futures_util::StreamExt;
-use hyper::Response;
 use hyper::Body;
 
 use crate::get_faction_code;
@@ -7,7 +6,6 @@ use crate::long_term_storage_service::db_tower::StoredTower;
 use crate::map::tetrahedron_id::TetrahedronId;
 use crate::tower::tower_entity::DamageByFaction;
 use crate::tower::tower_entity::TowerEntity;
-use crate::web_service::create_response_builder;
 
 use super::AppContext;
 

@@ -1,9 +1,7 @@
 use std::cmp;
-use std::time::SystemTime;
 
 use bson::oid::ObjectId;
 
-use crate::map::tetrahedron_id;
 use crate::map::tetrahedron_id::TetrahedronId;
 
 pub const TOWER_ENTITY_SIZE: usize = 61;

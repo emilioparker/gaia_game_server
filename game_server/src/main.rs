@@ -46,8 +46,6 @@ use game_server::clients_service;
 use game_server::web_service;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
-use hyper_static::serve;
-use mongodb::options::ServerApiVersion;
 use mongodb::Client;
 use mongodb::options::ClientOptions;
 use mongodb::options::ResolverConfig;
@@ -573,12 +571,12 @@ fn load_regions_data_into_game_map(
     let mut regions_binary_data = Vec::<(TetrahedronId, Vec<u8>)>::new();
 
     let mut count = 0;
-    let mut region_count = 0;
+    let mut _region_count = 0;
     let region_total = regions_stored_data.len();
 
     for region in regions_stored_data.iter()
     {
-        region_count += 1;
+        _region_count += 1;
         // cli_log::info!("decoding region progress {region_count}/{region_total} tiles {count}");
 
         let region_object_id = region.1.id.clone();

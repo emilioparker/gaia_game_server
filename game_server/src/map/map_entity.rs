@@ -144,7 +144,7 @@ impl MapEntity
     pub fn from_bytes(data: &[u8;MAP_ENTITY_SIZE]) -> Self 
     {
         let mut start : usize;
-        let mut end : usize;
+        let end : usize;
 
         start = 0;
         let version = decode_u16(data, &mut start);

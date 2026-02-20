@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 
 use crate::chat::chat_entry::ChatEntry;

@@ -2,7 +2,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use futures_util::future::OrElse;
 use futures_util::lock::Mutex;
 use hyper::http::Error;
 use hyper::Request;
