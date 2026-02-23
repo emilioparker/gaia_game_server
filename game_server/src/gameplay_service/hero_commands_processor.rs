@@ -748,7 +748,7 @@ pub async fn activate_buff(
 pub async fn attack_character(
     map : &Arc<GameMap>,
     current_time: u64,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     characters_summary : &mut Vec<HeroEntity>,
     attack_details_summary : &mut Vec<AttackResult>,

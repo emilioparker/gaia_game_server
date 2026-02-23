@@ -218,7 +218,7 @@ pub fn start_service(
         let mut kingdoms_summary : Vec<KingdomEntity>= Vec::new();
         let mut mobs_summary : Vec<MobEntity>= Vec::new();
 
-        let mut previous_time : u64 = 0;
+        let mut _previous_time : u64 = 0;
 
         let mut packets_data : Vec<PacketsData> = Vec::new();             
 
@@ -235,7 +235,7 @@ pub fn start_service(
         // });
 
         // for (i, region_id) in map.definitions.regions_by_id.iter().enumerate()
-        for i in 0..321
+        for _i in 0..321
         {
             packets_data.push(PacketsData 
             {
@@ -417,7 +417,7 @@ pub fn start_service(
             let current_time = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap();
             let current_time_in_millis = current_time.as_millis() as u64;
 
-            let game_packages= 
+            let _game_packages= 
                 tiles_summary.len() +
                 towers_summary.len() +
                 heroes_presentation_summary.len() +
@@ -591,7 +591,7 @@ pub fn start_service(
 
                 // let time_since_last_message =  current_time_in_millis - previous_time;
                 // cli_log::info!("---transmit since last status {}",time_since_last_message);
-                previous_time = current_time_in_millis;
+                _previous_time = current_time_in_millis;
             }
 
             // 10 milliseconds * 50 = 500 milliseconds

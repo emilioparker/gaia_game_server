@@ -74,9 +74,9 @@ pub fn attack<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
 
 pub fn heal<T:AbilityUser+BuffUser, S:AbilityUser+BuffUser>(
     definitions : &Definitions,
-    card_id:u32,
-    current_time_in_seconds: u32,
-    caster: &mut T,
+    _card_id:u32,
+    _current_time_in_seconds: u32,
+    _caster: &mut T,
     target : &mut S) -> u8
 {
     target.update_health(100, definitions);

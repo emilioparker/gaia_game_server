@@ -24,7 +24,7 @@ pub async fn process_request(
     let player_id = u16::from_le_bytes(data[start..end].try_into().unwrap());
 
     let start = end;
-    let end = start + 1;
+    let _end = start + 1;
     let _faction = data[start];
 
     let mut player_entities = map.character.lock().await;

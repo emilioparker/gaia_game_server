@@ -42,7 +42,7 @@ pub async fn process_tower_commands (
                 match &tower_command.info 
                 {
                     TowerCommandInfo::Touch() => todo!(),
-                    TowerCommandInfo::RepairTower(player_id, faction, repair_amount) => 
+                    TowerCommandInfo::RepairTower(_player_id, faction, repair_amount) => 
                     {
                         let mut updated_tower = tower.clone();
                         if *faction == tower.faction
@@ -143,7 +143,7 @@ pub async fn process_tower_commands (
 
 pub async fn process_delayed_tower_commands (
     map : Arc<GameMap>,
-    server_state: Arc<ServerState>,
+    _server_state: Arc<ServerState>,
     current_time : u64,
     tx_te_gameplay_longterm : &GaiaSender<TowerEntity>,
     tx_te_gameplay_webservice : &GaiaSender<TowerEntity>,
@@ -166,7 +166,7 @@ pub async fn process_delayed_tower_commands (
             match &tower_command.info 
             {
                 TowerCommandInfo::Touch() => todo!(),
-                TowerCommandInfo::RepairTower(_player_id, faction, _repair_amount) => 
+                TowerCommandInfo::RepairTower(_player_id, _faction, _repair_amount) => 
                 {
                     // repair should not be a delayed command.
                 },

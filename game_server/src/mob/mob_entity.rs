@@ -183,7 +183,7 @@ impl AbilityUser for MobEntity
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> i16 
     {
-        let card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
+        let _card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
 
         let mut base_strength = 0;
         let mut strength_points = 0;
@@ -196,7 +196,7 @@ impl AbilityUser for MobEntity
             }
         }
 
-        let added_strength : f32 = self.buffs.iter().map(|b| 
+        let _added_strength : f32 = self.buffs.iter().map(|b| 
             {
                 if let Some(def) = definition.get_buff_by_code(b.buff_id)
                 {
@@ -209,7 +209,7 @@ impl AbilityUser for MobEntity
             })
             .sum();
 
-        let stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
+        let _stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
         // stat as u16 + card_strength + added_strength.round() as u16
         return 0
     }

@@ -10,7 +10,7 @@ use crate::ServerState;
 
 pub async fn process_chat_commands (
     _map : Arc<GameMap>,
-    server_state: Arc<ServerState>,
+    _server_state: Arc<ServerState>,
     chat_commands_processor_lock : Arc<Mutex<Vec<ChatCommand>>>,
     tx_ce_chat_webservice : &GaiaSender<ChatEntry>,
     chat_summary : &mut [Vec<ChatEntry>; 10],

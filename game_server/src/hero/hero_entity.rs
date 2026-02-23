@@ -285,7 +285,7 @@ impl AbilityUser for HeroEntity
         self.health
     }
 
-    fn update_health(&mut self, new_health : u16, definition: &Definitions) 
+    fn update_health(&mut self, new_health : u16, _definition: &Definitions) 
     {
         self.health = new_health;
     }
@@ -302,6 +302,7 @@ impl AbilityUser for HeroEntity
 
         let mut total_bonus = 0;
 
+        // based on the card we pick the relevant stats.
         if str > 0
         {
             let bonus = stat_bonus::get_stat_bonus(self.strength_stat + str, &definition.stat_bonuses);
@@ -326,13 +327,16 @@ impl AbilityUser for HeroEntity
             total_bonus += bonus;
         }
 
+        // based on the weapon we get the skill 
         let equipment_definition =  definition.equipment.iter().find(|w| w.id == self.equipped_item as u32).unwrap();
         let skill_definition =  definition.skills.iter().find(|w| w.name == equipment_definition.skill).unwrap();
 
+        // based on the skill we get the current skill rank
         let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
 
         let profession = definition.professions.iter().find(|p| p.1.id == self.profession).unwrap();
 
+        // using the profession we calculate how much the skill gives us as points.
         let points = profession.1.get_skill_cost_and_points(&skill_definition.name).map_or(0, |s| s.points);
         total_bonus += (rank as u16 * points) as i16;
 
@@ -357,7 +361,7 @@ impl AbilityUser for HeroEntity
         total_bonus
     }
 
-    fn get_total_defense(&self, definition: &Definitions) -> i16
+    fn get_total_defense(&self, _definition: &Definitions) -> i16
     {
 
 //         Defensive Bonus (DB) =
@@ -368,7 +372,7 @@ impl AbilityUser for HeroEntity
 //   + Magical Bonuses
 //   + Misc Modifiers
 
-        for equipment in &self.equipment_inventory
+        for _equipment in &self.equipment_inventory
         {
 
         }

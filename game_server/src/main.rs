@@ -80,7 +80,7 @@ fn main()
 
     println!("Running main server");
     cli_log::info!("running main server");
-    let (tx, rx) = oneshot::channel();
+    let (tx, _rx) = oneshot::channel();
     // // runtime.spawn(run_server(tx)); 
     runtime.block_on(run_server(tx)); 
 
@@ -94,7 +94,7 @@ async fn run_tui(rx: Receiver<AppData>)
     if let Ok(game_data) = rx.await 
     {
         let terminal = ratatui::init();
-        let result = app::App::new(game_data).run(terminal);
+        let _result = app::App::new(game_data).run(terminal);
         ratatui::restore();
     }
     // let terminal = ratatui::init();
@@ -104,7 +104,7 @@ async fn run_tui(rx: Receiver<AppData>)
 
 pub fn init_panic_hook() 
 {
-    let original_hook = take_hook();
+    let _original_hook = take_hook();
     set_hook(Box::new(move |panic_info| 
     {
         // intentionally ignore errors here since we're already in a panic

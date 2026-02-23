@@ -393,7 +393,7 @@ pub async fn spawn_mob(
 
 pub async fn control_mob(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     mob_id: u32,
@@ -448,7 +448,7 @@ pub async fn control_mob(
 
 pub async fn move_mob(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     current_time : u64,
@@ -528,7 +528,7 @@ pub async fn move_mob(
 pub async fn cast_mob_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     attack_details_summary : &mut Vec<AttackResult>,
@@ -537,7 +537,7 @@ pub async fn cast_mob_from_mob(
     caster_mob_id : u32,
     target_mob_tile_id: TetrahedronId,
     target_mob_id : u32,
-    missed: u8,
+    _missed: u8,
 )
 {
     cli_log::info!("----- cast to mob from mob ");
@@ -609,7 +609,7 @@ pub async fn cast_mob_from_mob(
 pub async fn cast_mob_from_character(
     map : &Arc<GameMap>,
     current_time : u64,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     mobs_summary : &mut Vec<MobEntity>,
@@ -761,7 +761,7 @@ pub async fn cast_mob_from_character(
 pub async fn cast_hero_from_mob(
     map : &Arc<GameMap>,
     current_time : u64,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     mobs_summary : &mut Vec<MobEntity>,
@@ -803,7 +803,7 @@ pub async fn cast_hero_from_mob(
         {
             let base_xp = defender.level + 1;
             let factor = 1.1f32.powf((defender.level as i32 - attacker.level as i32).max(0) as f32);
-            let xp = base_xp as f32 * factor;
+            let _xp = base_xp as f32 * factor;
         }
 
 
@@ -845,7 +845,7 @@ pub async fn cast_hero_from_mob(
 pub async fn check_buffs(
     map : &Arc<GameMap>,
     current_time : u64,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_moe_gameplay_webservice : &GaiaSender<MobEntity>,
     mobs_summary : &mut Vec<MobEntity>,
     mob_id : u32,

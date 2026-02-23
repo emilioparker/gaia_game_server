@@ -164,7 +164,7 @@ pub fn start_server(
         {
             tokio::time::sleep(tokio::time::Duration::from_secs(100)).await;
             let mut modified_kingdome_keys = modified_kingdomes_reader_lock.lock().await;
-            let modified_kingdomes= modified_kingdome_keys.len();
+            let _modified_kingdomes= modified_kingdome_keys.len();
             let kingdomes_guard = map_reader.kingdomes.lock().await;
 
             let mut modified_kingdome_entities = Vec::<KingdomEntity>::new();

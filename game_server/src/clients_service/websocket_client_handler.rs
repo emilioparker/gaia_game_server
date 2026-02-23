@@ -276,7 +276,7 @@ async fn send_data_to_clients(
                 let b = client_regions[1].load(std::sync::atomic::Ordering::Relaxed);
                 let c = client_regions[2].load(std::sync::atomic::Ordering::Relaxed);
 
-                for (_packet_id, faction, region, game_packets, data) in packet_list.iter()
+                for (_packet_id, faction, region, _game_packets, data) in packet_list.iter()
                 {
                     let is_in_region = *region == a || *region == b || *region == c || a == 0 || *region == 0;
                     if is_in_region && (client.1.faction == *faction || *faction == 0)

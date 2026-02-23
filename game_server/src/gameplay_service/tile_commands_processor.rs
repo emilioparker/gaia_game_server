@@ -25,8 +25,8 @@ pub async fn process_tile_commands (
     tiles_summary : &mut Vec<MapEntity>,
     players_summary : &mut Vec<HeroEntity>,
     players_rewards_summary : &mut Vec<HeroReward>,
-    player_attacks_summary : &mut  Vec<Attack>,
-    delayed_tile_commands_lock : Arc<Mutex<Vec<(u64, MapCommand)>>>
+    _player_attacks_summary : &mut  Vec<Attack>,
+    _delayed_tile_commands_lock : Arc<Mutex<Vec<(u64, MapCommand)>>>
 )
 {
     let mut tile_commands_data = tile_commands_processor_lock.lock().await;
@@ -47,7 +47,7 @@ pub async fn process_tile_commands (
             {
                 extract_resource(&map, &server_state, tx_me_gameplay_longterm, tx_me_gameplay_webservice, tx_pe_gameplay_longterm, tiles_summary, players_summary, players_rewards_summary, *player_id, tile_command.id.clone(), *damage).await;
             }, // we need to deduct stuff from the player
-            MapCommandInfo::LayFoundation(player_id, prop,enemy_mob, _pathness_a, _pathness_b,_pathness_c) => 
+            MapCommandInfo::LayFoundation(player_id, prop,_enemy_mob, _pathness_a, _pathness_b,_pathness_c) => 
             {
                 lay_foundation(&map, &server_state, tx_me_gameplay_longterm, tx_me_gameplay_webservice, tiles_summary, *player_id, tile_command.id.clone(), current_time, *prop).await;
             },
@@ -137,14 +137,14 @@ pub async fn process_tile_commands (
 
 
 pub async fn process_delayed_tile_commands (
-    map : Arc<GameMap>,
-    server_state: Arc<ServerState>,
-    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
-    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
-    tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
-    tiles_summary : &mut Vec<MapEntity>,
-    players_summary : &mut Vec<HeroEntity>,
-    players_rewards_summary : &mut Vec<HeroReward>,
+    _map : Arc<GameMap>,
+    _server_state: Arc<ServerState>,
+    _tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    _tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    _tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
+    _tiles_summary : &mut Vec<MapEntity>,
+    _players_summary : &mut Vec<HeroEntity>,
+    _players_rewards_summary : &mut Vec<HeroReward>,
     delayed_tile_commands_to_execute : Vec<MapCommand>
 )
 {
@@ -187,9 +187,9 @@ pub async fn process_delayed_tile_commands (
 
 pub async fn touch(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
-    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    _server_state: &Arc<ServerState>,
+    _tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    _tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     tile_id: TetrahedronId
 )
@@ -205,7 +205,7 @@ pub async fn touch(
 
 pub async fn extract_resource(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
@@ -245,7 +245,7 @@ pub async fn extract_resource(
         }
         else if previous_health > 0
         {
-            let collected_prop = updated_tile.prop;
+            let _collected_prop = updated_tile.prop;
             updated_tile.health = u16::max(0, updated_tile.health as u16 - damage) as u16;
             updated_tile.version += 1;
             if updated_tile.health == 0
@@ -308,7 +308,7 @@ pub async fn extract_resource(
 
 pub async fn lay_foundation(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
@@ -360,7 +360,7 @@ pub async fn lay_foundation(
 
 pub async fn build_structure(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
@@ -400,7 +400,7 @@ pub async fn build_structure(
 // deprecated
 pub async fn attack_walker(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     players_summary : &mut Vec<HeroEntity>,
     player_id: u16
@@ -435,17 +435,17 @@ pub async fn attack_walker(
 
 
 pub async fn move_mob(
-    map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
-    tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
-    tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
-    tiles_summary : &mut Vec<MapEntity>,
-    tile_id: TetrahedronId,
-    new_tile_id: TetrahedronId,
-    current_time : u64,
-    required_time : f32,
-    player_id: u16,
-    mob_id: u32,
+    _map : &Arc<GameMap>,
+    _server_state: &Arc<ServerState>,
+    _tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
+    _tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
+    _tiles_summary : &mut Vec<MapEntity>,
+    _tile_id: TetrahedronId,
+    _new_tile_id: TetrahedronId,
+    _current_time : u64,
+    _required_time : f32,
+    _player_id: u16,
+    _mob_id: u32,
 )
 {
     // let region = map.get_region_from_child(&tile_id);
@@ -493,15 +493,15 @@ pub async fn move_mob(
 
 pub async fn lay_wall_foundation(
     map : &Arc<GameMap>,
-    server_state: &Arc<ServerState>,
+    _server_state: &Arc<ServerState>,
     tx_me_gameplay_longterm : &GaiaSender<MapEntity>,
     tx_me_gameplay_webservice : &GaiaSender<MapEntity>,
     tiles_summary : &mut Vec<MapEntity>,
     prop:u32,
     faction:u8,
     tile_id: TetrahedronId,
-    endpoint_a: TetrahedronId,
-    endpoint_b: TetrahedronId,
+    _endpoint_a: TetrahedronId,
+    _endpoint_b: TetrahedronId,
     wall_size: u16,
 )
 {
