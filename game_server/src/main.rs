@@ -492,11 +492,18 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_hash.insert(entry.id.clone(), entry.clone());
     }
 
+    let mut skills_hash = HashMap::new();
+
+    for entry in &skills_result.0
+    {
+        skills_hash.insert(entry.name.clone(), entry.clone());
+    }
+
     let mut professions_hash = HashMap::new();
 
-    for entry in professions_result.0
+    for entry in &professions_result.0
     {
-        professions_hash.insert(entry.profession.clone(), entry);
+        professions_hash.insert(entry.profession.clone(), entry.clone());
     }
 
     let mut initial_stats_hash = HashMap::new();
@@ -529,8 +536,10 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_by_code: buffs_result.0,
         buffs : buffs_hash,
         equipment : equipment_result.0,
-        skills : skills_result.0,
+        skills : skills_hash,
+        skills_by_id : skills_result.0,
         professions : professions_hash,
+        professions_by_id : professions_result.0,
         initial_stats : initial_stats_hash,
         stat_bonuses : stat_bonus_result.0,
     };

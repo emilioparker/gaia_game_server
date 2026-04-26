@@ -36,8 +36,10 @@ pub struct Definitions
     pub buffs : HashMap<String, BuffData>,
     pub buffs_by_code : Vec<BuffData>,
     pub equipment : Vec<Equipment>,
-    pub skills : Vec<Skill>,
+    pub skills : HashMap<String, Skill>,
+    pub skills_by_id : Vec<Skill>,
     pub professions : HashMap<String, Profession>,
+    pub professions_by_id : Vec<Profession>,
     pub initial_stats : HashMap<String, InitialStats>,
     pub stat_bonuses : Vec<StatToBonus>,
 }
@@ -61,18 +63,4 @@ pub struct DefinitionsData
     pub professions_data : Vec<u8>,
     pub initial_stats_data : Vec<u8>,
     pub stat_bonus_data : Vec<u8>,
-}
-
-impl Definitions 
-{
-    // used by the test_client ignores the protocol byte.
-    pub fn get_buff(&self, id : &String) -> Option<&BuffData>
-    {
-        self.buffs.get(id)
-    }
-
-    pub fn get_buff_by_code(&self, id : u8) -> Option<&BuffData>
-    {
-        self.buffs_by_code.get(id as usize)
-    }
 }

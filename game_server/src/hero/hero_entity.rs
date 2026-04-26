@@ -328,16 +328,17 @@ impl AbilityUser for HeroEntity
         }
 
         // based on the weapon we get the skill 
-        let equipment_definition =  definition.equipment.iter().find(|w| w.id == self.equipped_item as u32).unwrap();
-        let skill_definition =  definition.skills.iter().find(|w| w.name == equipment_definition.skill).unwrap();
+        // let equipment_definition =  definition.equipment.iter().find(|w| w.id == self.equipped_item as u32).unwrap();
+        let skill_definition =  definition.skills_by_id.get(self.equipped_item as usize).unwrap();
 
         // based on the skill we get the current skill rank
         let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
 
-        let profession = definition.professions.iter().find(|p| p.1.id == self.profession).unwrap();
+        let profession = definition.professions_by_id.get(self.profession as usize).unwrap();
 
+        // esto se ve mal, get skill costs and points deberia usarse cuando upgradeas un skill.
         // using the profession we calculate how much the skill gives us as points.
-        let points = profession.1.get_skill_cost_and_points(&skill_definition.name).map_or(0, |s| s.points);
+        let points = profession.get_skill_cost_and_points(&skill_definition.name).map_or(0, |s| s.points);
         total_bonus += (rank as u16 * points) as i16;
 
         // let stat = self.strength_stat;

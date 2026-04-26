@@ -28,7 +28,7 @@ pub struct StoredHero
     pub action: u8,
     pub flags:u8,
     pub inventory: Vec<StoredInventoryItem>,
-    pub card_inventory: Vec<StoredInventoryItem>,
+    pub card_inventory: Vec<StoredCardItem>,
     pub equipment_inventory: Vec<StoredInventoryItem>,
 
     pub level:u8,
@@ -57,6 +57,14 @@ pub struct StoredInventoryItem{
     pub amount : u16
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoredCardItem
+{
+    pub item_definition_id : u16,
+    pub item_unique_id : u32,
+    pub equipped : u8,
+}
+
 
 impl From<InventoryItem> for StoredInventoryItem
 {
@@ -66,11 +74,11 @@ impl From<InventoryItem> for StoredInventoryItem
     }
 }
 
-impl From<CardItem> for StoredInventoryItem
+impl From<CardItem> for StoredCardItem
 {
     fn from(item: CardItem) -> Self
     {
-        StoredInventoryItem { item_id: item.card_id, equipped: item.equipped, amount: item.amount }
+        StoredCardItem { item_definition_id: item.card_definition_id, equipped: item.equipped, item_unique_id: item.card_unique_id}
     }
 }
 

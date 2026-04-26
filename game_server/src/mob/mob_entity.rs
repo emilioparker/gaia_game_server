@@ -198,7 +198,7 @@ impl AbilityUser for MobEntity
 
         let _added_strength : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff_by_code(b.buff_id)
+                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
                 {
                     if def.buff_type == BUFF_STRENGTH
                     {
@@ -228,7 +228,7 @@ impl AbilityUser for MobEntity
         }
         let added_defense : f32 = self.buffs.iter().map(|b| 
             {
-                if let Some(def) = definition.get_buff_by_code(b.buff_id)
+                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
                 {
                     if def.buff_type == BUFF_DEFENSE
                     {

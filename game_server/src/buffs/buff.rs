@@ -53,7 +53,7 @@ pub trait BuffUser
             return false;
         }
 
-        if let Some(buff) = definitions.get_buff_by_code(buff_id)
+        if let Some(buff) = definitions.buffs_by_code.get(buff_id as usize)
         {
             self.get_buffs_mut().push(Buff
             {
@@ -97,7 +97,7 @@ pub trait BuffUser
         self.get_buffs_mut().iter_mut()
         .filter(|b| 
             {
-                if let Some(def) = definitions.get_buff_by_code(b.buff_id)
+                if let Some(def) = definitions.buffs_by_code.get(b.buff_id as usize)
                 {
                     return used_stats.iter().any(|a| a == &&def.buff_type);
                 }

@@ -38,6 +38,7 @@ pub struct AppData
 
 pub const SERVER_STATE_SIZE: usize = 20;
 
+#[allow(non_camel_case_types)]
 #[derive(PartialEq, Eq, Hash, Clone, EnumIter, EnumString, Display)]
 pub enum ServerChannels 
 {
