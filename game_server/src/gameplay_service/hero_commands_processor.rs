@@ -861,7 +861,7 @@ pub async fn increase_skill_rank(
     {
         let profession = map.definitions.professions_by_id.get(hero_entity.profession as usize).unwrap();
         let skill_definition =  map.definitions.skills_by_id.get(skill_id as usize).unwrap();
-        let costs_points = profession.get_skill_cost_and_points(&skill_definition.name).map_or((0,0,0), |s| (s.points, s.first_rank_cost, s.second_rank_cost));
+        let costs_points = skill_definition.get_skill_cost_and_points(&profession.profession).map_or((0,0,0), |s| (s.points, s.first_rank_cost, s.second_rank_cost));
         let count = hero_entity.get_skill_count(skill_id).unwrap_or(10);
 
         let cost = if count == 0 

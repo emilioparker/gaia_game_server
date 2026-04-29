@@ -430,7 +430,7 @@ impl AbilityUser for HeroEntity
 
         // esto se ve mal, get skill costs and points deberia usarse cuando upgradeas un skill.
         // using the profession we calculate how much the skill gives us as points.
-        let points = profession.get_skill_cost_and_points(&skill_definition.name).map_or(0, |s| s.points);
+        let points = skill_definition.get_skill_cost_and_points(&profession.profession).map_or(0, |s| s.points);
         total_bonus += (rank as u16 * points) as i16;
 
         // let stat = self.strength_stat;
