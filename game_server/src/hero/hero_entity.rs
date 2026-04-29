@@ -381,10 +381,11 @@ impl AbilityUser for HeroEntity
         self.health = new_health;
     }
 
-    fn get_constitution(&self, definition: &Definitions) -> u16 
+    fn get_hit_points(&self, definition: &Definitions) -> u16 
     {
-        let character_definition = definition.character_progression.get(self.level as usize).unwrap();
-        character_definition.constitution
+        let body_development_skill = definition.skills.get("body_development_skill").unwrap();
+        let rank = self.get_skill_rank(body_development_skill.id as u8).unwrap_or(0);
+        (rank as u16 ) * 7
     }
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
+use crate::ability_user::AbilityUser;
 use crate::ability_user::attack::Attack;
 use crate::ability_user::attack_result::AttackResult;
 use crate::ability_user::attack_result::BATTLE_CHAR_CHAR;
@@ -221,7 +222,6 @@ pub async fn use_item(
     {
         (Some(hero_entity), Some(definition)) => 
         {
-            let character_definition = map.definitions.character_progression.get(hero_entity.level as usize).unwrap();
             if definition.usage != 0
             {
                 let result = hero_entity.remove_inventory_item(InventoryItem
@@ -233,11 +233,13 @@ pub async fn use_item(
 
                 cli_log::info!("using item with result {} and  {:?}",result, definition.usage);
 
+                let hit_points = hero_entity.get_hit_points(&map.definitions);
+
                 match (result, definition.usage)
                 {
                     (true, usage) if usage == ItemUsage::Heal as u8 =>  // heal
                     {
-                        hero_entity.health = u32::min(character_definition.constitution as u32, hero_entity.health as u32 + 5) as u16;
+                        hero_entity.health = u32::min(hit_points as u32, hero_entity.health as u32 + 5) as u16;
                         hero_entity.version += 1;
                     },
                     (true, usage) if usage == ItemUsage::AddXp as u8 =>  // heal
@@ -375,13 +377,16 @@ pub async fn buy_item(
                     amount : cost * amount,
                 });// remove soft currency
 
+                let new_id = hero_entity.card_id_generator + 1;
+                hero_entity.card_id_generator += 1;
+
                 if result || cost == 0
                 {
                     hero_entity.add_card(CardItem
                     {
                         card_definition_id: item_definition_id as u16,
                         slot : 0,
-                        card_unique_id: 0,
+                        card_unique_id: new_id,
                     });// add item currency
                 }
 
@@ -409,13 +414,16 @@ pub async fn buy_item(
                     amount : cost * amount,
                 });// remove soft currency
 
+                let new_id = hero_entity.equipment_id_generator + 1;
+                hero_entity.equipment_id_generator += 1;
+
                 if result || cost == 0
                 {
                     hero_entity.add_equipment(EquipmentItem
                     {
                         equipment_definition_id: item_definition_id as u16,
                         slot : 0,
-                        equipment_unique_id : 0
+                        equipment_unique_id : new_id, 
                     });// add item currency
                 }
 
@@ -552,12 +560,13 @@ pub async fn respawn(
     if let Some(hero_entity) = hero_option 
     {
         let character_definition = map.definitions.character_progression.get(hero_entity.level as usize).unwrap();
-        cli_log::info!("b-respawn {}", character_definition.constitution);
+        let hit_points = hero_entity.get_hit_points(&map.definitions);
+        cli_log::info!("b-respawn {}", hit_points);
         let updated_hero_entity = HeroEntity 
         {
             action: 0,
             time:0,
-            health: character_definition.constitution,
+            health: hit_points,
             version: hero_entity.version + 1,
             position: respawn_tile_id.clone(),
             second_position : respawn_tile_id,

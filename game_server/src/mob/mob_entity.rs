@@ -161,7 +161,7 @@ impl AbilityUser for MobEntity
         self.health
     }
 
-    fn get_constitution(&self, definition: &Definitions) -> u16 
+    fn get_hit_points(&self, definition: &Definitions) -> u16 
     {
         let mut constitution = 0;
         if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
@@ -176,7 +176,7 @@ impl AbilityUser for MobEntity
 
     fn update_health(&mut self, new_health : u16, definition: &Definitions) 
     {
-        let constitution = self.get_constitution(definition);
+        let constitution = self.get_hit_points(definition);
         self.health =  new_health.min(constitution);
         cli_log::info!("---- updated health {}" ,self.health)
     }

@@ -163,14 +163,14 @@ impl HeroEntity
             let x =  rand::Rng::gen::<f32>(&mut random_generator);
             let card_id = (x * cards_count as f32).floor() as u16;
 
-            let x =  rand::Rng::gen::<f32>(&mut random_generator);
-            let card_unique_id = (x * 16000 as f32).floor() as u32;
+            let new_id = self.card_id_generator + 1;
+            self.card_id_generator += 1;
 
             self.add_card(CardItem
             {
                 card_definition_id: card_id,
                 slot: 0,
-                card_unique_id: card_unique_id,
+                card_unique_id: new_id,
             });
 
             return true;
