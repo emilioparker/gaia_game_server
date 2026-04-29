@@ -24,7 +24,7 @@ pub enum HeroCommandInfo
     AttackCharacter(u16, u32, u32, u8, u8), // other_character_id, card_id, required_time, effect
     Greet(),
     Respawn(TetrahedronId),
-    SellItem(u8,u32, u8, u16), // faction, item id, inventory type, amount
+    SellItem(u8,u32, u32, u8, u16), // faction, item id, inventory type, amount
     BuyItem(u8,u32,u8, u16),// faction, item id, inventory type, amount
     UseItem(u8,u32, u16),
     EquipItem(EquipItemCommandData),

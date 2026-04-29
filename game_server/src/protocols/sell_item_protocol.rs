@@ -27,6 +27,10 @@ pub async fn process(
         let item_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
 
         start = end;
+        end = start + 4;
+        let item_definition_id = u32::from_le_bytes(data[start..end].try_into().unwrap()); 
+
+        start = end;
         end = start + 1;
         let inventory_type = data[start];
 
@@ -37,7 +41,7 @@ pub async fn process(
         let command = HeroCommand
         {
             player_id,
-            info: HeroCommandInfo::SellItem(faction, item_id, inventory_type, amount)
+            info: HeroCommandInfo::SellItem(faction, item_id, item_definition_id, inventory_type, amount)
         };
 
         cli_log::info!("got a command {:?}", command);

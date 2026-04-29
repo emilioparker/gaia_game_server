@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::sync::atomic::AtomicU32;
 
 use bson::oid::ObjectId;
 
@@ -20,8 +21,7 @@ pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
 
 #[derive(Debug)]
-#[derive(Clone)]
-pub struct HeroEntity 
+pub struct HeroEntity
 {
     pub object_id: Option<ObjectId>,
     pub player_id: Option<ObjectId>,
@@ -71,11 +71,102 @@ pub struct HeroEntity
     pub mana: u16, // 2 bytes
     pub stamina: u16, // 2 bytes
     pub buffs : Vec<Buff>,// this one is not serializable  normally
-    pub buffs_summary : [u8;5] // this one is serialized but not saved 5 bytes
+    pub buffs_summary : [u8;5], // this one is serialized but not saved 5 bytes
+
+    pub card_id_generator : u32, // not serializable
+    pub equipment_id_generator : u32, // not serializable
 
     // 11 bytes
 
     // 13 + 12 + 7 + 8 + 11 = 51
+}
+
+impl Clone for HeroEntity
+{
+    fn clone(&self) -> Self
+    {
+        HeroEntity
+        {
+            object_id: self.object_id.clone(),
+            player_id: self.player_id.clone(),
+            version: self.version,
+            hero_name: self.hero_name.clone(),
+            hero_id: self.hero_id,
+            faction: self.faction,
+            profession: self.profession,
+            equipped_item: self.equipped_item,
+            position: self.position.clone(),
+            second_position: self.second_position.clone(),
+            vertex_id: self.vertex_id,
+            path: self.path,
+            time: self.time,
+            action: self.action,
+            flags: self.flags,
+            inventory: self.inventory.clone(),
+            card_inventory: self.card_inventory.clone(),
+            equipment_inventory: self.equipment_inventory.clone(),
+            skills: self.skills.clone(),
+            inventory_version: self.inventory_version,
+            level: self.level,
+            experience: self.experience,
+            available_skill_points: self.available_skill_points,
+            strength_stat: self.strength_stat,
+            endurance_stat: self.endurance_stat,
+            agility_stat: self.agility_stat,
+            will_stat: self.will_stat,
+            health: self.health,
+            mana: self.mana,
+            stamina: self.stamina,
+            buffs: self.buffs.clone(),
+            buffs_summary: self.buffs_summary,
+            card_id_generator: 0,
+            equipment_id_generator: 0,
+        }
+    }
+}
+
+impl HeroEntity
+{
+    pub fn clone_for_sending(&self) -> Self
+    {
+        HeroEntity
+        {
+            object_id: None,
+            player_id: self.player_id.clone(),
+            version: self.version,
+            hero_name: "".to_owned(),
+            hero_id: self.hero_id,
+            faction: self.faction,
+            profession: self.profession,
+            equipped_item: self.equipped_item,
+            position: self.position.clone(),
+            second_position: self.second_position.clone(),
+            vertex_id: self.vertex_id,
+            path: self.path,
+            time: self.time,
+            action: self.action,
+            flags: self.flags,
+            inventory: Vec::new(),
+            card_inventory: Vec::new(),
+            equipment_inventory: Vec::new(),
+            skills: Vec::new(),
+            inventory_version: self.inventory_version,
+            level: self.level,
+            experience: self.experience,
+            available_skill_points: self.available_skill_points,
+            strength_stat: self.strength_stat,
+            endurance_stat: self.endurance_stat,
+            agility_stat: self.agility_stat,
+            will_stat: self.will_stat,
+            health: self.health,
+            mana: self.mana,
+            stamina: self.stamina,
+            buffs: Vec::new(),
+            buffs_summary: self.buffs_summary,
+            card_id_generator: 0,
+            equipment_id_generator: 0,
+        }
+    }
 }
 
 pub enum ItemType
@@ -413,6 +504,7 @@ impl AbilityUser for HeroEntity
 mod tests 
 {
     use std::num::Wrapping;
+    use std::sync::atomic::AtomicU32;
 
 
     use crate::hero::hero_entity::HERO_ENTITY_SIZE;
@@ -500,6 +592,8 @@ mod tests
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
             stamina: 0,
+            card_id_generator: 0,
+            equipment_id_generator: 0,
         };
 
         entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
@@ -561,6 +655,8 @@ mod tests
             stamina: 10,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
+            card_id_generator: 0,
+            equipment_id_generator: 0,
         };
         let buffer = char.to_bytes();
         cli_log::info!("{:?}", buffer);

@@ -1,4 +1,6 @@
 
+use std::sync::atomic::AtomicU32;
+
 use bson::oid::ObjectId;
 use futures_util::StreamExt;
 use hyper::body;
@@ -374,6 +376,8 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         stamina: 10,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
+        card_id_generator: 0,
+        equipment_id_generator: 0,
     };
 
     let mut players = context.working_game_map.character.lock().await;

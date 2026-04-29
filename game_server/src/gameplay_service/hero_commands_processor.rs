@@ -70,9 +70,9 @@ pub async fn process_hero_commands (
                             movement_data.path,
                         ).await;
                     },
-            hero_command::HeroCommandInfo::SellItem(_faction, item_id, inventory_type, amount) => 
+            hero_command::HeroCommandInfo::SellItem(_faction, item_id, item_definition_id, inventory_type, amount) => 
                     {
-                        sell_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *inventory_type, cloned_data.player_id, *amount).await
+                        sell_item(&map, tx_he_gameplay_longterm, heros_summary, *item_id, *item_definition_id, *inventory_type, cloned_data.player_id, *amount).await
                     },
             hero_command::HeroCommandInfo::BuyItem(_faction, item_id, item_type, amount) => 
                     {
@@ -254,7 +254,7 @@ pub async fn use_item(
 
             // cli_log::info!("Add health {:?}", hero_entity);
             tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-            heros_summary.push(hero_entity.clone());
+            heros_summary.push(hero_entity.clone_for_sending());
         },
         _ => 
         {
@@ -286,7 +286,7 @@ pub async fn equip_item(
                 cli_log::info!("equip item with result {}",result);
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             }
             else if inventory_type == 1
             {
@@ -294,7 +294,7 @@ pub async fn equip_item(
                 cli_log::info!("equip item with result {}",result);
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             }
             else if inventory_type == 2
             {
@@ -302,7 +302,7 @@ pub async fn equip_item(
                 cli_log::info!("equip equipment with result {}",result);
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             }
         },
         _ => 
@@ -316,19 +316,19 @@ pub async fn buy_item(
     map : &Arc<GameMap>,
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     heros_summary : &mut Vec<HeroEntity>,
-    item_id : u32,
+    item_definition_id : u32,
     inventory_type: u8,
     player_id: u16,
     amount: u16)
 {
     let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
-    cli_log::info!("Buy item with id {item_id}, item_type: {inventory_type}");
+    cli_log::info!("Buy item with id {item_definition_id}, item_type: {inventory_type}");
 
     let hero_option = hero_entities.get_mut(&player_id);
 
     if inventory_type == 0
     {
-        let cost  = map.definitions.items.get(item_id as usize).map(|d| d.cost);
+        let cost  = map.definitions.items.get(item_definition_id as usize).map(|d| d.cost);
         cli_log::info!("cost {cost:?}");
         match (hero_option, cost) 
         {
@@ -345,14 +345,14 @@ pub async fn buy_item(
                 {
                     hero_entity.add_inventory_item(InventoryItem
                     {
-                        item_id,
+                        item_id: item_definition_id,
                         equipped : 0,
                         amount
                     });// add item currency
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ => 
             {
@@ -362,7 +362,7 @@ pub async fn buy_item(
     }
     else if inventory_type == 1
     {
-        let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
+        let cost  = map.definitions.cards.get(item_definition_id as usize).map(|d| d.store_cost);
         cli_log::info!("card cost {cost:?}");
         match (hero_option, cost) 
         {
@@ -379,14 +379,14 @@ pub async fn buy_item(
                 {
                     hero_entity.add_card(CardItem
                     {
-                        card_id: item_id,
-                        equipped : 0,
-                        amount
+                        card_definition_id: item_definition_id as u16,
+                        slot : 0,
+                        card_unique_id: 0,
                     });// add item currency
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ => 
             {
@@ -396,7 +396,7 @@ pub async fn buy_item(
     }
     else if inventory_type == 2
     {
-        let cost  = map.definitions.equipment.get(item_id as usize).map(|d| d.store_cost);
+        let cost  = map.definitions.equipment.get(item_definition_id as usize).map(|d| d.store_cost);
         cli_log::info!("equipment cost {cost:?}");
         match (hero_option, cost)
         {
@@ -413,14 +413,14 @@ pub async fn buy_item(
                 {
                     hero_entity.add_equipment(EquipmentItem
                     {
-                        equipment_id: item_id,
-                        equipped : 0,
-                        amount
+                        equipment_definition_id: item_definition_id as u16,
+                        slot : 0,
+                        equipment_unique_id : 0
                     });// add item currency
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ => 
             {
@@ -436,6 +436,7 @@ pub async fn sell_item(
     tx_pe_gameplay_longterm : &GaiaSender<HeroEntity>,
     heros_summary : &mut Vec<HeroEntity>,
     item_id : u32,
+    item_definition_id : u32,
     inventory_type : u8,
     player_id: u16,
     amount: u16)
@@ -445,14 +446,14 @@ pub async fn sell_item(
 
     if inventory_type == 0
     {
-        let cost  = map.definitions.items.get(item_id as usize).map(|d| d.cost);
+        let cost  = map.definitions.items.get(item_definition_id as usize).map(|d| d.cost);
         match (hero_option, cost) 
         {
             (Some(hero_entity), Some(cost)) => 
             {
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
-                    item_id : item_id,
+                    item_id : item_definition_id,
                     equipped:0,
                     amount,
                 });
@@ -469,7 +470,7 @@ pub async fn sell_item(
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ => 
             {
@@ -479,17 +480,12 @@ pub async fn sell_item(
     }
     else if inventory_type == 1
     {
-        let cost  = map.definitions.cards.get(item_id as usize).map(|d| d.store_cost);
+        let cost  = map.definitions.cards.get(item_definition_id as usize).map(|d| d.store_cost);
         match (hero_option, cost) 
         {
             (Some(hero_entity), Some(cost)) => 
             {
-                let result = hero_entity.remove_card(CardItem
-                {
-                    card_id : item_id,
-                    equipped:0,
-                    amount,
-                });
+                let result = hero_entity.remove_card(item_id);
 
                 // add soft currency
                 if result 
@@ -503,7 +499,7 @@ pub async fn sell_item(
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ => 
             {
@@ -513,17 +509,12 @@ pub async fn sell_item(
     }
     else if inventory_type == 2
     {
-        let cost  = map.definitions.equipment.get(item_id as usize).map(|d| d.store_cost);
+        let cost  = map.definitions.equipment.get(item_definition_id as usize).map(|d| d.store_cost);
         match (hero_option, cost)
         {
             (Some(hero_entity), Some(cost)) =>
             {
-                let result = hero_entity.remove_equipment(EquipmentItem
-                {
-                    equipment_id : item_id,
-                    equipped:0,
-                    amount,
-                });
+                let result = hero_entity.remove_equipment(item_id);
 
                 // add soft currency
                 if result
@@ -537,7 +528,7 @@ pub async fn sell_item(
                 }
 
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone());
+                heros_summary.push(hero_entity.clone_for_sending());
             },
             _ =>
             {
@@ -576,7 +567,7 @@ pub async fn respawn(
 
         *hero_entity = updated_hero_entity;
         tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-        heros_summary.push(hero_entity.clone());
+        heros_summary.push(hero_entity.clone_for_sending());
     }
 }
 
@@ -617,7 +608,7 @@ pub async fn move_character(
 
         *hero_entity = updated_hero_entity;
         tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-        heros_summary.push(hero_entity.clone());
+        heros_summary.push(hero_entity.clone_for_sending());
     }
 }
 
@@ -664,7 +655,7 @@ pub async fn set_action(
         hero_entity.removed_expired_buffs(current_time_in_seconds);
 
         tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-        heros_summary.push(hero_entity.clone());
+        heros_summary.push(hero_entity.clone_for_sending());
     }
 }
 
@@ -707,7 +698,8 @@ pub async fn activate_buff(
         let current_time_in_seconds = (current_time / 1000) as u32;
         hero.removed_expired_buffs(current_time_in_seconds);
         let card = map.definitions.cards.get(card_id as usize).unwrap();
-        let buff = map.definitions.get_buff(&card.buff).unwrap();
+
+        let buff = map.definitions.buffs.get(&card.buff).unwrap();
         let result = hero.add_buff(buff.code, current_time_in_seconds, &map.definitions);
         // let result = hero_entity.equip_inventory_item(item_id, current_slot, new_slot);
         cli_log::info!("activate buff with id:{}",buff.id);
@@ -716,7 +708,7 @@ pub async fn activate_buff(
         {
             hero.version += 1;
             tx_pe_gameplay_longterm.send(hero.clone()).await.unwrap();
-            heros_summary.push(hero.clone());
+            heros_summary.push(hero.clone_for_sending());
         }
     }
 
@@ -824,8 +816,8 @@ pub async fn attack_character(
 
         drop(character_entities);
 
-        characters_summary.push(attacker_stored.clone());
-        characters_summary.push(defender_stored.clone());
+        characters_summary.push(attacker_stored.clone_for_sending());
+        characters_summary.push(defender_stored.clone_for_sending());
 
         attack_details_summary.push(AttackResult
         {
@@ -855,14 +847,33 @@ pub async fn increase_skill_rank(
     let mut hero_entities : tokio::sync::MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let hero_option = hero_entities.get_mut(&player_id);
 
+
     if let Some(hero_entity) = hero_option
     {
-        if hero_entity.available_skill_points > 0
+        let profession = map.definitions.professions_by_id.get(hero_entity.profession as usize).unwrap();
+        let skill_definition =  map.definitions.skills_by_id.get(skill_id as usize).unwrap();
+        let costs_points = profession.get_skill_cost_and_points(&skill_definition.name).map_or((0,0,0), |s| (s.points, s.first_rank_cost, s.second_rank_cost));
+        let count = hero_entity.get_skill_count(skill_id).unwrap_or(10);
+
+        let cost = if count == 0 
         {
-            hero_entity.available_skill_points -= 1;
-            hero_entity.increase_skill_rank(skill_id);
+            costs_points.1
+        }
+        else if count == 1
+        {
+            costs_points.2
+        }
+        else 
+        {
+            255
+        } as u8;
+
+        if hero_entity.available_skill_points >= cost
+        {
+            hero_entity.available_skill_points -= cost;
+            hero_entity.increase_skill_rank(skill_id, costs_points.0 as u8);
             tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-            heros_summary.push(hero_entity.clone());
+            heros_summary.push(hero_entity.clone_for_sending());
         }
         else
         {
@@ -885,6 +896,6 @@ pub async fn disconnect(
         character_entity.action = 0;
         character_entity.version += 1;
         tx_pe_gameplay_longterm.send(character_entity.clone()).await.unwrap();
-        characters_summary.push(character_entity.clone());
+        characters_summary.push(character_entity.clone_for_sending());
     }
 }

@@ -750,7 +750,7 @@ pub async fn cast_mob_from_character(
 
 
         mobs_summary.push(defender_stored.clone());
-        characters_summary.push(attacker_stored.clone());
+        characters_summary.push(attacker_stored.clone_for_sending());
 
         tx_pe_gameplay_longterm.send(attacker_stored).await.unwrap();
         tx_moe_gameplay_webservice.send(defender_stored).await.unwrap();
@@ -834,7 +834,7 @@ pub async fn cast_hero_from_mob(
             result,
         });
 
-        characters_summary.push(defender_stored.clone());
+        characters_summary.push(defender_stored.clone_for_sending());
         mobs_summary.push(attacker_stored.clone());
 
         tx_pe_gameplay_longterm.send(defender_stored).await.unwrap();

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::AtomicU16;
+use std::sync::atomic::AtomicU32;
 use std::collections::HashMap;
 use std::collections::HashSet;
 

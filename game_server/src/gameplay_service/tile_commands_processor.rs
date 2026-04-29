@@ -294,8 +294,8 @@ pub async fn extract_resource(
                     cli_log::info!("reward {:?}", reward);
 
                     players_rewards_summary.push(reward);
-                    tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
-                    players_summary.push(updated_player_entity.clone());
+                    players_summary.push(updated_player_entity.clone_for_sending());
+                    tx_pe_gameplay_longterm.send(updated_player_entity).await.unwrap();
                 }
             }
         }
@@ -428,7 +428,7 @@ pub async fn attack_walker(
             *player_entity = updated_player_entity.clone();
             drop(player_entities);
             tx_pe_gameplay_longterm.send(updated_player_entity.clone()).await.unwrap();
-            players_summary.push(updated_player_entity.clone());
+            players_summary.push(updated_player_entity.clone_for_sending());
         }
     }
 }

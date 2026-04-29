@@ -2,13 +2,17 @@
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
 use crate::buffs::buff::Buff;
 use crate::buffs::buff::BuffUser;
+use crate::definitions::card::Card;
 use crate::hero::hero_card_inventory::CardItem;
 use crate::hero::hero_inventory::InventoryItem;
 use crate::hero::hero_skill_inventory::SkillData;
 use crate::hero::hero_equipment_inventory::EquipmentItem;
 use crate::long_term_storage_service::db_hero::StoredBuff;
+use crate::long_term_storage_service::db_hero::StoredCardItem;
+use crate::long_term_storage_service::db_hero::StoredEquipmentItem;
 use crate::long_term_storage_service::db_hero::StoredHero;
 use crate::long_term_storage_service::db_hero::StoredInventoryItem;
 use crate::long_term_storage_service::db_hero::StoredSkillItem;
@@ -57,19 +61,23 @@ pub async fn get_heroes_from_db_by_world(
                     amount: item.amount,
                 }).collect();
 
-                let card_inventory = doc.card_inventory.into_iter().map(|item| CardItem 
+                let card_inventory: Vec<CardItem> = doc.card_inventory.into_iter().map(|item| CardItem 
                 {
-                    card_id: item.item_id,
-                    equipped: item.equipped,
-                    amount: item.amount,
+                    card_definition_id: item.item_definition_id,
+                    card_unique_id:item.item_unique_id,
+                    slot: item.equipped,
                 }).collect();
 
-                let equipment_inventory = doc.equipment_inventory.into_iter().map(|item| EquipmentItem
+                let last_card_id = card_inventory.iter().max_by_key(|e| e.card_unique_id).map_or(0, |card| card.card_unique_id);
+
+                let equipment_inventory:Vec<EquipmentItem> = doc.equipment_inventory.into_iter().map(|item| EquipmentItem
                 {
-                    equipment_id: item.item_id,
-                    equipped: item.equipped,
-                    amount: item.amount,
+                    equipment_definition_id: item.item_definition_id,
+                    equipment_unique_id: item.item_unique_id,
+                    slot: item.equipped,
                 }).collect();
+
+                let last_equipment_id = equipment_inventory.iter().max_by_key(|e| e.equipment_unique_id).map_or(0, |equipment| equipment.equipment_unique_id);
 
                 let skills = doc.skills.into_iter().map(|item| SkillData
                 {
@@ -118,6 +126,8 @@ pub async fn get_heroes_from_db_by_world(
                     stamina: doc.stamina,
                     buffs,
                     buffs_summary,
+                    card_id_generator: last_card_id,
+                    equipment_id_generator: last_equipment_id,
                 };
                 player.summarize_buffs();
 
@@ -221,15 +231,15 @@ pub fn start_server(
                 .collect();
                 let inventory_serialized_data= bson::to_bson(&inventory).unwrap();
 
-                let card_inventory : Vec<StoredInventoryItem> = player.card_inventory
+                let card_inventory : Vec<StoredCardItem> = player.card_inventory
                 .into_iter()
-                .map(|item| StoredInventoryItem ::from(item))
+                .map(|item| StoredCardItem ::from(item))
                 .collect();
                 let card_inventory_serialized_data= bson::to_bson(&card_inventory).unwrap();
 
-                let equipment_inventory : Vec<StoredInventoryItem> = player.equipment_inventory
+                let equipment_inventory : Vec<StoredEquipmentItem> = player.equipment_inventory
                 .into_iter()
-                .map(|item| StoredInventoryItem ::from(item))
+                .map(|item| StoredEquipmentItem ::from(item))
                 .collect();
                 let equipment_inventory_serialized_data= bson::to_bson(&equipment_inventory).unwrap();
 

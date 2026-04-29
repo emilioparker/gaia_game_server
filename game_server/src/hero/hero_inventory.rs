@@ -149,6 +149,7 @@ impl HeroEntity
         let set_size = self.inventory.iter().filter(|i| i.item_id >= 6 && i.item_id <= 20).count();
         cli_log::info!("---- complete set {set_size}");
 
+        // 6 to 20 are the ids of the cards... this is very very hard coded stuff.
         if set_size == 15 
         {
             for id in 6..=20
@@ -160,13 +161,16 @@ impl HeroEntity
 
             let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
             let x =  rand::Rng::gen::<f32>(&mut random_generator);
-            let card_id = (x * cards_count as f32).floor() as u32;
+            let card_id = (x * cards_count as f32).floor() as u16;
+
+            let x =  rand::Rng::gen::<f32>(&mut random_generator);
+            let card_unique_id = (x * 16000 as f32).floor() as u32;
 
             self.add_card(CardItem
             {
-                card_id: card_id,
-                equipped: 0,
-                amount: 1,
+                card_definition_id: card_id,
+                slot: 0,
+                card_unique_id: card_unique_id,
             });
 
             return true;

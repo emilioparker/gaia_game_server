@@ -21,14 +21,14 @@ impl SkillData
 
 impl HeroEntity
 {
-    pub fn increase_skill_rank(&mut self, skill_id : u8)
+    pub fn increase_skill_rank(&mut self, skill_id : u8, points : u8)
     {
         let mut found = false;
         for skill in &mut self.skills
         {
             if skill.id == skill_id
             {
-                skill.rank += 1;
+                skill.rank += points;
                 skill.count += 1;
                 found = true;
                 break;
@@ -60,5 +60,10 @@ impl HeroEntity
     pub fn get_skill_rank(&self, skill_id : u8) -> Option<u8>
     {
         self.skills.iter().find(|s| s.id == skill_id).map(|s| s.rank)
+    }
+
+    pub fn get_skill_count(&self, skill_id : u8) -> Option<u8>
+    {
+        self.skills.iter().find(|s| s.id == skill_id).map(|s| s.count)
     }
 }
