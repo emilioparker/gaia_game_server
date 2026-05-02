@@ -1,5 +1,5 @@
-id,profession
-0,Initiate
-1,Tank
-2,Warrior
-3,Mage
+id,profession,strength_stat_init_max,endurance_stat_init_max,agility_stat_init_max,will_stat_init_max
+0,Initiate,1/50,1/50,1/50,1/50
+1,Tank,3/60,3/60,2/40,1/30
+2,Warrior,3/55,2/45,3/55,2/40
+3,Mage,1/30,2/40,2/40,3/60

@@ -12,7 +12,6 @@ pub mod equipment;
 pub mod tower_difficulty;
 pub mod skills;
 pub mod professions;
-pub mod initial_stats;
 pub mod stat_bonus;
 
 

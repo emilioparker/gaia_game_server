@@ -426,11 +426,9 @@ impl AbilityUser for HeroEntity
         // based on the skill we get the current skill rank
         let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
 
-        let profession = definition.professions_by_id.get(self.profession as usize).unwrap();
-
         // esto se ve mal, get skill costs and points deberia usarse cuando upgradeas un skill.
         // using the profession we calculate how much the skill gives us as points.
-        let points = skill_definition.get_skill_cost_and_points(&profession.profession).map_or(0, |s| s.points);
+        let points = skill_definition.get_skill_cost_and_points_by_id(self.profession).map_or(0, |s| s.points);
         total_bonus += (rank as u16 * points) as i16;
 
         // let stat = self.strength_stat;

@@ -28,6 +28,8 @@ pub struct Skill
     pub mage: String,
     #[serde(skip)]
     pub profession_costs: HashMap<String, SkillCostAndPoints>,
+    #[serde(skip)]
+    pub profession_costs_by_id: Vec<SkillCostAndPoints>,
 }
 
 impl Skill
@@ -46,6 +48,11 @@ impl Skill
     {
         self.profession_costs.get(profession_name)
     }
+
+    pub fn get_skill_cost_and_points_by_id(&self, profession_id: u8) -> Option<&SkillCostAndPoints>
+    {
+        self.profession_costs_by_id.get(profession_id as usize)
+    }
 }
 
 impl Definition for Skill
@@ -58,5 +65,11 @@ impl Definition for Skill
             ("Warrior".to_string(), Self::parse_skill_value(&self.warrior)),
             ("Mage".to_string(), Self::parse_skill_value(&self.mage)),
         ]);
+        self.profession_costs_by_id = vec![
+            Self::parse_skill_value(&self.initiate),
+            Self::parse_skill_value(&self.tank),
+            Self::parse_skill_value(&self.warrior),
+            Self::parse_skill_value(&self.mage),
+        ];
     }
 }

@@ -7,12 +7,11 @@ use super::card::Card;
 use super::character_progression::CharacterProgression;
 use super::definition_versions::DefinitionVersion;
 use super::equipment::Equipment;
-use super::initial_stats::InitialStats;
+use super::professions::Profession;
 use super::items::Item;
 use super::main_paths::MapPath;
 use super::mob_progression::MobProgression;
 use super::mobs_data::MobData;
-use super::professions::Profession;
 use super::props_data::PropData;
 use super::skills::Skill;
 use super::stat_bonus::StatToBonus;
@@ -40,7 +39,6 @@ pub struct Definitions
     pub skills_by_id : Vec<Skill>,
     pub professions : HashMap<String, Profession>,
     pub professions_by_id : Vec<Profession>,
-    pub initial_stats : HashMap<String, InitialStats>,
     pub stat_bonuses : Vec<StatToBonus>,
 }
 
@@ -60,7 +58,6 @@ pub struct DefinitionsData
     pub buffs_data : Vec<u8>,
     pub equipment_data : Vec<u8>,
     pub skills_data : Vec<u8>,
-    pub professions_data : Vec<u8>,
     pub initial_stats_data : Vec<u8>,
     pub stat_bonus_data : Vec<u8>,
 }

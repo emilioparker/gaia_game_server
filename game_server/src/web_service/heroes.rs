@@ -272,7 +272,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
 
     let stored_player = data_from_db.unwrap();
 
-    let initial_stats = context.working_game_map.definitions.initial_stats.get(&data.profession);
+    let initial_stats = context.working_game_map.definitions.professions.get(&data.profession);
     if initial_stats.is_none()
     {
         return Err("profession_not_found".to_owned());

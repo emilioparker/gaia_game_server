@@ -25,7 +25,6 @@ use game_server::definitions::mob_progression::MobProgression;
 use game_server::definitions::mobs_data::MobData;
 use game_server::definitions::props_data::PropData;
 use game_server::definitions::tower_difficulty::TowerDifficulty;
-use game_server::definitions::initial_stats::InitialStats;
 use game_server::definitions::professions::Profession;
 use game_server::definitions::skills::Skill;
 use game_server::definitions::stat_bonus::StatToBonus;
@@ -477,10 +476,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let skills_result = load_definition_by_name::<Skill>(file_name).await;
 
     let file_name = format!("professions.csv");
-    let professions_result = load_definition_by_name::<Profession>(file_name).await;
-
-    let file_name = format!("initial_stats.csv");
-    let initial_stats_result = load_definition_by_name::<InitialStats>(file_name).await;
+    let initial_stats_result = load_definition_by_name::<Profession>(file_name).await;
 
     let file_name = format!("stat_bonus.csv");
     let stat_bonus_result = load_definition_by_name::<StatToBonus>(file_name).await;
@@ -499,18 +495,18 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         skills_hash.insert(entry.name.clone(), entry.clone());
     }
 
-    let mut professions_hash = HashMap::new();
-
-    for entry in &professions_result.0
-    {
-        professions_hash.insert(entry.profession.clone(), entry.clone());
-    }
-
     let mut initial_stats_hash = HashMap::new();
 
+    for entry in &initial_stats_result.0
+    {
+        initial_stats_hash.insert(entry.profession.clone(), entry.clone());
+    }
+
+    let mut initial_stats_by_id = vec![Profession::default(); initial_stats_result.0.len()];
     for entry in initial_stats_result.0
     {
-        initial_stats_hash.insert(entry.profession.clone(), entry);
+        let id = entry.id as usize;
+        initial_stats_by_id[id] = entry;
     }
 
     let mut mob_progression_by_mob = vec![Vec::new(); mobs_result.0.len()];
@@ -538,9 +534,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         equipment : equipment_result.0,
         skills : skills_hash,
         skills_by_id : skills_result.0,
-        professions : professions_hash,
-        professions_by_id : professions_result.0,
-        initial_stats : initial_stats_hash,
+        professions : initial_stats_hash,
+        professions_by_id: initial_stats_by_id,
         stat_bonuses : stat_bonus_result.0,
     };
 
@@ -559,7 +554,6 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_data: buffs_result.1,
         equipment_data: equipment_result.1,
         skills_data: skills_result.1,
-        professions_data: professions_result.1,
         initial_stats_data: initial_stats_result.1,
         stat_bonus_data: stat_bonus_result.1,
     };
