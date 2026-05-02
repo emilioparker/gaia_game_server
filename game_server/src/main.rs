@@ -27,7 +27,8 @@ use game_server::definitions::props_data::PropData;
 use game_server::definitions::tower_difficulty::TowerDifficulty;
 use game_server::definitions::professions::Profession;
 use game_server::definitions::skills::Skill;
-use game_server::definitions::stat_bonus::StatToBonus;
+use game_server::definitions::stat_bonuses::StatBonus;
+use game_server::definitions::stat_gains::StatGain;
 use game_server::definitions::equipment::Equipment;
 use game_server::definitions::Definition;
 use game_server::AppData;
@@ -478,8 +479,11 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("professions.csv");
     let initial_stats_result = load_definition_by_name::<Profession>(file_name).await;
 
-    let file_name = format!("stat_bonus.csv");
-    let stat_bonus_result = load_definition_by_name::<StatToBonus>(file_name).await;
+    let file_name = format!("stat_bonuses.csv");
+    let stat_bonuses_result = load_definition_by_name::<StatBonus>(file_name).await;
+
+    let file_name = format!("stat_gains.csv");
+    let stat_gains_result = load_definition_by_name::<StatGain>(file_name).await;
 
     let mut buffs_hash = HashMap::new();
 
@@ -536,7 +540,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         skills_by_id : skills_result.0,
         professions : initial_stats_hash,
         professions_by_id: initial_stats_by_id,
-        stat_bonuses : stat_bonus_result.0,
+        stat_bonus_table : stat_bonuses_result.0,
+        stat_gains : stat_gains_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -555,7 +560,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         equipment_data: equipment_result.1,
         skills_data: skills_result.1,
         initial_stats_data: initial_stats_result.1,
-        stat_bonus_data: stat_bonus_result.1,
+        stat_bonuses_data: stat_bonuses_result.1,
+        stat_gains_data: stat_gains_result.1,
     };
 
     (definitions, definitions_data)

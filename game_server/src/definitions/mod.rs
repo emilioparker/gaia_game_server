@@ -12,7 +12,8 @@ pub mod equipment;
 pub mod tower_difficulty;
 pub mod skills;
 pub mod professions;
-pub mod stat_bonus;
+pub mod stat_bonuses;
+pub mod stat_gains;
 
 
 pub trait Definition 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::definitions::stat_bonuses::StatBonus;
 use crate::map::tetrahedron_id::TetrahedronId;
 
 use super::buffs_data::BuffData;
@@ -14,7 +15,7 @@ use super::mob_progression::MobProgression;
 use super::mobs_data::MobData;
 use super::props_data::PropData;
 use super::skills::Skill;
-use super::stat_bonus::StatToBonus;
+use super::stat_gains::StatGain;
 use super::tower_difficulty::TowerDifficulty;
 
 
@@ -39,7 +40,8 @@ pub struct Definitions
     pub skills_by_id : Vec<Skill>,
     pub professions : HashMap<String, Profession>,
     pub professions_by_id : Vec<Profession>,
-    pub stat_bonuses : Vec<StatToBonus>,
+    pub stat_bonus_table : Vec<StatBonus>,
+    pub stat_gains : Vec<StatGain>,
 }
 
 #[derive(Debug, Clone)]
@@ -59,5 +61,6 @@ pub struct DefinitionsData
     pub equipment_data : Vec<u8>,
     pub skills_data : Vec<u8>,
     pub initial_stats_data : Vec<u8>,
-    pub stat_bonus_data : Vec<u8>,
+    pub stat_bonuses_data : Vec<u8>,
+    pub stat_gains_data : Vec<u8>,
 }

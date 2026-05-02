@@ -2,12 +2,12 @@ use std::hash::Hash;
 use std::sync::atomic::AtomicU32;
 
 use bson::oid::ObjectId;
+use rand::rngs::StdRng;
 
 use crate::ability_user::AbilityUser;
 use crate::buffs::buff::Buff;
 use crate::buffs::buff::BuffUser;
 use crate::definitions::definitions_container::Definitions;
-use crate::definitions::stat_bonus;
 use crate::map::tetrahedron_id::TetrahedronId;
 
 use super::hero_card_inventory::CardItem;
@@ -309,6 +309,27 @@ impl HeroEntity
                 self.level += 1;
                 self.available_skill_points = self.available_skill_points.wrapping_add(next_level_data.skill_points as u8);
                 self.reset_skill_counts();
+
+                let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+                let profession = definitions.professions_by_id.get(self.profession as usize);
+
+                let potentials = [
+                    (self.strength_stat,  profession.map_or(0, |p| p.strength.max)),
+                    (self.endurance_stat, profession.map_or(0, |p| p.endurance.max)),
+                    (self.agility_stat,   profession.map_or(0, |p| p.agility.max)),
+                    (self.will_stat,      profession.map_or(0, |p| p.will.max)),
+                ];
+
+                let gains: [u16; 4] = potentials.map(|(current, potential)| {
+                    let roll = (rand::Rng::gen::<f32>(&mut random_generator) * 100.0).floor() as u8;
+                    let difference = potential.saturating_sub(current);
+                    definitions.stat_gains.get(difference as usize).map_or(0, |g| g.get_gain(roll) as u16)
+                });
+
+                self.strength_stat  += gains[0];
+                self.endurance_stat += gains[1];
+                self.agility_stat   += gains[2];
+                self.will_stat      += gains[3];
             }
         }
         cli_log::info!("----- add xp:{} from battle {}", xp, self.experience);
@@ -397,25 +418,25 @@ impl AbilityUser for HeroEntity
         // based on the card we pick the relevant stats.
         if str > 0
         {
-            let bonus = stat_bonus::get_stat_bonus(self.strength_stat + str, &definition.stat_bonuses);
+            let bonus = definition.stat_bonus_table.get((self.strength_stat + str) as usize).map_or(0, |b| b.bonus);
             total_bonus += bonus;
         }
 
         if end > 0
         {
-            let bonus = stat_bonus::get_stat_bonus(self.endurance_stat + end, &definition.stat_bonuses);
+            let bonus = definition.stat_bonus_table.get((self.endurance_stat + end) as usize).map_or(0, |b| b.bonus);
             total_bonus += bonus;
         }
 
         if agi > 0
         {
-            let bonus = stat_bonus::get_stat_bonus(self.agility_stat + agi, &definition.stat_bonuses);
+            let bonus = definition.stat_bonus_table.get((self.agility_stat + agi) as usize).map_or(0, |b| b.bonus);
             total_bonus += bonus;
         }
 
         if will > 0
         {
-            let bonus = stat_bonus::get_stat_bonus(self.will_stat + will, &definition.stat_bonuses);
+            let bonus = definition.stat_bonus_table.get((self.will_stat + will) as usize).map_or(0, |b| b.bonus);
             total_bonus += bonus;
         }
 
