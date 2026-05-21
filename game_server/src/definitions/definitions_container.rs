@@ -16,7 +16,10 @@ use super::mobs_data::MobData;
 use super::props_data::PropData;
 use super::skills::Skill;
 use super::stat_gains::StatGain;
+use super::realms::Realm;
 use super::tower_difficulty::TowerDifficulty;
+use super::armor_types::ArmorType;
+use super::damage_table::DamageTableEntry;
 
 
 #[derive(Debug, Clone)]
@@ -42,6 +45,9 @@ pub struct Definitions
     pub professions_by_id : Vec<Profession>,
     pub stat_bonus_table : Vec<StatBonus>,
     pub stat_gains : Vec<StatGain>,
+    pub realms : Vec<Realm>,
+    pub armor_types : Vec<ArmorType>,
+    pub damage_table : Vec<DamageTableEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,4 +69,7 @@ pub struct DefinitionsData
     pub initial_stats_data : Vec<u8>,
     pub stat_bonuses_data : Vec<u8>,
     pub stat_gains_data : Vec<u8>,
+    pub realms_data : Vec<u8>,
+    pub armor_types_data : Vec<u8>,
+    pub damage_table_data : Vec<u8>,
 }

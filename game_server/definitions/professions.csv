@@ -1,4 +1,4 @@
-what,profession,strength_stat_init_max,endurance_stat_init_max,agility_stat_init_max,will_stat_init_max
+id,profession,strength_stat_init_max,vitality_stat_init_max,agility_stat_init_max,will_stat_init_max
 0,Initiate,1/10,1/10,1/10,1/10
 1,Tank,65/90,80/100,40/75,35/60
 2,Warrior,75/100,60/85,70/95,45/75

@@ -4,13 +4,33 @@ use super::hero_entity::HeroEntity;
 pub const HERO_EQUIPMENT_INVENTORY_ITEM_SIZE: usize = 7;
 
 
+// pub enum EquipmentSlot
+// {
+//     NotEquipped,
+//     Armor,
+//     RightHandWeapon,
+//     LeftHandWeapon,
+//     DualHandWeapon
+// } 
+
+pub struct EquipmentSlot(pub u32);
+
+impl EquipmentSlot 
+{
+    pub const NOT_EQUIPPED:      u32 = 0;
+    pub const ARMOR:             u32 = 1;
+    pub const RIGHT_HAND_WEAPON: u32 = 2;
+    pub const LEFT_HAND_WEAPON:  u32 = 3;
+    pub const DUAL_HAND_WEAPON:  u32 = 4; 
+}
+
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct EquipmentItem
 {
     pub equipment_definition_id : u16, //2
     pub equipment_unique_id : u32, //4
-    pub slot : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 means equipped.
+    pub slot : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 or more means equipped and the actual value tells you how it is equipped.
 }
 
 impl EquipmentItem
@@ -51,6 +71,19 @@ impl HeroEntity
             }
         }
         return found;
+    }
+
+    pub fn get_armor(&self) -> Option<EquipmentItem>
+    {
+        for item in &self.equipment_inventory
+        {
+            if item.slot == EquipmentSlot::ARMOR as u8
+            {
+                return Some(item.clone())
+            }
+        }
+
+        None
     }
 
     pub fn has_equipment_of_type(&self, definition_id : u16) -> bool

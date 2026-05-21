@@ -93,17 +93,20 @@ pub struct JoinWithHeroResponse
     pub available_points:u8,
     pub health:u16,
     pub strength_stat:u16,
-    pub endurance_stat:u16,
+    pub vitality_stat:u16,
     pub agility_stat:u16,
     pub will_stat:u16,
+    pub intelligence:u16,
+    pub realm:u8,
 }
 
+// esto ya no se usara.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ExchangeSkillPointsRequest
 {
     pub character_id : u16,
     pub strength:u8,
-    pub endurance:u8,
+    pub vitality:u8,
     pub agility:u8,
     pub will:u8,
 }
@@ -312,6 +315,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         vertex_id: -1,
         faction: data.faction as u8,
         profession: profession_index,
+        realm: 0,
         action: 0,
         flags: 0,
         inventory : Vec::new(),
@@ -321,14 +325,14 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         level: 0,
         experience: 0,
         available_skill_points: 5,
-        weapon:0,
         strength_stat: initial_stats.strength.init,
-        endurance_stat: initial_stats.endurance.init,
+        vitality_stat: initial_stats.vitality.init,
         agility_stat: initial_stats.agility.init,
         will_stat: initial_stats.will.init,
         health: 10,
         mana: 0,
         stamina: 10,
+        intelligence: 0,
         buffs : Vec::new(),
     };
 
@@ -351,6 +355,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         version:1,
         faction: data.faction as u8,
         profession: profession_index,
+        realm: 0,
         action: 0,
         position: initial_position_tile_id.clone(),
         second_position: initial_position_tile_id.clone(),
@@ -366,14 +371,14 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         level: 0,
         experience: 0,
         available_skill_points: 5,
-        equipped_item:0,
         strength_stat: initial_stats.strength.init,
-        endurance_stat: initial_stats.endurance.init,
+        vitality_stat: initial_stats.vitality.init,
         agility_stat: initial_stats.agility.init,
         will_stat: initial_stats.will.init,
         health: 10,
         mana: 0,
         stamina: 10,
+        intelligence: 0,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
         card_id_generator: 0,
@@ -563,7 +568,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
     if let Some(player) = players.get_mut(&data.character_id) 
     {
         cli_log::info!("player points exchange {:?}", player);
-        let total_points = data.strength + data.endurance + data.agility + data.will;
+        let total_points = data.strength + data.vitality + data.agility + data.will;
         if total_points > player.available_skill_points
         {
             return Err("not_enough_skill_points".to_owned());
@@ -572,7 +577,7 @@ pub async fn exchange_skill_points(context: AppContext, mut req: Request<Body>) 
         {
             player.available_skill_points -= total_points as u8;
             player.strength_stat += data.strength as u16;
-            player.endurance_stat += data.endurance as u16;
+            player.vitality_stat += data.vitality as u16;
             player.agility_stat += data.agility as u16;
             player.will_stat += data.will as u16;
             player.version += 1;

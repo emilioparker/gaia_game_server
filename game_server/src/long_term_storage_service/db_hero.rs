@@ -21,6 +21,7 @@ pub struct StoredHero
     pub character_id: u16,
     pub faction: u8,
     pub profession: u8,
+    pub realm: u8,
     pub character_name: String,
     pub position:String,
     pub vertex_id:i32,
@@ -34,11 +35,10 @@ pub struct StoredHero
     pub level:u8,
     pub experience:u32,
     pub available_skill_points:u8, // used for stats
-    pub weapon:u8,
 
     // stats
     pub strength_stat: u16,
-    pub endurance_stat: u16,
+    pub vitality_stat: u16,
     pub agility_stat: u16,
     pub will_stat: u16,
 
@@ -46,6 +46,7 @@ pub struct StoredHero
     pub health: u16,
     pub mana: u16,
     pub stamina: u16,
+    pub intelligence: u16,
     pub buffs: Vec<StoredBuff>,
     pub skills: Vec<StoredSkillItem>,
 }

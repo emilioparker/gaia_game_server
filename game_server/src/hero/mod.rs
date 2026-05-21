@@ -7,4 +7,5 @@ pub mod hero_inventory;
 pub mod hero_card_inventory;
 pub mod hero_equipment_inventory;
 pub mod hero_skill_inventory;
+mod battle_tests;
 

@@ -183,66 +183,98 @@ impl AbilityUser for MobEntity
     
     fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> i16 
     {
-        let _card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
+        // let _card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
 
-        let mut base_strength = 0;
-        let mut strength_points = 0;
-        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-        {
-            if let Some(entry) = mob_progression.get(self.level as usize) 
-            {
-                base_strength = entry.base_strength;
-                strength_points = entry.strength_points;
-            }
-        }
+        // let mut base_strength = 0;
+        // let mut strength_points = 0;
+        // if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+        // {
+        //     if let Some(entry) = mob_progression.get(self.level as usize) 
+        //     {
+        //         base_strength = entry.base_strength;
+        //         strength_points = entry.strength_points;
+        //     }
+        // }
 
-        let _added_strength : f32 = self.buffs.iter().map(|b| 
-            {
-                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-                {
-                    if def.buff_type == BUFF_STRENGTH
-                    {
-                        return def.base_value;
-                    }
-                }
-                return 0f32;
-            })
-            .sum();
+        // let _added_strength : f32 = self.buffs.iter().map(|b| 
+        //     {
+        //         if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
+        //         {
+        //             if def.buff_type == BUFF_STRENGTH
+        //             {
+        //                 return def.base_value;
+        //             }
+        //         }
+        //         return 0f32;
+        //     })
+        //     .sum();
 
-        let _stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
+        // let _stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
         // stat as u16 + card_strength + added_strength.round() as u16
         return 0
     }
 
     fn get_total_defense(&self, definition:&Definitions) -> i16
     {
-        let mut base_defense = 0;
-        let mut defense_points = 0;
-        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-        {
-            if let Some(entry) = mob_progression.get(self.level as usize) 
-            {
-                base_defense = entry.base_defense;
-                defense_points = entry.defense_points;
-            }
-        }
-        let added_defense : f32 = self.buffs.iter().map(|b| 
-            {
-                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-                {
-                    if def.buff_type == BUFF_DEFENSE
-                    {
-                        return def.base_value;
-                    }
-                }
-                return 0f32;
-            })
-            .sum();
+        // let mut base_defense = 0;
+        // let mut defense_points = 0;
+        // if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+        // {
+        //     if let Some(entry) = mob_progression.get(self.level as usize) 
+        //     {
+        //         base_defense = entry.base_defense;
+        //         defense_points = entry.defense_points;
+        //     }
+        // }
+        // let added_defense : f32 = self.buffs.iter().map(|b| 
+        //     {
+        //         if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
+        //         {
+        //             if def.buff_type == BUFF_DEFENSE
+        //             {
+        //                 return def.base_value;
+        //             }
+        //         }
+        //         return 0f32;
+        //     })
+        //     .sum();
 
-        let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
-        let level = self.level;
-        cli_log::info!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
+        // let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
+        // let level = self.level;
+        // cli_log::info!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
         // stat + added_defense.round() as u16
         return 0;
+    }
+    
+    fn get_mana(&self) -> u16 {
+        todo!()
+    }
+    
+    fn get_max_mana(&self, definition: &Definitions) -> u16 {
+        todo!()
+    }
+    
+    fn get_intelligence(&self) -> u16 {
+        todo!()
+    }
+    
+    fn get_max_intelligence(&self, definition: &Definitions) -> u16 {
+        todo!()
+    }
+    
+    fn get_endurance(&self) -> u16 {
+        todo!()
+    }
+    
+    fn get_max_endurance(&self, definition: &Definitions) -> u16 {
+        todo!()
+    }
+    
+    fn get_hp(&self) -> u16 {
+        todo!()
+    }
+    
+    fn get_max_hp(&self, definition: &Definitions) -> u16 {
+        todo!()
     }
 }

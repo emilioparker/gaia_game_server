@@ -29,6 +29,9 @@ use game_server::definitions::professions::Profession;
 use game_server::definitions::skills::Skill;
 use game_server::definitions::stat_bonuses::StatBonus;
 use game_server::definitions::stat_gains::StatGain;
+use game_server::definitions::realms::Realm;
+use game_server::definitions::armor_types::ArmorType;
+use game_server::definitions::damage_table::DamageTableEntry;
 use game_server::definitions::equipment::Equipment;
 use game_server::definitions::Definition;
 use game_server::AppData;
@@ -485,6 +488,15 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let file_name = format!("stat_gains.csv");
     let stat_gains_result = load_definition_by_name::<StatGain>(file_name).await;
 
+    let file_name = format!("realms.csv");
+    let realms_result = load_definition_by_name::<Realm>(file_name).await;
+
+    let file_name = format!("armor_types.csv");
+    let armor_types_result = load_definition_by_name::<ArmorType>(file_name).await;
+
+    let file_name = format!("damage_table.csv");
+    let damage_table_result = load_definition_by_name::<DamageTableEntry>(file_name).await;
+
     let mut buffs_hash = HashMap::new();
 
     for entry in &buffs_result.0
@@ -542,6 +554,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         professions_by_id: initial_stats_by_id,
         stat_bonus_table : stat_bonuses_result.0,
         stat_gains : stat_gains_result.0,
+        realms : realms_result.0,
+        armor_types : armor_types_result.0,
+        damage_table : damage_table_result.0,
     };
 
     let definitions_data = DefinitionsData
@@ -562,6 +577,9 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         initial_stats_data: initial_stats_result.1,
         stat_bonuses_data: stat_bonuses_result.1,
         stat_gains_data: stat_gains_result.1,
+        realms_data: realms_result.1,
+        armor_types_data: armor_types_result.1,
+        damage_table_data: damage_table_result.1,
     };
 
     (definitions, definitions_data)

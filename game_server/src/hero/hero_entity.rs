@@ -15,7 +15,7 @@ use super::hero_equipment_inventory::EquipmentItem;
 use super::hero_inventory::InventoryItem;
 use super::hero_skill_inventory::SkillData;
 
-pub const HERO_ENTITY_SIZE: usize = 51;
+pub const HERO_ENTITY_SIZE: usize = 53;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
@@ -30,7 +30,7 @@ pub struct HeroEntity
     pub hero_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub profession:u8, // 1 byte
-    pub equipped_item:u8,// 1 byte
+    pub realm:u8, // 1 byte
 
     pub position: TetrahedronId, // 6 bytes
 
@@ -60,7 +60,7 @@ pub struct HeroEntity
     // 7 bytes
 
     pub strength_stat: u16,
-    pub endurance_stat: u16,
+    pub vitality_stat: u16,
     pub agility_stat: u16,
     pub will_stat: u16,
 
@@ -70,6 +70,9 @@ pub struct HeroEntity
     pub health: u16, // 2 bytes
     pub mana: u16, // 2 bytes
     pub stamina: u16, // 2 bytes
+    pub intelligence: u16, // 2 bytes
+
+
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5], // this one is serialized but not saved 5 bytes
 
@@ -78,7 +81,7 @@ pub struct HeroEntity
 
     // 11 bytes
 
-    // 13 + 12 + 7 + 8 + 11 = 51
+    // 13 + 12 + 7 + 8 + 14 = 54
 }
 
 impl Clone for HeroEntity
@@ -94,7 +97,7 @@ impl Clone for HeroEntity
             hero_id: self.hero_id,
             faction: self.faction,
             profession: self.profession,
-            equipped_item: self.equipped_item,
+            realm: self.realm,
             position: self.position.clone(),
             second_position: self.second_position.clone(),
             vertex_id: self.vertex_id,
@@ -111,12 +114,13 @@ impl Clone for HeroEntity
             experience: self.experience,
             available_skill_points: self.available_skill_points,
             strength_stat: self.strength_stat,
-            endurance_stat: self.endurance_stat,
+            vitality_stat: self.vitality_stat,
             agility_stat: self.agility_stat,
             will_stat: self.will_stat,
             health: self.health,
             mana: self.mana,
             stamina: self.stamina,
+            intelligence: self.intelligence,
             buffs: self.buffs.clone(),
             buffs_summary: self.buffs_summary,
             card_id_generator: 0,
@@ -138,7 +142,7 @@ impl HeroEntity
             hero_id: self.hero_id,
             faction: self.faction,
             profession: self.profession,
-            equipped_item: self.equipped_item,
+            realm: self.realm,
             position: self.position.clone(),
             second_position: self.second_position.clone(),
             vertex_id: self.vertex_id,
@@ -155,12 +159,13 @@ impl HeroEntity
             experience: self.experience,
             available_skill_points: self.available_skill_points,
             strength_stat: self.strength_stat,
-            endurance_stat: self.endurance_stat,
+            vitality_stat: self.vitality_stat,
             agility_stat: self.agility_stat,
             will_stat: self.will_stat,
             health: self.health,
             mana: self.mana,
             stamina: self.stamina,
+            intelligence: self.intelligence,
             buffs: Vec::new(),
             buffs_summary: self.buffs_summary,
             card_id_generator: 0,
@@ -200,6 +205,10 @@ impl HeroEntity
 
         end = offset + 1;
         buffer[offset] = self.profession;
+        offset = end;
+
+        end = offset + 1;
+        buffer[offset] = self.realm;
         offset = end;
         // 6 bytes
 
@@ -249,18 +258,14 @@ impl HeroEntity
         buffer[offset] = self.available_skill_points;
         offset = end;
 
-        end = offset + 1;
-        buffer[offset] = self.equipped_item;
-        offset = end;
-
         end = offset + 2;
         let strength_bytes = u16::to_le_bytes(self.strength_stat); // 2 bytes
         buffer[offset..end].copy_from_slice(&strength_bytes);
         offset = end;
 
         end = offset + 2;
-        let endurance_bytes = u16::to_le_bytes(self.endurance_stat); // 2 bytes
-        buffer[offset..end].copy_from_slice(&endurance_bytes);
+        let vitality_bytes = u16::to_le_bytes(self.vitality_stat); // 2 bytes
+        buffer[offset..end].copy_from_slice(&vitality_bytes);
         offset = end;
 
         end = offset + 2;
@@ -286,6 +291,11 @@ impl HeroEntity
         let stamina_bytes = u16::to_le_bytes(self.stamina); // 2 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&stamina_bytes);
+        offset = end;
+
+        let intelligence_bytes = u16::to_le_bytes(self.intelligence); // 2 bytes
+        end = offset + 2;
+        buffer[offset..end].copy_from_slice(&intelligence_bytes);
         offset = end;
 
         // 5 pairs of 1 bytes, 10 bytes
@@ -315,7 +325,7 @@ impl HeroEntity
 
                 let potentials = [
                     (self.strength_stat,  profession.map_or(0, |p| p.strength.max)),
-                    (self.endurance_stat, profession.map_or(0, |p| p.endurance.max)),
+                    (self.vitality_stat, profession.map_or(0, |p| p.vitality.max)),
                     (self.agility_stat,   profession.map_or(0, |p| p.agility.max)),
                     (self.will_stat,      profession.map_or(0, |p| p.will.max)),
                 ];
@@ -327,7 +337,7 @@ impl HeroEntity
                 });
 
                 self.strength_stat  += gains[0];
-                self.endurance_stat += gains[1];
+                self.vitality_stat += gains[1];
                 self.agility_stat   += gains[2];
                 self.will_stat      += gains[3];
             }
@@ -411,117 +421,110 @@ impl AbilityUser for HeroEntity
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16
     {
-        let (str, end, agi, will) = definition.cards.get(card_id as usize).map_or((0u16, 0, 0, 0), |d| (d.strength_stat, d.endurance_stat, d.agility_stat, d.will_stat));
+        let (str, vit, agi, will) = definition.cards.get(card_id as usize).map_or((0f32, 0f32, 0f32, 0f32), |d| (d.strength_stat, d.vitality_stat, d.agility_stat, d.will_stat));
 
+        println!("car dstats {str} {vit} {agi} {will}" );
         let mut total_bonus = 0;
 
         // based on the card we pick the relevant stats.
-        if str > 0
+        if str > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get((self.strength_stat + str) as usize).map_or(0, |b| b.bonus);
-            total_bonus += bonus;
+            let bonus = definition.stat_bonus_table.get((self.strength_stat) as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * str).round() as i16;
+            println!("calculating attack str bonus {bonus} {total_bonus} {str}");
         }
 
-        if end > 0
+        if vit > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get((self.endurance_stat + end) as usize).map_or(0, |b| b.bonus);
-            total_bonus += bonus;
+            let bonus = definition.stat_bonus_table.get((self.vitality_stat) as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * vit).round() as i16;
         }
 
-        if agi > 0
+        if agi > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get((self.agility_stat + agi) as usize).map_or(0, |b| b.bonus);
-            total_bonus += bonus;
+            let bonus = definition.stat_bonus_table.get((self.agility_stat) as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * agi).round() as i16;
         }
 
-        if will > 0
+        if will > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get((self.will_stat + will) as usize).map_or(0, |b| b.bonus);
-            total_bonus += bonus;
+            let bonus = definition.stat_bonus_table.get((self.will_stat) as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * will).round() as i16;
         }
-
-        // based on the weapon we get the skill 
-        // let equipment_definition =  definition.equipment.iter().find(|w| w.id == self.equipped_item as u32).unwrap();
-        let skill_definition =  definition.skills_by_id.get(self.equipped_item as usize).unwrap();
-
-        // based on the skill we get the current skill rank
-        let rank = self.get_skill_rank(skill_definition.id as u8).unwrap_or(0);
-
-        // esto se ve mal, get skill costs and points deberia usarse cuando upgradeas un skill.
-        // using the profession we calculate how much the skill gives us as points.
-        let points = skill_definition.get_skill_cost_and_points_by_id(self.profession).map_or(0, |s| s.points);
-        total_bonus += (rank as u16 * points) as i16;
-
-        // let stat = self.strength_stat;
-        // let added_strength : f32 = self.buffs.iter().map(|b|
-        //     {
-        //         if let Some(def) = definition.get_buff_by_code(b.buff_id)
-        //         {
-        //             if def.buff_type == BUFF_STRENGTH
-        //             {
-        //                 return def.base_value;
-        //             }
-        //         }
-
-        //         return 0f32;
-        //     })
-        //     .sum();
-
-        // cli_log::info!(" -- calculate total attack {card_strength} stat {stat} buff {added_strength}");
-        // stat + card_strength + added_strength.round() as u16
 
         total_bonus
     }
 
-    fn get_total_defense(&self, _definition: &Definitions) -> i16
+    fn get_total_defense(&self, definition: &Definitions) -> i16
     {
-
-//         Defensive Bonus (DB) =
-//     Armor DB
-//   + Shield Bonus
-//   + Quickness Stat Bonus
-//   + Adrenal / Skill Bonuses
-//   + Magical Bonuses
-//   + Misc Modifiers
-
-        for _equipment in &self.equipment_inventory
-        {
-
-        }
-
-        // let stat = self.endurance_stat;
-        // let added_defense : f32 = self.buffs.iter().map(|b|
-        //     {
-        //         if let Some(def) = definition.get_buff_by_code(b.buff_id)
-        //         {
-        //             if def.buff_type == BUFF_DEFENSE
-        //             {
-        //                 return def.base_value;
-        //             }
-        //         }
-        //         return 0f32;
-        //     })
-        //     .sum();
-
-        // cli_log::info!("character added defense {} buffs_len: {}",added_defense, self.buffs.len());
-        // stat + added_defense.round() as i16
-        return 0;
+        let bonus = definition.stat_bonus_table.get((self.agility_stat) as usize).map_or(0, |b| b.bonus);
+        bonus
     }
 
-    // fn get_offensive_bonus(&self, definition: &Definitions) -> u16
-    // {
-    //     return 0;
-    // }
+    // I keep this here, because this might be affected by other things.. like buffs ? Not only that, I need mobs to use the same battle code.
+    fn get_hp(&self) -> u16 
+    {
+        self.health
+    }
 
-    // fn get_defensive_bonus(&self, definition: &Definitions) -> u16
-    // {
-    //     return 0;
-    // }
+    fn get_mana(&self) -> u16 
+    {
+        self.mana
+    }
+    
+    fn get_endurance(&self) -> u16 
+    {
+        self.stamina
+    }
+    
+    fn get_intelligence(&self) -> u16 
+    {
+        self.intelligence
+    }
+    
+    fn get_max_mana(&self, definition: &Definitions) -> u16 
+    {
+        let multiplier = definition.realms.get(self.realm as usize)
+            .map_or(1f32, |d| d.multiplier);
+
+        let result = (self.will_stat as f32 * 0.8f32 + self.vitality_stat as f32 * 0.2f32) * multiplier;
+        result.round() as u16
+    }
+    
+    fn get_max_intelligence(&self, definition: &Definitions) -> u16 
+    {
+        let multiplier = definition.realms.get(self.realm as usize)
+            .map_or(1f32, |d| d.multiplier);
+
+        let result = self.will_stat as f32 * multiplier;
+        result.round() as u16
+    }
+    
+    fn get_max_endurance(&self, definition: &Definitions) -> u16 
+    {
+        let multiplier = definition.realms.get(self.realm as usize)
+            .map_or(1f32, |d| d.multiplier);
+
+        let result = (self.vitality_stat as f32 * 0.8f32 + self.strength_stat as f32 * 0.2f32) * 0.5f32 * multiplier;
+        result.round() as u16
+    }
+    
+    fn get_max_hp(&self, definition: &Definitions) -> u16 
+    {
+        let multiplier = definition.realms.get(self.realm as usize)
+            .map_or(1f32, |d| d.multiplier);
+
+        let result = self.vitality_stat as f32 * multiplier;
+        result.round() as u16
+    }
 }
 
 
+// #[cfg(test)]
+// mod battle_tests;
+
 #[cfg(test)]
-mod tests 
+mod tests
 {
     use std::num::Wrapping;
     use std::sync::atomic::AtomicU32;
@@ -587,6 +590,7 @@ mod tests
             hero_id: 1234,
             faction:0,
             profession:0,
+            realm:0,
             action: 0,
             flags:0,
             position: TetrahedronId::default(),
@@ -604,14 +608,14 @@ mod tests
             level: 1,
             experience: 0,
             available_skill_points: 0,
-            equipped_item:0,
             strength_stat: 0,
-            endurance_stat: 0,
+            vitality_stat: 0,
             agility_stat: 0,
             will_stat: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
             stamina: 0,
+            intelligence: 0,
             card_id_generator: 0,
             equipment_id_generator: 0,
         };
@@ -650,6 +654,7 @@ mod tests
             hero_id: 2,
             faction: 0,
             profession: 0,
+            realm: 0,
             position: TetrahedronId::default(),
             second_position: TetrahedronId::default(),
             vertex_id:-1,
@@ -665,14 +670,14 @@ mod tests
             level: 0,
             experience: 0,
             available_skill_points: 0,
-            equipped_item:0,
             strength_stat: 23,
-            endurance_stat: 10,
+            vitality_stat: 10,
             agility_stat: 3,
             will_stat: 3,
             health: 10,
             mana: 0,
             stamina: 10,
+            intelligence: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
             card_id_generator: 0,

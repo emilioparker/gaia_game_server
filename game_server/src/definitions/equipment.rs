@@ -5,12 +5,20 @@ pub struct Equipment
 {
     pub id: u32,
     pub name: String,
+    pub equipment_type : String,
+    pub slot: u32,
+    pub armor_type: String,
     pub skill: String,
     pub card_name:String, // the card gives the properties when using the basic attack
 
-    pub cooldown_factor: f32,
-    pub mana_cost_factor: f32,
-    pub stamina_cost_factor: f32,
+    pub bonus_type: String,
+    pub bonus: u32,
+
+    pub intelligence_cost: f32,
+    pub mana_cost: f32,
+    pub stamina_cost: f32,
+    pub hp_cost: f32,
+
     pub hit_range_factor: f32,
 
     pub store_location: String,

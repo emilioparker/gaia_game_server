@@ -6,6 +6,20 @@ pub mod attack_result;
 
 pub trait AbilityUser
 {
+    fn get_mana(&self) -> u16;
+    fn get_max_mana(&self, definition: &Definitions) -> u16;
+
+    fn get_intelligence(&self) -> u16;
+    fn get_max_intelligence(&self, definition: &Definitions) -> u16;
+
+    fn get_endurance(&self) -> u16;
+    fn get_max_endurance(&self, definition: &Definitions) -> u16;
+
+    fn get_hp(&self) -> u16;
+    fn get_max_hp(&self, definition: &Definitions) -> u16;
+
+
+
     fn get_health(&self) -> u16;
     fn get_hit_points(&self, definition: &Definitions) -> u16;
 

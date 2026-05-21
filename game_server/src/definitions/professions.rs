@@ -13,13 +13,13 @@ pub struct Profession
     pub id: u8,
     pub profession: String,
     pub strength_stat_init_max: String,
-    pub endurance_stat_init_max: String,
+    pub vitality_stat_init_max: String,
     pub agility_stat_init_max: String,
     pub will_stat_init_max: String,
     #[serde(skip)]
     pub strength: StatInitMax,
     #[serde(skip)]
-    pub endurance: StatInitMax,
+    pub vitality: StatInitMax,
     #[serde(skip)]
     pub agility: StatInitMax,
     #[serde(skip)]
@@ -42,7 +42,7 @@ impl Definition for Profession
     fn fill_details(&mut self)
     {
         self.strength = Self::parse_init_max(&self.strength_stat_init_max);
-        self.endurance = Self::parse_init_max(&self.endurance_stat_init_max);
+        self.vitality = Self::parse_init_max(&self.vitality_stat_init_max);
         self.agility = Self::parse_init_max(&self.agility_stat_init_max);
         self.will = Self::parse_init_max(&self.will_stat_init_max);
     }

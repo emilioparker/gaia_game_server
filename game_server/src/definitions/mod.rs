@@ -14,6 +14,9 @@ pub mod skills;
 pub mod professions;
 pub mod stat_bonuses;
 pub mod stat_gains;
+pub mod realms;
+pub mod armor_types;
+pub mod damage_table;
 
 
 pub trait Definition 

@@ -6,13 +6,17 @@ pub struct Card
     pub id: u32,
     pub name: String,
     pub card_type: String,
-    pub required_equipment: String,
+    pub damage_type: String,
+    pub required_weapon: String,
     pub target_type: String,
 
-    pub strength_stat: u16,
-    pub endurance_stat: u16,
-    pub agility_stat: u16,
-    pub will_stat: u16,
+    #[serde(skip)]
+    pub damage_types: Vec<String>,
+
+    pub strength_stat: f32,
+    pub vitality_stat: f32,
+    pub agility_stat: f32,
+    pub will_stat: f32,
 
     pub equip_slot:u8, // 0 means not equippable, 1 is for the deck, the rest is for equipment.
     pub store_location: String,
@@ -35,5 +39,9 @@ impl Definition for Card
 {
     fn fill_details(&mut self)
     {
+        self.damage_types = self.damage_type
+            .split(';')
+            .map(|s| s.to_string())
+            .collect();
     }
 }
