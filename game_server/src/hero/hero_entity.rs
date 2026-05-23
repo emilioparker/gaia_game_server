@@ -367,6 +367,14 @@ impl HeroEntity
         HERO_ENTITY_SIZE
     }
 
+    pub fn max_stats(&mut self, definitions: &Definitions)
+    {
+        self.health = self.get_max_hp(definitions);
+        self.mana = self.get_max_mana(definitions);
+        self.stamina = self.get_max_stamina(definitions);
+        self.intelligence = self.get_max_intelligence(definitions);
+    }
+
 }
 
 impl Hash for HeroEntity 
@@ -410,13 +418,6 @@ impl AbilityUser for HeroEntity
     fn update_health(&mut self, new_health : u16, _definition: &Definitions) 
     {
         self.health = new_health;
-    }
-
-    fn get_hit_points(&self, definition: &Definitions) -> u16 
-    {
-        let body_development_skill = definition.skills.get("body_development_skill").unwrap();
-        let rank = self.get_skill_rank(body_development_skill.id as u8).unwrap_or(0);
-        (rank as u16 ) * 7
     }
     
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16
@@ -472,7 +473,7 @@ impl AbilityUser for HeroEntity
         self.mana
     }
     
-    fn get_endurance(&self) -> u16 
+    fn get_stamina(&self) -> u16 
     {
         self.stamina
     }
@@ -500,7 +501,7 @@ impl AbilityUser for HeroEntity
         result.round() as u16
     }
     
-    fn get_max_endurance(&self, definition: &Definitions) -> u16 
+    fn get_max_stamina(&self, definition: &Definitions) -> u16 
     {
         let multiplier = definition.realms.get(self.realm as usize)
             .map_or(1f32, |d| d.multiplier);

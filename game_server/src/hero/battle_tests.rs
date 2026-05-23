@@ -1,4 +1,4 @@
-use crate::{definitions::damage_table, map::tetrahedron_id::TetrahedronId};
+use crate::{definitions::{Definition, damage_table, definitions_container::Definitions}, map::tetrahedron_id::TetrahedronId};
 use super::hero_entity::HeroEntity;
 
 fn make_definitions() -> crate::definitions::definitions_container::Definitions
@@ -50,7 +50,12 @@ fn make_definitions() -> crate::definitions::definitions_container::Definitions
     let main_paths           = load_csv::<MapPath>            ("definitions/main_paths.csv");
     let towers_difficulty    = load_csv::<TowerDifficulty>    ("definitions/towers_difficulty.csv");
     let armor_types          = load_csv::<crate::definitions::armor_types::ArmorType>("definitions/armor_types.csv");
-    let damage_table         = load_csv::<crate::definitions::damage_table::DamageTableEntry>("definitions/damage_table.csv");
+    let mut damage_table = std::collections::HashMap::new();
+    for damage_type in crate::definitions::damage_table::DAMAGE_TYPES
+    {
+        let entries = load_csv::<crate::definitions::damage_table::DamageTableEntry>(&format!("definitions/damage_table_{damage_type}.csv"));
+        damage_table.insert(damage_type.to_string(), entries);
+    }
 
     let mut buffs = HashMap::new();
     for e in &buffs_by_code { buffs.insert(e.id.clone(), e.clone()); }
@@ -94,9 +99,9 @@ fn make_definitions() -> crate::definitions::definitions_container::Definitions
     }
 }
 
-fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, health: u16) -> HeroEntity
+fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, definitions: &Definitions) -> HeroEntity
 {
-    HeroEntity
+    let mut hero = HeroEntity
     {
         object_id: None,
         player_id: None,
@@ -118,7 +123,7 @@ fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, health: u16)
         equipment_inventory: Vec::new(),
         skills: Vec::new(),
         inventory_version: 0,
-        health,
+        health: 0,
         mana: 0,
         stamina: 0,
         intelligence: 0,
@@ -133,7 +138,11 @@ fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, health: u16)
         buffs_summary: [0; 5],
         card_id_generator: 0,
         equipment_id_generator: 0,
-    }
+    };
+
+    hero.max_stats(definitions);
+
+    hero
 }
 
 #[test]
@@ -150,8 +159,10 @@ fn test_simple_battle()
     let (ts, tv, ta, tw) = (tank.strength.init, tank.vitality.init, tank.agility.init, tank.will.init);
 
     // health = vitality at realm 0 (multiplier 1)
-    let attacker = make_hero(ws, wv, wa, ww, wv);
-    let mut defender = make_hero(ts, tv, ta, tw, tv);
+    let mut attacker = make_hero(ws, wv, wa, ww, &definitions);
+    let mut defender = make_hero(ts, tv, ta, tw, &definitions);
+
+    println!("before: warrior(str:{ws} agi:{wa}) vs tank(str:{ts} agi:{ta} defender_hp:{}", defender.health);
 
     // card 1 is punch_1 (strength-based attack)
     let attack = attacker.get_total_attack(1, &definitions);
@@ -166,9 +177,11 @@ fn test_simple_battle()
     let armor = defender.get_armor()
         .map_or("at1", |i| definitions.equipment[i.equipment_definition_id as usize].armor_type.as_str());
 
-    let damage = damage_table::get_damage(&definitions.damage_table, result, &card_data.damage_type, armor);
+    let damage = damage_table::get_damage(&definitions.damage_table, result, &card_data.damage_type, armor).unwrap_or((0, 'A'));
     println!("---- result {result} => {damage:?}");
-    // defender.health = defender.health.saturating_sub(damage);
+    defender.health = defender.health.saturating_sub(damage.0);
+    attacker.mana = attacker.mana.saturating_sub(card_data.mana_cost);
+    attacker.stamina = attacker.mana.saturating_sub(card_data.stamina_cost);
 
-    println!("warrior(str:{ws} agi:{wa}) vs tank(str:{ts} agi:{ta}) — attack:{attack} defense:{defense} roll:{roll} defender_hp:{}", defender.health);
+    println!("after: warrior(str:{ws} agi:{wa}) vs tank(str:{ts} agi:{ta}) — attack:{attack} defense:{defense} roll:{roll} defender_hp:{}", defender.health);
 }

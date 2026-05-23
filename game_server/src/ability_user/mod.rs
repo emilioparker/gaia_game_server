@@ -12,8 +12,8 @@ pub trait AbilityUser
     fn get_intelligence(&self) -> u16;
     fn get_max_intelligence(&self, definition: &Definitions) -> u16;
 
-    fn get_endurance(&self) -> u16;
-    fn get_max_endurance(&self, definition: &Definitions) -> u16;
+    fn get_stamina(&self) -> u16;
+    fn get_max_stamina(&self, definition: &Definitions) -> u16;
 
     fn get_hp(&self) -> u16;
     fn get_max_hp(&self, definition: &Definitions) -> u16;
@@ -21,7 +21,6 @@ pub trait AbilityUser
 
 
     fn get_health(&self) -> u16;
-    fn get_hit_points(&self, definition: &Definitions) -> u16;
 
     fn update_health(&mut self, new_health : u16, definition: &Definitions);
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16;

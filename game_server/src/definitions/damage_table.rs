@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use super::Definition;
 
-// // outer key: damage_type  inner key: (min_attack, max_attack)
-// pub type DamageMap = HashMap<String, HashMap<(i16, i16), DamageResult>>;
+pub const DAMAGE_TYPES: &[&str] = &["blunt", "slash", "piercing", "fire", "ice", "electricity"];
 
 #[derive(Debug, Clone)]
 pub struct DamageResult
@@ -30,7 +29,6 @@ impl DamageResult
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct DamageTableEntry
 {
-    pub damage_type: String,
     pub min_attack: i16,
     pub max_attack: i16,
 
@@ -67,23 +65,6 @@ impl DamageTableEntry
         self.results.get(armor_type_index.saturating_sub(1))
     }
 
-    // pub fn build_damage_map(damage_table: &[DamageTableEntry], armor_type_id: &str) -> DamageMap
-    // {
-    //     let index: usize = armor_type_id.trim_start_matches("at").parse().unwrap_or(0);
-    //     let mut map: DamageMap = HashMap::new();
-
-    //     for entry in damage_table
-    //     {
-    //         if let Some(result) = entry.get_result(index)
-    //         {
-    //             map.entry(entry.damage_type.clone())
-    //                 .or_insert_with(HashMap::new)
-    //                 .insert((entry.min_attack, entry.max_attack), result.clone());
-    //         }
-    //     }
-
-    //     map
-    // }
 }
 
 impl Definition for DamageTableEntry
@@ -101,15 +82,11 @@ impl Definition for DamageTableEntry
 }
 
 
-pub fn get_damage(damage_table: &[DamageTableEntry], damage: i16, damage_type: &str, armor_type_id: &str) -> Option<(u16, char)>
+pub fn get_damage(damage_table: &HashMap<String, Vec<DamageTableEntry>>, damage: i16, damage_type: &str, armor_type_id: &str) -> Option<(u16, char)>
 {
     let index: usize = armor_type_id.trim_start_matches("at").parse().ok()?;
-
-    let entry = damage_table.iter().find(|e| 
-    {
-        e.damage_type == damage_type && damage >= e.min_attack && damage <= e.max_attack
-    })?;
-
+    let entries = damage_table.get(damage_type)?;
+    let entry = entries.iter().find(|e| damage >= e.min_attack && damage <= e.max_attack)?;
     let result = entry.get_result(index)?;
     Some((result.hp, result.critical))
 }

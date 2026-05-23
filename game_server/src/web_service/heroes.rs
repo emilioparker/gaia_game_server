@@ -9,6 +9,7 @@ use hyper::Request;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::ability_user::AbilityUser;
 use crate::hero::hero_card_inventory::CardItem;
 use crate::hero::hero_entity::HeroEntity;
 use crate::hero::hero_equipment_inventory::EquipmentItem;
@@ -302,7 +303,7 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
     };
 
 
-    let stored_character = StoredHero
+    let mut stored_character = StoredHero
     {
         id: None,
         player_id: stored_player.id,
@@ -329,26 +330,18 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         vitality_stat: initial_stats.vitality.init,
         agility_stat: initial_stats.agility.init,
         will_stat: initial_stats.will.init,
-        health: 10,
+        health: 0,
         mana: 0,
-        stamina: 10,
+        stamina: 0,
         intelligence: 0,
         buffs : Vec::new(),
     };
 
-    let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
-    let result = data_collection.insert_one(stored_character, None).await.unwrap();
-
-    let object_id: Option<ObjectId> = match result.inserted_id
-    {
-        bson::Bson::ObjectId(id) => Some(id),
-        _ => None,
-    };
 
     let initial_position_tile_id = TetrahedronId::from_string(initial_position);
-    let player_entity = HeroEntity
+    let mut player_entity = HeroEntity
     {
-        object_id,
+        object_id: None,
         player_id: stored_player.id,
         hero_name : stored_player.player_name.clone(),
         hero_id: new_id,
@@ -375,9 +368,9 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         vitality_stat: initial_stats.vitality.init,
         agility_stat: initial_stats.agility.init,
         will_stat: initial_stats.will.init,
-        health: 10,
+        health: 0,
         mana: 0,
-        stamina: 10,
+        stamina: 0,
         intelligence: 0,
         buffs : Vec::new(),
         buffs_summary: [0,0,0,0,0],
@@ -385,6 +378,25 @@ pub async fn handle_create_hero(context: AppContext, mut req: Request<Body>) ->R
         equipment_id_generator: 0,
     };
 
+    player_entity.max_stats(&context.working_game_map.definitions);
+
+    stored_character.health = player_entity.health;
+    stored_character.mana = player_entity.mana;
+    stored_character.stamina = player_entity.stamina;
+
+    // add to database
+    let data_collection: mongodb::Collection<StoredHero> = context.db_client.database("game").collection::<StoredHero>("characters");
+    let result = data_collection.insert_one(stored_character, None).await.unwrap();
+
+    let object_id: Option<ObjectId> = match result.inserted_id
+    {
+        bson::Bson::ObjectId(id) => Some(id),
+        _ => None,
+    };
+
+    player_entity.object_id = object_id;
+
+    // add to players
     let mut players = context.working_game_map.character.lock().await;
     players.insert(new_id, player_entity.clone());
     drop(players);

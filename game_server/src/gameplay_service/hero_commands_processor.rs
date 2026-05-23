@@ -233,7 +233,7 @@ pub async fn use_item(
 
                 cli_log::info!("using item with result {} and  {:?}",result, definition.usage);
 
-                let hit_points = hero_entity.get_hit_points(&map.definitions);
+                let hit_points = hero_entity.get_max_hp(&map.definitions);
 
                 match (result, definition.usage)
                 {
@@ -559,8 +559,7 @@ pub async fn respawn(
     cli_log::info!("respawn {} to {}", player_id, respawn_tile_id.to_string());
     if let Some(hero_entity) = hero_option 
     {
-        let character_definition = map.definitions.character_progression.get(hero_entity.level as usize).unwrap();
-        let hit_points = hero_entity.get_hit_points(&map.definitions);
+        let hit_points = hero_entity.get_max_hp(&map.definitions);
         cli_log::info!("b-respawn {}", hit_points);
         let updated_hero_entity = HeroEntity 
         {

@@ -161,22 +161,22 @@ impl AbilityUser for MobEntity
         self.health
     }
 
-    fn get_hit_points(&self, definition: &Definitions) -> u16 
-    {
-        let mut constitution = 0;
-        if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-        {
-            if let Some(entry) = mob_progression.get(self.level as usize) 
-            {
-                constitution = entry.constitution;
-            }
-        }
-        constitution
-    }
+    // fn get_hit_points(&self, definition: &Definitions) -> u16 
+    // {
+    //     let mut constitution = 0;
+    //     if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
+    //     {
+    //         if let Some(entry) = mob_progression.get(self.level as usize) 
+    //         {
+    //             constitution = entry.constitution;
+    //         }
+    //     }
+    //     constitution
+    // }
 
     fn update_health(&mut self, new_health : u16, definition: &Definitions) 
     {
-        let constitution = self.get_hit_points(definition);
+        let constitution = self.get_max_hp(definition);
         self.health =  new_health.min(constitution);
         cli_log::info!("---- updated health {}" ,self.health)
     }
@@ -262,11 +262,11 @@ impl AbilityUser for MobEntity
         todo!()
     }
     
-    fn get_endurance(&self) -> u16 {
+    fn get_stamina(&self) -> u16 {
         todo!()
     }
     
-    fn get_max_endurance(&self, definition: &Definitions) -> u16 {
+    fn get_max_stamina(&self, definition: &Definitions) -> u16 {
         todo!()
     }
     

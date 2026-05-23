@@ -47,7 +47,7 @@ pub struct Definitions
     pub stat_gains : Vec<StatGain>,
     pub realms : Vec<Realm>,
     pub armor_types : Vec<ArmorType>,
-    pub damage_table : Vec<DamageTableEntry>,
+    pub damage_table : HashMap<String, Vec<DamageTableEntry>>,
 }
 
 #[derive(Debug, Clone)]
@@ -71,5 +71,5 @@ pub struct DefinitionsData
     pub stat_gains_data : Vec<u8>,
     pub realms_data : Vec<u8>,
     pub armor_types_data : Vec<u8>,
-    pub damage_table_data : Vec<u8>,
+    pub damage_table_data : HashMap<String, Vec<u8>>,
 }
