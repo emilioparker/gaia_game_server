@@ -3,3 +3,8 @@ id,profession,strength_stat_init_max,vitality_stat_init_max,agility_stat_init_ma
 1,Tank,65/90,80/100,40/75,35/60
 2,Warrior,75/100,60/85,70/95,45/75
 3,Mage,40/65,45/75,50/80,80/100
+4,warrior_goblin,40/60,30/50,35/55,20/35
+5,tank_goblin,30/50,50/70,20/35,20/35
+6,shaman_goblin,15/30,20/35,25/40,45/65
+7,centaur,60/80,50/70,55/75,30/50
+8,golem,70/90,80/100,15/30,10/20

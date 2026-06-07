@@ -330,19 +330,17 @@ pub async fn spawn_mob(
         end_position_id : tile_id.clone(),
         path: [0,0,0,0,0,0],
         time: 0,
+        strength_stat: 0,
+        vitality_stat: 0,
+        agility_stat: 0,
+        will_stat: 0,
         health: 0,
         buffs: Vec::new(),
         buffs_summary: [0,0,0,0,0],
     };
 
 
-    if let Some(mob_progression) = map.definitions.mob_progression_by_mob.get(definition_id as usize)
-    {
-        if let Some(entry) = mob_progression.get(level as usize) 
-        {
-            new_mob.health =  entry.constitution;
-        }
-    }
+    new_mob.init_stats(&map.definitions);
 
     let region = map.get_mob_region_from_child(&tile_id);
     let region_for_positions = map.get_mob_positions_region_from_child(&tile_id);

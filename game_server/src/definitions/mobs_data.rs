@@ -1,14 +1,13 @@
 use super::Definition;
 
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct MobData 
+pub struct MobData
 {
     pub id: u16,
-    pub name:String,
-    pub mob_type:String,
-    pub item:String,
-    pub area:String,
-    pub awareness_range:u32
+    pub name: String,
+    pub mob_type: String,
+    pub profession: u8,
+    pub awareness_range: u32,
 }
 
 

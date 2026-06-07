@@ -1,5 +1,6 @@
 use crate::{definitions::{Definition, damage_table, definitions_container::Definitions}, map::tetrahedron_id::TetrahedronId};
 use super::hero_entity::HeroEntity;
+use crate::mob::mob_entity::MobEntity;
 
 fn make_definitions() -> crate::definitions::definitions_container::Definitions
 {
@@ -145,8 +146,69 @@ fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, definitions:
     hero
 }
 
+fn make_mob(mob_definition_id: u16, level: u8, definitions: &Definitions) -> MobEntity
+{
+    use crate::ability_user::AbilityUser;
+
+    let mut mob = MobEntity
+    {
+        mob_id: 1,
+        mob_definition_id,
+        level,
+        version: 1,
+        owner_id: 0,
+        ownership_time: 0,
+        start_position_id: TetrahedronId::default(),
+        end_position_id: TetrahedronId::default(),
+        path: [0; 6],
+        time: 0,
+        strength_stat: 0,
+        vitality_stat: 0,
+        agility_stat: 0,
+        will_stat: 0,
+        health: 0,
+        buffs: Vec::new(),
+        buffs_summary: [0; 5],
+    };
+
+    mob.init_stats(definitions);
+    mob
+}
+
 #[test]
-fn test_simple_battle()
+fn test_warrior_vs_mob()
+{
+    use crate::ability_user::AbilityUser;
+
+    let definitions = make_definitions();
+
+    let warrior = definitions.professions.get("Warrior").unwrap();
+    let (ws, wv, wa, ww) = (warrior.strength.init, warrior.vitality.init, warrior.agility.init, warrior.will.init);
+
+    // mob 1 = enemy_1 (goblin), level 0
+    let mut attacker = make_hero(ws, wv, wa, ww, &definitions);
+    let mut mob = make_mob(1, 0, &definitions);
+
+    println!("before: warrior(str:{ws} agi:{wa}) vs mob(hp:{})", mob.health);
+
+    let attack = attacker.get_total_attack(1, &definitions);
+    let defense = mob.get_total_defense(&definitions);
+
+    let roll = rand::Rng::gen_range(&mut rand::thread_rng(), 1i16..=100);
+    let result = (roll + attack - defense).max(0);
+
+    let card_data = definitions.cards.get(1).unwrap();
+    let damage = damage_table::get_damage(&definitions.damage_table, result, &card_data.damage_type, "at1").unwrap_or((0, 'A'));
+    println!("---- result {result} => {damage:?}");
+    mob.health = mob.health.saturating_sub(damage.0);
+    attacker.mana = attacker.mana.saturating_sub(card_data.mana_cost);
+    attacker.stamina = attacker.stamina.saturating_sub(card_data.stamina_cost);
+
+    println!("after: warrior(str:{ws} agi:{wa}) vs mob — attack:{attack} defense:{defense} roll:{roll} mob_hp:{}", mob.health);
+}
+
+#[test]
+fn test_warrior_vs_tank()
 {
     use crate::ability_user::AbilityUser;
 

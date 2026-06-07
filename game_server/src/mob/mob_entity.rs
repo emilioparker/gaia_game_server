@@ -1,3 +1,5 @@
+use rand::rngs::StdRng;
+
 use crate::ability_user::AbilityUser;
 use crate::buffs::buff::Buff;
 use crate::buffs::buff::BuffUser;
@@ -33,13 +35,18 @@ pub struct MobEntity
 
     // 16 bytes
 
+    pub strength_stat: u16,
+    pub vitality_stat: u16,
+    pub agility_stat: u16,
+    pub will_stat: u16,
+
+    // 8 bytes
+
+    // stats
     pub health: u16, // 2 bytes
+
     pub buffs : Vec<Buff>,// this one is not serializable  normally
     pub buffs_summary : [u8;5], // this one is serialized but not saved 10 bytes
-
-    // 7 bytes
-
-    //total 8 + 6 + 16 + 7 = 37 
 
 }
 
@@ -154,127 +161,114 @@ impl BuffUser for MobEntity
     }
 }
 
+impl MobEntity
+{
+    pub fn init_stats(&mut self, definitions: &Definitions)
+    {
+        let profession_id = definitions.mobs
+            .get(self.mob_definition_id as usize)
+            .map_or(0, |m| m.profession);
+
+        let profession = definitions.professions_by_id.get(profession_id as usize);
+        let (str_init, vit_init, agi_init, will_init) = profession
+            .map_or((0, 0, 0, 0), |p| (p.strength.init, p.vitality.init, p.agility.init, p.will.init));
+
+        let entry = definitions.mob_progression_by_mob
+            .get(self.mob_definition_id as usize)
+            .and_then(|p| p.get(self.level as usize));
+
+            // asumimos lo maximo que podria ganar si fuera un jugador, luego lo reducimos y le aplicamos una reduccion
+        let max_possible_stat_increase = self.level * 4;
+        let mut random_generator = <StdRng as rand::SeedableRng>::from_entropy();
+        let reduction_effect = rand::Rng::gen::<f32>(&mut random_generator) * 2f32 - 1f32;
+        let stat_increase = max_possible_stat_increase as u16 + (max_possible_stat_increase as f32 * 0.5f32 * reduction_effect).floor() as u16;
+
+        self.strength_stat = str_init + stat_increase;
+        self.vitality_stat = vit_init + stat_increase;
+        self.agility_stat  = agi_init + stat_increase;
+        self.will_stat     = will_init + stat_increase;
+
+        self.health = self.get_max_hp(definitions);
+    }
+}
+
 impl AbilityUser for MobEntity
 {
-    fn get_health(&self) -> u16 
+    fn get_health(&self) -> u16
     {
         self.health
     }
 
-    // fn get_hit_points(&self, definition: &Definitions) -> u16 
-    // {
-    //     let mut constitution = 0;
-    //     if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-    //     {
-    //         if let Some(entry) = mob_progression.get(self.level as usize) 
-    //         {
-    //             constitution = entry.constitution;
-    //         }
-    //     }
-    //     constitution
-    // }
-
-    fn update_health(&mut self, new_health : u16, definition: &Definitions) 
+    fn update_health(&mut self, new_health: u16, definition: &Definitions)
     {
-        let constitution = self.get_max_hp(definition);
-        self.health =  new_health.min(constitution);
-        cli_log::info!("---- updated health {}" ,self.health)
+        self.health = new_health.min(self.get_max_hp(definition));
+        cli_log::info!("---- updated mob health {}", self.health)
     }
-    
-    fn get_total_attack(&self, card_id: u32, definition: &Definitions) -> i16 
+
+    fn get_total_attack(&self, _card_id: u32, definition: &Definitions) -> i16
     {
-        // let _card_strength = definition.cards.get(card_id as usize).map_or(0u16, |d| d.strength_stat);
+        let bonus = definition.stat_bonus_table
+            .get(self.strength_stat as usize)
+            .map_or(0, |b| b.bonus);
 
-        // let mut base_strength = 0;
-        // let mut strength_points = 0;
-        // if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-        // {
-        //     if let Some(entry) = mob_progression.get(self.level as usize) 
-        //     {
-        //         base_strength = entry.base_strength;
-        //         strength_points = entry.strength_points;
-        //     }
-        // }
+        let added_strength: f32 = self.buffs.iter().map(|b|
+            {
+                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_STRENGTH { return def.base_value; }
+                }
+                0f32
+            })
+            .sum();
 
-        // let _added_strength : f32 = self.buffs.iter().map(|b| 
-        //     {
-        //         if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-        //         {
-        //             if def.buff_type == BUFF_STRENGTH
-        //             {
-        //                 return def.base_value;
-        //             }
-        //         }
-        //         return 0f32;
-        //     })
-        //     .sum();
-
-        // let _stat = MobEntity::calculate_stat(base_strength, strength_points as u8, 2.2f32, 1f32);
-        // stat as u16 + card_strength + added_strength.round() as u16
-        return 0
+        bonus + added_strength.round() as i16
     }
 
-    fn get_total_defense(&self, definition:&Definitions) -> i16
+    fn get_total_defense(&self, definition: &Definitions) -> i16
     {
-        // let mut base_defense = 0;
-        // let mut defense_points = 0;
-        // if let Some(mob_progression) = definition.mob_progression_by_mob.get(self.mob_definition_id as usize)
-        // {
-        //     if let Some(entry) = mob_progression.get(self.level as usize) 
-        //     {
-        //         base_defense = entry.base_defense;
-        //         defense_points = entry.defense_points;
-        //     }
-        // }
-        // let added_defense : f32 = self.buffs.iter().map(|b| 
-        //     {
-        //         if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-        //         {
-        //             if def.buff_type == BUFF_DEFENSE
-        //             {
-        //                 return def.base_value;
-        //             }
-        //         }
-        //         return 0f32;
-        //     })
-        //     .sum();
+        let bonus = definition.stat_bonus_table
+            .get(self.agility_stat as usize)
+            .map_or(0, |b| b.bonus);
 
-        // let stat = MobEntity::calculate_stat(base_defense, defense_points as u8, 2.2f32, 1f32);
-        // let level = self.level;
-        // cli_log::info!(" -- for level {level} calculate total defense base {base_defense} points {defense_points}  stat {stat} buff {added_defense}");
-        // stat + added_defense.round() as u16
-        return 0;
+        let added_defense: f32 = self.buffs.iter().map(|b|
+            {
+                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
+                {
+                    if def.buff_type == BUFF_DEFENSE { return def.base_value; }
+                }
+                0f32
+            })
+            .sum();
+
+        bonus + added_defense.round() as i16
     }
-    
-    fn get_mana(&self) -> u16 {
-        todo!()
-    }
-    
-    fn get_max_mana(&self, definition: &Definitions) -> u16 {
-        todo!()
-    }
-    
-    fn get_intelligence(&self) -> u16 {
-        todo!()
-    }
-    
-    fn get_max_intelligence(&self, definition: &Definitions) -> u16 {
-        todo!()
-    }
-    
-    fn get_stamina(&self) -> u16 {
-        todo!()
-    }
-    
-    fn get_max_stamina(&self, definition: &Definitions) -> u16 {
-        todo!()
-    }
-    
-    fn get_hp(&self) -> u16 {
-        todo!()
-    }
-    
-    fn get_max_hp(&self, definition: &Definitions) -> u16 {
-        todo!()
+
+    fn get_mana(&self) -> u16 { 0 }
+
+    fn get_max_mana(&self, _definition: &Definitions) -> u16 { 0 }
+
+    fn get_intelligence(&self) -> u16 { 0 }
+
+    fn get_max_intelligence(&self, _definition: &Definitions) -> u16 { 0 }
+
+    fn get_stamina(&self) -> u16 { 0 }
+
+    fn get_max_stamina(&self, _definition: &Definitions) -> u16 { 0 }
+
+    fn get_hp(&self) -> u16 { self.health }
+
+    fn get_max_hp(&self, definition: &Definitions) -> u16
+    {
+        let realm = definition
+            .mob_progression_by_mob
+            .get(self.mob_definition_id as usize)
+            .and_then(|p| p.get(self.level as usize))
+            .map_or(0, |p| p.realm);
+
+        let multiplier = definition.realms.get(realm as usize)
+            .map_or(1f32, |d| d.multiplier);
+
+        let result = self.vitality_stat as f32 * multiplier;
+        result.round() as u16
     }
 }
