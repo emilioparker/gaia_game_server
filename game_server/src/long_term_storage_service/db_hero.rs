@@ -41,6 +41,7 @@ pub struct StoredHero
     pub vitality_stat: u16,
     pub agility_stat: u16,
     pub will_stat: u16,
+    pub regeneration_time: u32,
 
     // stats
     pub health: u16,

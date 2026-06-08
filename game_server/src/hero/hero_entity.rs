@@ -15,7 +15,7 @@ use super::hero_equipment_inventory::EquipmentItem;
 use super::hero_inventory::InventoryItem;
 use super::hero_skill_inventory::SkillData;
 
-pub const HERO_ENTITY_SIZE: usize = 53;
+pub const HERO_ENTITY_SIZE: usize = 57;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
@@ -63,8 +63,9 @@ pub struct HeroEntity
     pub vitality_stat: u16,
     pub agility_stat: u16,
     pub will_stat: u16,
+    pub regeneration_time: u32, // 4 bytes
 
-    // 8 bytes
+    // 12 bytes
 
     // stats
     pub health: u16, // 2 bytes
@@ -117,6 +118,7 @@ impl Clone for HeroEntity
             vitality_stat: self.vitality_stat,
             agility_stat: self.agility_stat,
             will_stat: self.will_stat,
+            regeneration_time: self.regeneration_time,
             health: self.health,
             mana: self.mana,
             stamina: self.stamina,
@@ -162,6 +164,7 @@ impl HeroEntity
             vitality_stat: self.vitality_stat,
             agility_stat: self.agility_stat,
             will_stat: self.will_stat,
+            regeneration_time: self.regeneration_time,
             health: self.health,
             mana: self.mana,
             stamina: self.stamina,
@@ -276,6 +279,11 @@ impl HeroEntity
         let will_bytes = u16::to_le_bytes(self.will_stat); // 2 bytes
         end = offset + 2;
         buffer[offset..end].copy_from_slice(&will_bytes);
+        offset = end;
+
+        let regeneration_time_bytes = u32::to_le_bytes(self.regeneration_time); // 4 bytes
+        end = offset + 4;
+        buffer[offset..end].copy_from_slice(&regeneration_time_bytes);
         offset = end;
 
         let health_bytes = u16::to_le_bytes(self.health); // 2 bytes
@@ -420,46 +428,9 @@ impl AbilityUser for HeroEntity
         self.health = new_health;
     }
     
-    fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16
+    fn get_stats(&self) -> (u16, u16, u16, u16)
     {
-        let (str, vit, agi, will) = definition.cards.get(card_id as usize).map_or((0f32, 0f32, 0f32, 0f32), |d| (d.strength_stat, d.vitality_stat, d.agility_stat, d.will_stat));
-
-        println!("car dstats {str} {vit} {agi} {will}" );
-        let mut total_bonus = 0;
-
-        // based on the card we pick the relevant stats.
-        if str > 0.01f32
-        {
-            let bonus = definition.stat_bonus_table.get((self.strength_stat) as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * str).round() as i16;
-            println!("calculating attack str bonus {bonus} {total_bonus} {str}");
-        }
-
-        if vit > 0.01f32
-        {
-            let bonus = definition.stat_bonus_table.get((self.vitality_stat) as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * vit).round() as i16;
-        }
-
-        if agi > 0.01f32
-        {
-            let bonus = definition.stat_bonus_table.get((self.agility_stat) as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * agi).round() as i16;
-        }
-
-        if will > 0.01f32
-        {
-            let bonus = definition.stat_bonus_table.get((self.will_stat) as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * will).round() as i16;
-        }
-
-        total_bonus
-    }
-
-    fn get_total_defense(&self, definition: &Definitions) -> i16
-    {
-        let bonus = definition.stat_bonus_table.get((self.agility_stat) as usize).map_or(0, |b| b.bonus);
-        bonus
+        (self.strength_stat, self.vitality_stat, self.agility_stat, self.will_stat)
     }
 
     // I keep this here, because this might be affected by other things.. like buffs ? Not only that, I need mobs to use the same battle code.
@@ -613,6 +584,7 @@ mod tests
             vitality_stat: 0,
             agility_stat: 0,
             will_stat: 0,
+            regeneration_time: 0,
             buffs: Vec::new(),
             buffs_summary: [0,0,0,0,0],
             stamina: 0,
@@ -675,6 +647,7 @@ mod tests
             vitality_stat: 10,
             agility_stat: 3,
             will_stat: 3,
+            regeneration_time: 0,
             health: 10,
             mana: 0,
             stamina: 10,

@@ -135,6 +135,7 @@ fn make_hero(strength: u16, vitality: u16, agility: u16, will: u16, definitions:
         vitality_stat: vitality,
         agility_stat: agility,
         will_stat: will,
+        regeneration_time: 0,
         buffs: Vec::new(),
         buffs_summary: [0; 5],
         card_id_generator: 0,

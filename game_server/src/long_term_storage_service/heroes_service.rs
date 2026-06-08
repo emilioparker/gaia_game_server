@@ -121,6 +121,7 @@ pub async fn get_heroes_from_db_by_world(
                     vitality_stat: doc.vitality_stat,
                     agility_stat: doc.agility_stat,
                     will_stat: doc.will_stat,
+                    regeneration_time: doc.regeneration_time,
                     health: doc.health,
                     mana: doc.mana,
                     stamina: doc.stamina,
@@ -286,6 +287,7 @@ pub fn start_server(
                             "vitality_stat": bson::to_bson(&player.vitality_stat).unwrap(),
                             "agility_stat": bson::to_bson(&player.agility_stat).unwrap(),
                             "will_stat": bson::to_bson(&player.will_stat).unwrap(),
+                            "regeneration_time": bson::to_bson(&player.regeneration_time).unwrap(),
                             "skills" : skills_serialized_data,
                             "buffs" : serialized_buffs_data,
                         }

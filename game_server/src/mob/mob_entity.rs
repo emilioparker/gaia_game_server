@@ -3,8 +3,6 @@ use rand::rngs::StdRng;
 use crate::ability_user::AbilityUser;
 use crate::buffs::buff::Buff;
 use crate::buffs::buff::BuffUser;
-use crate::buffs::buff::BUFF_DEFENSE;
-use crate::buffs::buff::BUFF_STRENGTH;
 use crate::definitions::definitions_container::Definitions;
 use crate::map::tetrahedron_id::TetrahedronId;
 
@@ -205,42 +203,9 @@ impl AbilityUser for MobEntity
         cli_log::info!("---- updated mob health {}", self.health)
     }
 
-    fn get_total_attack(&self, _card_id: u32, definition: &Definitions) -> i16
+    fn get_stats(&self) -> (u16, u16, u16, u16)
     {
-        let bonus = definition.stat_bonus_table
-            .get(self.strength_stat as usize)
-            .map_or(0, |b| b.bonus);
-
-        let added_strength: f32 = self.buffs.iter().map(|b|
-            {
-                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-                {
-                    if def.buff_type == BUFF_STRENGTH { return def.base_value; }
-                }
-                0f32
-            })
-            .sum();
-
-        bonus + added_strength.round() as i16
-    }
-
-    fn get_total_defense(&self, definition: &Definitions) -> i16
-    {
-        let bonus = definition.stat_bonus_table
-            .get(self.agility_stat as usize)
-            .map_or(0, |b| b.bonus);
-
-        let added_defense: f32 = self.buffs.iter().map(|b|
-            {
-                if let Some(def) = definition.buffs_by_code.get(b.buff_id as usize)
-                {
-                    if def.buff_type == BUFF_DEFENSE { return def.base_value; }
-                }
-                0f32
-            })
-            .sum();
-
-        bonus + added_defense.round() as i16
+        (self.strength_stat, self.vitality_stat, self.agility_stat, self.will_stat)
     }
 
     fn get_mana(&self) -> u16 { 0 }
