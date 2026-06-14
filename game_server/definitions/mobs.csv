@@ -1,8 +1,8 @@
-id,name,mob_type,profession,awareness_range
-0,none,empty,0,2
-1,enemy_1,goblin,4,2
-2,enemy_2,goblin_warrior,5,2
-3,enemy_3,goblin_shaman,6,2
-4,enemy_4,centaur,7,3
-5,enemy_5,golem_stone,8,1
-6,enemy_6,golem_ice,8,1
+id,name,mob_type,profession,awareness_range,area
+0,none,empty,0,2,0;5;0;5
+1,enemy_1,goblin,4,2,3;4;3;4
+2,enemy_2,goblin_warrior,5,2,3;4;3;4
+3,enemy_3,goblin_shaman,6,2,3;4;3;4
+4,enemy_4,centaur,7,3,2;4;2;4
+5,enemy_5,golem_stone,8,1,3;5;3;5
+6,enemy_6,golem_ice,8,1,0;0;0;5
