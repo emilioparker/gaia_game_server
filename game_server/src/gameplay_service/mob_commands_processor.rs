@@ -658,7 +658,6 @@ pub async fn cast_mob_from_character(
             let reward = InventoryItem 
             {
                 item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                equipped:0,
                 amount: 1,
             };
             attacker.add_inventory_item(reward);
@@ -679,7 +678,6 @@ pub async fn cast_mob_from_character(
                 let reward = InventoryItem 
                 {
                     item_id: shard_id, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                    equipped:0,
                     amount: 1,
                 };
 

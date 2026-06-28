@@ -8,6 +8,7 @@ pub struct MobData
     pub mob_type: String,
     pub profession: u8,
     pub awareness_range: u32,
+    pub area: String,
 }
 
 

@@ -13,6 +13,7 @@ use crate::hero::hero_command::HeroCommand;
 use crate::hero::hero_command::HeroCommandInfo;
 use crate::hero::hero_entity::HeroEntity;
 use crate::hero::hero_entity::CHAT_FLAG;
+use crate::hero::hero_entity::InventoryType;
 use crate::hero::hero_equipment_inventory::EquipmentItem;
 use crate::hero::hero_inventory::InventoryItem;
 use crate::hero::hero_presentation::HeroPresentation;
@@ -227,7 +228,6 @@ pub async fn use_item(
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
                     item_id,
-                    equipped: 0,
                     amount,
                 });// remove soft currency
 
@@ -282,15 +282,11 @@ pub async fn equip_item(
     {
         Some(hero_entity) => 
         {
-            if inventory_type == 0
+            if inventory_type == InventoryType::ITEMS 
             {
-                let result = hero_entity.equip_inventory_item(item_id, current_slot, new_slot);
-                cli_log::info!("equip item with result {}",result);
-
-                tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
-                heros_summary.push(hero_entity.clone_for_sending());
+                cli_log::info!("item can't be equipped");
             }
-            else if inventory_type == 1
+            else if inventory_type == InventoryType::CARDS 
             {
                 let result = hero_entity.equip_card(item_id, current_slot, new_slot);
                 cli_log::info!("equip item with result {}",result);
@@ -298,7 +294,7 @@ pub async fn equip_item(
                 tx_pe_gameplay_longterm.send(hero_entity.clone()).await.unwrap();
                 heros_summary.push(hero_entity.clone_for_sending());
             }
-            else if inventory_type == 2
+            else if inventory_type == InventoryType::EQUIPMENT 
             {
                 let result = hero_entity.equip_equipment(item_id, current_slot, new_slot);
                 cli_log::info!("equip equipment with result {}",result);
@@ -328,7 +324,7 @@ pub async fn buy_item(
 
     let hero_option = hero_entities.get_mut(&player_id);
 
-    if inventory_type == 0
+    if inventory_type == InventoryType::ITEMS 
     {
         let cost  = map.definitions.items.get(item_definition_id as usize).map(|d| d.cost);
         cli_log::info!("cost {cost:?}");
@@ -339,7 +335,6 @@ pub async fn buy_item(
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
                     item_id : 0,
-                    equipped : 0,
                     amount : cost * amount,
                 });// remove soft currency
 
@@ -348,7 +343,6 @@ pub async fn buy_item(
                     hero_entity.add_inventory_item(InventoryItem
                     {
                         item_id: item_definition_id,
-                        equipped : 0,
                         amount
                     });// add item currency
                 }
@@ -362,7 +356,7 @@ pub async fn buy_item(
             }
         }
     }
-    else if inventory_type == 1
+    else if inventory_type == InventoryType::CARDS
     {
         let cost  = map.definitions.cards.get(item_definition_id as usize).map(|d| d.store_cost);
         cli_log::info!("card cost {cost:?}");
@@ -373,7 +367,6 @@ pub async fn buy_item(
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
                     item_id : 0,
-                    equipped : 0,
                     amount : cost * amount,
                 });// remove soft currency
 
@@ -399,7 +392,7 @@ pub async fn buy_item(
             }
         }
     }
-    else if inventory_type == 2
+    else if inventory_type == InventoryType::EQUIPMENT
     {
         let cost  = map.definitions.equipment.get(item_definition_id as usize).map(|d| d.store_cost);
         cli_log::info!("equipment cost {cost:?}");
@@ -410,7 +403,6 @@ pub async fn buy_item(
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
                     item_id : 0,
-                    equipped : 0,
                     amount : cost * amount,
                 });// remove soft currency
 
@@ -452,7 +444,7 @@ pub async fn sell_item(
     let mut hero_entities : tokio::sync:: MutexGuard<HashMap<u16, HeroEntity>> = map.character.lock().await;
     let hero_option = hero_entities.get_mut(&player_id);
 
-    if inventory_type == 0
+    if inventory_type == InventoryType::ITEMS 
     {
         let cost  = map.definitions.items.get(item_definition_id as usize).map(|d| d.cost);
         match (hero_option, cost) 
@@ -462,7 +454,6 @@ pub async fn sell_item(
                 let result = hero_entity.remove_inventory_item(InventoryItem
                 {
                     item_id : item_definition_id,
-                    equipped:0,
                     amount,
                 });
 
@@ -472,7 +463,6 @@ pub async fn sell_item(
                     hero_entity.add_inventory_item(InventoryItem
                     {
                         item_id: 0,
-                        equipped: 0,
                         amount: amount * cost,
                     });// add soft currency
                 }
@@ -486,7 +476,7 @@ pub async fn sell_item(
             }
         }
     }
-    else if inventory_type == 1
+    else if inventory_type == InventoryType::CARDS 
     {
         let cost  = map.definitions.cards.get(item_definition_id as usize).map(|d| d.store_cost);
         match (hero_option, cost) 
@@ -501,7 +491,6 @@ pub async fn sell_item(
                     hero_entity.add_inventory_item(InventoryItem
                     {
                         item_id: 0,
-                        equipped: 0,
                         amount: amount * cost,
                     });// add soft currency
                 }
@@ -515,7 +504,7 @@ pub async fn sell_item(
             }
         }
     }
-    else if inventory_type == 2
+    else if inventory_type == InventoryType::EQUIPMENT
     {
         let cost  = map.definitions.equipment.get(item_definition_id as usize).map(|d| d.store_cost);
         match (hero_option, cost)
@@ -530,7 +519,6 @@ pub async fn sell_item(
                     hero_entity.add_inventory_item(InventoryItem
                     {
                         item_id: 0,
-                        equipped: 0,
                         amount: amount * cost,
                     });// add soft currency
                 }
@@ -787,7 +775,6 @@ pub async fn attack_character(
             let reward = InventoryItem 
             {
                 item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                equipped:0,
                 amount: 1,
             };
             attacker.add_inventory_item(reward);

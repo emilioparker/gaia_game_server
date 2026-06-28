@@ -28,6 +28,9 @@ pub struct StoredHero
 
     pub action: u8,
     pub flags:u8,
+    pub armor: u16,
+    pub right_weapon: u16,
+    pub left_weapon: u16,
     pub inventory: Vec<StoredInventoryItem>,
     pub card_inventory: Vec<StoredCardItem>,
     pub equipment_inventory: Vec<StoredEquipmentItem>,
@@ -55,7 +58,6 @@ pub struct StoredHero
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoredInventoryItem{
     pub item_id : u32,
-    pub equipped : u8,
     pub amount : u16
 }
 
@@ -80,7 +82,7 @@ impl From<InventoryItem> for StoredInventoryItem
 {
     fn from(item: InventoryItem) -> Self
     {
-        StoredInventoryItem { item_id: item.item_id, equipped: item.equipped, amount: item.amount }
+        StoredInventoryItem { item_id: item.item_id, amount: item.amount }
     }
 }
 

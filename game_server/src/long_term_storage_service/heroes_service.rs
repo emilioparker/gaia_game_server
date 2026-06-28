@@ -57,7 +57,6 @@ pub async fn get_heroes_from_db_by_world(
                 let inventory = doc.inventory.into_iter().map(|item| InventoryItem 
                 {
                     item_id: item.item_id,
-                    equipped: item.equipped,
                     amount: item.amount,
                 }).collect();
 
@@ -108,6 +107,9 @@ pub async fn get_heroes_from_db_by_world(
                     time:0,
                     action: doc.action,
                     flags: doc.flags,
+                    armor: doc.armor,
+                    right_weapon: doc.right_weapon,
+                    left_weapon: doc.left_weapon,
                     hero_name: doc.character_name,
                     inventory,
                     card_inventory,

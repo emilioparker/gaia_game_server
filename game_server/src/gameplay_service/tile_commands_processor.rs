@@ -272,7 +272,6 @@ pub async fn extract_resource(
                     let new_item = InventoryItem 
                     {
                         item_id: 2, // this is to use 0 and 1 as soft and hard currency, we need to read definitions...
-                        equipped: 0,
                         amount: 1,
                     };
 

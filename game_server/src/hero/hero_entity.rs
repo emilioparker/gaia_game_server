@@ -15,10 +15,20 @@ use super::hero_equipment_inventory::EquipmentItem;
 use super::hero_inventory::InventoryItem;
 use super::hero_skill_inventory::SkillData;
 
-pub const HERO_ENTITY_SIZE: usize = 57;
+pub const HERO_ENTITY_SIZE: usize = 63;
 
 pub const DASH_FLAG : u8 = 0b00000001;
 pub const CHAT_FLAG : u8 = 0b00000010;
+
+
+pub struct InventoryType(pub u8);
+
+impl InventoryType 
+{
+    pub const ITEMS :      u8 = 0;
+    pub const CARDS:       u8 = 1;
+    pub const EQUIPMENT:   u8 = 2;
+}
 
 #[derive(Debug)]
 pub struct HeroEntity
@@ -26,7 +36,7 @@ pub struct HeroEntity
     pub object_id: Option<ObjectId>,
     pub player_id: Option<ObjectId>,
     pub version: u16, // 2 bytes
-    pub hero_name: String,
+    pub hero_name: String, // not serializable
     pub hero_id: u16, // 2 bytes
     pub faction:u8, // 1 byte
     pub profession:u8, // 1 byte
@@ -52,6 +62,10 @@ pub struct HeroEntity
     pub equipment_inventory : Vec<EquipmentItem>,// this one is not serializable  normally
     pub skills : Vec<SkillData>,// this one is not serializable  normally
     pub inventory_version : u8, // 1 bytes
+
+    pub armor : u16,
+    pub right_weapon : u16,
+    pub left_weapon : u16,
 
     pub level:u8, // 1 bytes
     pub experience:u32, // 4 bytes
@@ -111,6 +125,9 @@ impl Clone for HeroEntity
             equipment_inventory: self.equipment_inventory.clone(),
             skills: self.skills.clone(),
             inventory_version: self.inventory_version,
+            armor: self.armor,
+            right_weapon: self.right_weapon,
+            left_weapon: self.left_weapon,
             level: self.level,
             experience: self.experience,
             available_skill_points: self.available_skill_points,
@@ -157,6 +174,9 @@ impl HeroEntity
             equipment_inventory: Vec::new(),
             skills: Vec::new(),
             inventory_version: self.inventory_version,
+            armor: self.armor,
+            right_weapon: self.right_weapon,
+            left_weapon: self.left_weapon,
             level: self.level,
             experience: self.experience,
             available_skill_points: self.available_skill_points,
@@ -246,7 +266,22 @@ impl HeroEntity
         buffer[offset] = self.inventory_version;
         offset = end;
 
-        // 2 bytes
+        end = offset + 2;
+        let armor_bytes = u16::to_le_bytes(self.armor);
+        buffer[offset..end].copy_from_slice(&armor_bytes);
+        offset = end;
+
+        end = offset + 2;
+        let right_weapon_bytes = u16::to_le_bytes(self.right_weapon);
+        buffer[offset..end].copy_from_slice(&right_weapon_bytes);
+        offset = end;
+
+        end = offset + 2;
+        let left_weapon_bytes = u16::to_le_bytes(self.left_weapon);
+        buffer[offset..end].copy_from_slice(&left_weapon_bytes);
+        offset = end;
+
+        // 6 bytes
 
         end = offset + 1;
         buffer[offset] = self.level;
@@ -575,6 +610,9 @@ mod tests
             equipment_inventory: Vec::new(),
             skills: Vec::new(),
             inventory_version: 1,
+            armor: 0,
+            right_weapon: 0,
+            left_weapon: 0,
             health: 0,
             mana: 0,
             level: 1,
@@ -640,6 +678,9 @@ mod tests
             equipment_inventory: Vec::new(),
             skills: Vec::new(),
             inventory_version: 10,
+            armor: 0,
+            right_weapon: 0,
+            left_weapon: 0,
             level: 0,
             experience: 0,
             available_skill_points: 0,

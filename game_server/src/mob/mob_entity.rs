@@ -32,7 +32,7 @@ pub struct MobEntity
     pub time : u32,// 4 bytes // el tiempo en que inicio el recorrido.
 
     // 16 bytes
-
+// only needed in the server to calculate attacks, etc.
     pub strength_stat: u16,
     pub vitality_stat: u16,
     pub agility_stat: u16,
@@ -44,7 +44,7 @@ pub struct MobEntity
     pub health: u16, // 2 bytes
 
     pub buffs : Vec<Buff>,// this one is not serializable  normally
-    pub buffs_summary : [u8;5], // this one is serialized but not saved 10 bytes
+    pub buffs_summary : [u8;5], // this one is serialized but not saved 5 bytes
 
 }
 
@@ -113,6 +113,26 @@ impl MobEntity
         let time_bytes = u32::to_le_bytes(self.time); // 2 bytes
         buffer[start..end].copy_from_slice(&time_bytes);
         start = end;
+
+        // end = start + 2;
+        // let strength_bytes = u16::to_le_bytes(self.strength_stat);
+        // buffer[start..end].copy_from_slice(&strength_bytes);
+        // start = end;
+
+        // end = start + 2;
+        // let vitality_bytes = u16::to_le_bytes(self.vitality_stat);
+        // buffer[start..end].copy_from_slice(&vitality_bytes);
+        // start = end;
+
+        // end = start + 2;
+        // let agility_bytes = u16::to_le_bytes(self.agility_stat);
+        // buffer[start..end].copy_from_slice(&agility_bytes);
+        // start = end;
+
+        // end = start + 2;
+        // let will_bytes = u16::to_le_bytes(self.will_stat);
+        // buffer[start..end].copy_from_slice(&will_bytes);
+        // start = end;
 
         end = start + 2;
         let health_bytes = u16::to_le_bytes(self.health); // 2 bytes

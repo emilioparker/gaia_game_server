@@ -1,17 +1,6 @@
 use super::hero_entity::HeroEntity;
 
-
 pub const HERO_EQUIPMENT_INVENTORY_ITEM_SIZE: usize = 7;
-
-
-// pub enum EquipmentSlot
-// {
-//     NotEquipped,
-//     Armor,
-//     RightHandWeapon,
-//     LeftHandWeapon,
-//     DualHandWeapon
-// } 
 
 pub struct EquipmentSlot(pub u32);
 
@@ -127,12 +116,45 @@ impl HeroEntity
         successfuly_removed
     }
 
-    pub fn is_slot_occupied(&mut self, slot:u8) -> bool
+    pub fn is_slot_occupied(&self, slot: u8) -> bool
     {
-        self.equipment_inventory.iter().any(|i| i.slot == slot)
+        let slot_u32 = slot as u32;
+        match slot_u32
+        {
+            EquipmentSlot::ARMOR =>
+            {
+                self.equipment_inventory.iter().any(|i| i.slot == EquipmentSlot::ARMOR as u8)
+            }
+            EquipmentSlot::RIGHT_HAND_WEAPON =>
+            {
+                // blocked if a dual weapon is equipped, or a right-hand weapon is already in slot
+                self.equipment_inventory.iter().any(|i|
+                    i.slot == EquipmentSlot::RIGHT_HAND_WEAPON as u8 ||
+                    i.slot == EquipmentSlot::DUAL_HAND_WEAPON as u8
+                )
+            }
+            EquipmentSlot::LEFT_HAND_WEAPON =>
+            {
+                // blocked if a dual weapon is equipped, or a left-hand weapon is already in slot
+                self.equipment_inventory.iter().any(|i|
+                    i.slot == EquipmentSlot::LEFT_HAND_WEAPON as u8 ||
+                    i.slot == EquipmentSlot::DUAL_HAND_WEAPON as u8
+                )
+            }
+            EquipmentSlot::DUAL_HAND_WEAPON =>
+            {
+                // blocked if any right, left, or dual weapon is already equipped
+                self.equipment_inventory.iter().any(|i|
+                    i.slot == EquipmentSlot::RIGHT_HAND_WEAPON as u8 ||
+                    i.slot == EquipmentSlot::LEFT_HAND_WEAPON as u8 ||
+                    i.slot == EquipmentSlot::DUAL_HAND_WEAPON as u8
+                )
+            }
+            _ => false,
+        }
     }
 
-    pub fn is_equipment_in_slot(&mut self, equipment_unique_id : u32, slot:u8) -> bool
+    pub fn is_equipment_in_slot(&self, equipment_unique_id : u32, slot:u8) -> bool
     {
         self.equipment_inventory.iter().any(|i| i.equipment_unique_id == equipment_unique_id && i.slot == slot)
     }
@@ -147,13 +169,38 @@ impl HeroEntity
         }
 
         let mut successfuly_updated = false;
-        for (index, item) in &mut self.equipment_inventory.iter_mut().enumerate()
+        let mut equipped_definition_id: u16 = 0;
+        for item in self.equipment_inventory.iter_mut()
         {
             if item.equipment_unique_id == equipment_unique_id && item.slot == current_slot
             {
+                equipped_definition_id = item.equipment_definition_id;
                 item.slot = slot;
                 successfuly_updated = true;
                 break;
+            }
+        }
+
+        if successfuly_updated
+        {
+            // clear the field that was occupied by current_slot
+            match current_slot as u32
+            {
+                EquipmentSlot::ARMOR            => { self.armor = 0; }
+                EquipmentSlot::RIGHT_HAND_WEAPON => { self.right_weapon = 0; }
+                EquipmentSlot::LEFT_HAND_WEAPON  => { self.left_weapon = 0; }
+                EquipmentSlot::DUAL_HAND_WEAPON  => { self.right_weapon = 0; }
+                _ => {}
+            }
+
+            // set the field for the new slot
+            match slot as u32
+            {
+                EquipmentSlot::ARMOR            => { self.armor = equipped_definition_id; }
+                EquipmentSlot::RIGHT_HAND_WEAPON => { self.right_weapon = equipped_definition_id; }
+                EquipmentSlot::LEFT_HAND_WEAPON  => { self.left_weapon = equipped_definition_id; }
+                EquipmentSlot::DUAL_HAND_WEAPON  => { self.right_weapon = equipped_definition_id; }
+                _ => {}
             }
         }
 

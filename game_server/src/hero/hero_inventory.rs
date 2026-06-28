@@ -5,14 +5,13 @@ use crate::definitions::definitions_container::Definitions;
 
 use super::hero_entity::HeroEntity;
 
-pub const HERO_INVENTORY_ITEM_SIZE: usize = 7;
+pub const HERO_INVENTORY_ITEM_SIZE: usize = 6;
 
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct InventoryItem
 {
     pub item_id : u32, //4
-    pub equipped : u8, // 1 // this can be used to know where it is equipped. 0 means not equipped, 1 means equipped.
     pub amount : u16 // 2
 }
 
@@ -26,9 +25,6 @@ impl InventoryItem
         let end = start + 4; 
         buffer[start..end].copy_from_slice(&item_id_bytes);
         start = end;
-
-        buffer[start] = self.equipped;
-        start += 1;
 
         let end = start + 2; 
         let amount_bytes = u16::to_le_bytes(self.amount); // 2 bytes
@@ -57,7 +53,7 @@ impl HeroEntity
         let mut found = false;
         for item in &mut self.inventory 
         {
-            if item.item_id == new_item.item_id && item.equipped == new_item.equipped 
+            if item.item_id == new_item.item_id
             {
                 item.amount += new_item.amount;
                 found = true;
@@ -78,7 +74,7 @@ impl HeroEntity
         let mut successfuly_removed = false;
         for (index, item) in &mut self.inventory.iter_mut().enumerate() 
         {
-            if item.item_id == old_item.item_id && item.equipped == old_item.equipped
+            if item.item_id == old_item.item_id
             {
                 if item.amount >= old_item.amount
                 {
@@ -101,49 +97,6 @@ impl HeroEntity
         successfuly_removed
     }
 
-    pub fn count_items_in_slot(&mut self, slot:u8) -> usize
-    {
-        self.inventory.iter().filter(|i| i.equipped == slot).count()
-    }
-
-    pub fn equip_inventory_item(&mut self, item_id : u32, current_slot : u8, slot: u8) -> bool
-    {
-        let count = self.count_items_in_slot(slot);
-        if slot == 1 && count >= 10
-        {
-            return false;
-        }
-
-        let mut successfuly_removed = false;
-        for (index, item) in &mut self.inventory.iter_mut().enumerate() 
-        {
-            if item.item_id == item_id && item.equipped == current_slot
-            {
-                if item.amount > 0
-                {
-                    item.amount -= 1;
-                    successfuly_removed = true;
-                }
-
-                if item.amount == 0 
-                {
-                    self.inventory.swap_remove(index);
-                }
-                break;
-            }
-        }
-
-
-        if successfuly_removed 
-        {
-            self.add_inventory_item(InventoryItem { item_id, equipped: slot, amount: 1 });
-            self.inventory_version += 1;
-            self.version += 1;
-        }
-        successfuly_removed
-    }
-
-
     pub fn craft_card(&mut self, definitions : &Definitions) -> bool
     {
         let set_size = self.inventory.iter().filter(|i| i.item_id >= 6 && i.item_id <= 20).count();
@@ -154,7 +107,7 @@ impl HeroEntity
         {
             for id in 6..=20
             {
-                self.remove_inventory_item(InventoryItem { item_id: id, equipped: 0, amount: 1 });
+                self.remove_inventory_item(InventoryItem { item_id: id, amount: 1 });
             }
 
             let cards_count = definitions.cards.len();
