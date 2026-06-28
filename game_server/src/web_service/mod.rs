@@ -259,6 +259,7 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             }
             else
             {
+                cli_log::info!("definition not found ");
                 None
             }
         }
