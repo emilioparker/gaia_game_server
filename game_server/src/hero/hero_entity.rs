@@ -512,7 +512,7 @@ impl AbilityUser for HeroEntity
         let multiplier = definition.realms.get(self.realm as usize)
             .map_or(1f32, |d| d.multiplier);
 
-        let result = (self.vitality_stat as f32 * 0.8f32 + self.strength_stat as f32 * 0.2f32) * 0.5f32 * multiplier;
+        let result = (self.vitality_stat as f32 * 0.8f32 + self.strength_stat as f32 * 0.2f32) * multiplier;
         result.round() as u16
     }
     

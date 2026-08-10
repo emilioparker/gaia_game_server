@@ -480,7 +480,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
     let skills_result = load_definition_by_name::<Skill>(file_name).await;
 
     let file_name = format!("professions.csv");
-    let initial_stats_result = load_definition_by_name::<Profession>(file_name).await;
+    let professions_result = load_definition_by_name::<Profession>(file_name).await;
 
     let file_name = format!("stat_bonuses.csv");
     let stat_bonuses_result = load_definition_by_name::<StatBonus>(file_name).await;
@@ -517,18 +517,18 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         skills_hash.insert(entry.name.clone(), entry.clone());
     }
 
-    let mut initial_stats_hash = HashMap::new();
+    let mut professions_hash = HashMap::new();
 
-    for entry in &initial_stats_result.0
+    for entry in &professions_result.0
     {
-        initial_stats_hash.insert(entry.profession.clone(), entry.clone());
+        professions_hash.insert(entry.profession.clone(), entry.clone());
     }
 
-    let mut initial_stats_by_id = vec![Profession::default(); initial_stats_result.0.len()];
-    for entry in initial_stats_result.0
+    let mut professions_by_id = vec![Profession::default(); professions_result.0.len()];
+    for entry in professions_result.0
     {
         let id = entry.id as usize;
-        initial_stats_by_id[id] = entry;
+        professions_by_id[id] = entry;
     }
 
     let mut mob_progression_by_mob = vec![Vec::new(); mobs_result.0.len()];
@@ -556,8 +556,8 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         equipment : equipment_result.0,
         skills : skills_hash,
         skills_by_id : skills_result.0,
-        professions : initial_stats_hash,
-        professions_by_id: initial_stats_by_id,
+        professions : professions_hash,
+        professions_by_id,
         stat_bonus_table : stat_bonuses_result.0,
         stat_gains : stat_gains_result.0,
         realms : realms_result.0,
@@ -580,7 +580,7 @@ async fn load_definitions() -> (Definitions, DefinitionsData)
         buffs_data: buffs_result.1,
         equipment_data: equipment_result.1,
         skills_data: skills_result.1,
-        initial_stats_data: initial_stats_result.1,
+        professions_data: professions_result.1,
         stat_bonuses_data: stat_bonuses_result.1,
         stat_gains_data: stat_gains_result.1,
         realms_data: realms_result.1,

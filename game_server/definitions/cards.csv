@@ -1,5 +1,5 @@
 id,name,card_type,damage_type,required_weapon,target_type,strength_stat,vitality_stat,agility_stat,will_stat,equip_slot,store_location,store_cost,cooldown,mana_cost,stamina_cost,hit_range,hits,duration_time,buff,effect_probability
-0,mana_burst,projectile,blunt,staff,enemy,0,0,0,10,2,none,0,2,0,50,2,1,0,none,0
+0,mana_burst,projectile,blunt,staff,enemy,0,0,0,0.5,2,none,0,2,0,50,2,1,0,none,0
 1,punch_1,attack,blunt,none,enemy,0.5,0,0,0,2,none,0,2,0,50,0.5,1,0,none,0
 2,basic_arrow,projectile,piercing,bow,enemy,0,0,10,0,2,none,0,2,0,50,2,1,0,none,0
 3,strike_1,attack,slash,sword,enemy,0.5,0,0,0,2,none,0,2,0,50,0.5,1,0,none,0

@@ -12,7 +12,6 @@ pub struct Item
     pub store_location:String,
     pub item_name:String,
     pub item_description:String,
-    pub image:String,
 }
 
 pub enum ItemUsage

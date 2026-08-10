@@ -66,7 +66,7 @@ pub struct DefinitionsData
     pub buffs_data : Vec<u8>,
     pub equipment_data : Vec<u8>,
     pub skills_data : Vec<u8>,
-    pub initial_stats_data : Vec<u8>,
+    pub professions_data : Vec<u8>,
     pub stat_bonuses_data : Vec<u8>,
     pub stat_gains_data : Vec<u8>,
     pub realms_data : Vec<u8>,

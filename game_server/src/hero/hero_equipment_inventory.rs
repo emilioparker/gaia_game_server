@@ -202,6 +202,9 @@ impl HeroEntity
                 EquipmentSlot::DUAL_HAND_WEAPON  => { self.right_weapon = equipped_definition_id; }
                 _ => {}
             }
+
+            self.inventory_version += 1;
+            self.version += 1;
         }
 
         return successfuly_updated;

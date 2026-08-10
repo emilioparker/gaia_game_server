@@ -257,6 +257,14 @@ async fn handle_definition_request(context: AppContext, mut req: Request<Body>) 
             {
                 Some(context.definitions_data.skills_data)
             }
+            else if definition_data.version == data.version && data.name == "realms"
+            {
+                Some(context.definitions_data.realms_data)
+            }
+            else if definition_data.version == data.version && data.name == "professions"
+            {
+                Some(context.definitions_data.professions_data)
+            }
             else
             {
                 cli_log::info!("definition not found ");

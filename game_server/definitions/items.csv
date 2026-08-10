@@ -1,22 +1,23 @@
-item_id,item_type,cost,usage,equip_slot,benefit,store_location,item_name,item_description,image
-0,0,0,0,0,0,bank_coin,Silver,Main currency in the game,Icons/Items/Nobg/silver
-1,0,100,0,0,0,bank_coin,Gold,Special currency,Icons/Items/Nobg/gold
-2,1,1,0,0,0,resource_monster,Skull,The skull of a monster,Icons/Items/Nobg/21_Skull
-3,1,5,1,0,3,potion_heal,Basic Heal Potion,Gives you 3 health points,Icons/Items/Nobg/15_Heal_potion_nobg
-4,1,15,2,0,3,potion_xp,Basic XP Potion,Gives you 3 skill points,Icons/Items/Nobg/18_Crystal
-5,2,10,3,0,3,none,XP,Gives you xp,Icons/Items/Nobg/18_Crystal
-6,3,100,4,0,0,shard_knight,knight_card_shard_a,Knight card shard,Icons/Shards/a
-7,3,100,4,0,0,shard_knight,knight_card_shard_b,Knight card shard,Icons/Shards/b
-8,3,100,4,0,0,shard_knight,knight_card_shard_c,Knight card shard,Icons/Shards/c
-9,3,100,4,0,0,shard_knight,knight_card_shard_d,Knight card shard,Icons/Shards/d
-10,3,100,4,0,0,shard_knight,knight_card_shard_e,Knight card shard,Icons/Shards/e
-11,3,100,4,0,0,shard_knight,knight_card_shard_f,Knight card shard,Icons/Shards/f
-12,3,100,4,0,0,shard_knight,knight_card_shard_g,Knight card shard,Icons/Shards/g
-13,3,100,4,0,0,shard_knight,knight_card_shard_h,Knight card shard,Icons/Shards/h
-14,3,100,4,0,0,shard_knight,knight_card_shard_i,Knight card shard,Icons/Shards/i
-15,3,100,4,0,0,shard_knight,knight_card_shard_j,Knight card shard,Icons/Shards/j
-16,3,100,4,0,0,shard_knight,knight_card_shard_k,Knight card shard,Icons/Shards/k
-17,3,100,4,0,0,shard_knight,knight_card_shard_l,Knight card shard,Icons/Shards/l
-18,3,100,4,0,0,shard_knight,knight_card_shard_m,Knight card shard,Icons/Shards/m
-19,3,100,4,0,0,shard_knight,knight_card_shard_n,Knight card shard,Icons/Shards/n
-20,3,100,4,0,0,shard_knight,knight_card_shard_o,Knight card shard,Icons/Shards/o
+item_id,item_type,cost,usage,equip_slot,benefit,store_location,item_name,item_description
+0,0,0,0,0,0,bank_coin,silver,Main currency in the game
+1,0,100,0,0,0,bank_coin,gold,Special currency
+2,1,1,0,0,0,resource_monster,skull,The skull of a monster
+3,1,5,1,0,3,potion_heal,basic_heal_potion,Gives you 3 health points
+4,1,15,2,0,3,potion_xp,basic_xp_potion,Gives you 3 skill points
+5,2,10,3,0,3,none,xp,Gives you xp
+6,3,100,4,0,0,shard_knight,knight_card_shard_a,Knight card shard
+7,3,100,4,0,0,shard_knight,knight_card_shard_b,Knight card shard
+8,3,100,4,0,0,shard_knight,knight_card_shard_c,Knight card shard
+9,3,100,4,0,0,shard_knight,knight_card_shard_d,Knight card shard
+10,3,100,4,0,0,shard_knight,knight_card_shard_e,Knight card shard
+11,3,100,4,0,0,shard_knight,knight_card_shard_f,Knight card shard
+12,3,100,4,0,0,shard_knight,knight_card_shard_g,Knight card shard
+13,3,100,4,0,0,shard_knight,knight_card_shard_h,Knight card shard
+14,3,100,4,0,0,shard_knight,knight_card_shard_i,Knight card shard
+15,3,100,4,0,0,shard_knight,knight_card_shard_j,Knight card shard
+16,3,100,4,0,0,shard_knight,knight_card_shard_k,Knight card shard
+17,3,100,4,0,0,shard_knight,knight_card_shard_l,Knight card shard
+18,3,100,4,0,0,shard_knight,knight_card_shard_m,Knight card shard
+19,3,100,4,0,0,shard_knight,knight_card_shard_n,Knight card shard
+20,3,100,4,0,0,shard_knight,knight_card_shard_o,Knight card shard
+21,1,1,0,0,0,resource_monster,wood,Just Wood

@@ -26,32 +26,32 @@ pub trait AbilityUser
 
     fn get_total_attack(&self, card_id : u32, definition: &Definitions) -> i16
     {
-        let (str_w, vit_w, agi_w, will_w) = definition.cards
+        let (card_strenght_factor, card_vitality_factor, card_agility_factor, card_will_factor) = definition.cards
             .get(card_id as usize)
             .map_or((0f32, 0f32, 0f32, 0f32), |d| (d.strength_stat, d.vitality_stat, d.agility_stat, d.will_stat));
 
-        let (strength_stat, vitality_stat, agility_stat, will_stat) = self.get_stats();
+        let (hero_strength_stat, hero_vitality_stat, hero_agility_stat, hero_will_stat) = self.get_stats();
         let mut total_bonus = 0i16;
 
-        if str_w > 0.01f32
+        if card_strenght_factor > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get(strength_stat as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * str_w).round() as i16;
+            let bonus = definition.stat_bonus_table.get(hero_strength_stat as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * card_strenght_factor).round() as i16;
         }
-        if vit_w > 0.01f32
+        if card_vitality_factor > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get(vitality_stat as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * vit_w).round() as i16;
+            let bonus = definition.stat_bonus_table.get(hero_vitality_stat as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * card_vitality_factor).round() as i16;
         }
-        if agi_w > 0.01f32
+        if card_agility_factor > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get(agility_stat as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * agi_w).round() as i16;
+            let bonus = definition.stat_bonus_table.get(hero_agility_stat as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * card_agility_factor).round() as i16;
         }
-        if will_w > 0.01f32
+        if card_will_factor > 0.01f32
         {
-            let bonus = definition.stat_bonus_table.get(will_stat as usize).map_or(0, |b| b.bonus);
-            total_bonus += (bonus as f32 * will_w).round() as i16;
+            let bonus = definition.stat_bonus_table.get(hero_will_stat as usize).map_or(0, |b| b.bonus);
+            total_bonus += (bonus as f32 * card_will_factor).round() as i16;
         }
 
         total_bonus
