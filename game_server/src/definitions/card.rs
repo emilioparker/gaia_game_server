@@ -1,7 +1,14 @@
 use super::Definition;
 
+#[derive(Debug, Clone)]
+pub struct CardSkill
+{
+    pub name: String,
+    pub contribution: f32,
+}
+
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct Card 
+pub struct Card
 {
     pub id: u32,
     pub name: String,
@@ -33,6 +40,11 @@ pub struct Card
 
     pub buff:String,
     pub effect_probability:f32,
+
+    pub skills: String,
+
+    #[serde(skip)]
+    pub skill_list: Vec<CardSkill>,
 }
 
 impl Definition for Card
@@ -42,6 +54,17 @@ impl Definition for Card
         self.damage_types = self.damage_type
             .split(';')
             .map(|s| s.to_string())
+            .collect();
+
+        self.skill_list = self.skills
+            .split(';')
+            .filter_map(|entry| {
+                let (name, contribution) = entry.split_once(':')?;
+                Some(CardSkill {
+                    name: name.to_string(),
+                    contribution: contribution.parse().unwrap_or(0f32),
+                })
+            })
             .collect();
     }
 }

@@ -6,7 +6,7 @@ use crate::buffs::buff::BuffUser;
 use crate::definitions::definitions_container::Definitions;
 use crate::map::tetrahedron_id::TetrahedronId;
 
-pub const MOB_ENTITY_SIZE: usize = 37;
+pub const MOB_ENTITY_SIZE: usize = 39;
 
 #[derive(Debug, Clone)]
 pub struct MobEntity
@@ -119,10 +119,10 @@ impl MobEntity
         // buffer[start..end].copy_from_slice(&strength_bytes);
         // start = end;
 
-        // end = start + 2;
-        // let vitality_bytes = u16::to_le_bytes(self.vitality_stat);
-        // buffer[start..end].copy_from_slice(&vitality_bytes);
-        // start = end;
+        end = start + 2;
+        let vitality_bytes = u16::to_le_bytes(self.vitality_stat);
+        buffer[start..end].copy_from_slice(&vitality_bytes);
+        start = end;
 
         // end = start + 2;
         // let agility_bytes = u16::to_le_bytes(self.agility_stat);
@@ -223,7 +223,7 @@ impl AbilityUser for MobEntity
         cli_log::info!("---- updated mob health {}", self.health)
     }
 
-    fn get_stats(&self) -> (u16, u16, u16, u16)
+    fn get_stats(&self, definition: &Definitions) -> (u16, u16, u16, u16)
     {
         (self.strength_stat, self.vitality_stat, self.agility_stat, self.will_stat)
     }
@@ -256,4 +256,13 @@ impl AbilityUser for MobEntity
         let result = self.vitality_stat as f32 * multiplier;
         result.round() as u16
     }
+    
+    fn get_armor_type(&self, definition: &Definitions) -> String
+    {
+        definition.mobs.get(self.mob_definition_id as usize).map_or("at1".to_string(), |m| m.armor_type.to_owned())
+    }
+
+    fn get_profession(&self) -> u8 { 0 }
+
+    fn get_skills(&self) -> &[crate::hero::hero_skill_inventory::SkillData] { &[] }
 }

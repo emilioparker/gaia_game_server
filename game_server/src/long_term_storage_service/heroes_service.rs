@@ -278,6 +278,12 @@ pub fn start_server(
                             "inventory" : inventory_serialized_data,
                             "card_inventory" : card_inventory_serialized_data,
                             "equipment_inventory" : equipment_inventory_serialized_data,
+                            "skills" : skills_serialized_data,
+
+                            "armor": bson::to_bson(&player.armor).unwrap(),
+                            "right_weapon": bson::to_bson(&player.right_weapon).unwrap(),
+                            "left_weapon": bson::to_bson(&player.left_weapon).unwrap(),
+
                             "level": bson::to_bson(&player.level).unwrap(),
                             "experience" : bson::to_bson(&player.experience).unwrap(),
                             "available_skill_points": bson::to_bson(&player.available_skill_points).unwrap(),
@@ -290,13 +296,13 @@ pub fn start_server(
                             "agility_stat": bson::to_bson(&player.agility_stat).unwrap(),
                             "will_stat": bson::to_bson(&player.will_stat).unwrap(),
                             "regeneration_time": bson::to_bson(&player.regeneration_time).unwrap(),
-                            "skills" : skills_serialized_data,
                             "buffs" : serialized_buffs_data,
                         }
                     },
                     None
                 ).await;
 
+                
                 map_reader_server_state.pending_character_entities_to_save.store(0, std::sync::atomic::Ordering::Relaxed);
 
                 map_reader_server_state.saved_character_entities.fetch_add(modified_heroes as u32, std::sync::atomic::Ordering::Relaxed);

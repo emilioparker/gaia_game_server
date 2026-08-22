@@ -3,3 +3,5 @@ id,name,initiate,tank,warrior,mage
 1,sword_skill,0|2/6,3|2/6,5|3/7,3|5/10
 2,bow_skill,0|4/8,2|4/8,5|3/7,3|5/10
 3,staff_skill,0|3/7,2|3/7,4|4/8,4|3/7
+4,lighting_affinity,0|3/7,1|3/7,1|4/8,4|3/7
+4,fire_affinity,0|3/7,1|3/7,1|4/8,4|3/7

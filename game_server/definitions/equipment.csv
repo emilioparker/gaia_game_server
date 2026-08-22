@@ -1,7 +1,7 @@
 id,name,equipment_type,slot,armor_type,skill,card_name,bonus_type,bonus,intelligence_cost,mana_cost,stamina_cost,hp_cost,hit_range_factor,store_location,store_cost
 0,bare_fist,none,0,none,pugilist_skill,punch_1,attack,0,1.0,1.0,0,0,1.0,weapons,5
-1,basic_sword,sword,2,none,sword_skill,strike_1,attack,50,1.0,1.0,50,0,1.0,weapons_swords,5
-2,basic_bow,bow,4,none,bow_skill,basic_arrow,attack,50,1.0,1.0,25,0,1.0,weapons_bows,5
-3,basic_staff,staff,4,none,staff_skill,mana_burst,attack,50,1.0,1.0,5,0,1.0,weapons_staffs,5
-4,basic_shield,shield,3,none,shield_skill,none,defense,50,0,0,50,0,0,weapons_shields,5
-5,basic_cape,clothes,1,at2,shield_skill,none,none,50,0,0,0,0,0,armor_cloth,5
+1,basic_sword,sword,2,none,sword_skill,strike_1,attack,5,1.0,1.0,50,0,1.0,weapons_swords,5
+2,basic_bow,bow,4,none,bow_skill,basic_arrow,attack,5,1.0,1.0,25,0,1.0,weapons_bows,5
+3,basic_staff,staff,4,none,staff_skill,mana_burst,attack,5,1.0,1.0,5,0,1.0,weapons_staffs,5
+4,basic_shield,shield,3,none,shield_skill,none,defense,5,0,0,50,0,0,weapons_shields,5
+5,basic_cape,clothes,1,at2,shield_skill,none,none,5,0,0,0,0,0,armor_cloth,5

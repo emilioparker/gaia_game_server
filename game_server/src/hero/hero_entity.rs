@@ -463,7 +463,7 @@ impl AbilityUser for HeroEntity
         self.health = new_health;
     }
     
-    fn get_stats(&self) -> (u16, u16, u16, u16)
+    fn get_stats(&self, definition: &Definitions) -> (u16, u16, u16, u16)
     {
         (self.strength_stat, self.vitality_stat, self.agility_stat, self.will_stat)
     }
@@ -523,6 +523,22 @@ impl AbilityUser for HeroEntity
 
         let result = self.vitality_stat as f32 * multiplier;
         result.round() as u16
+    }
+    
+    fn get_armor_type(&self, definition: &Definitions) -> String
+    {
+        let equipment = definition.equipment.get(self.armor as usize);
+        equipment.map_or("at0".to_string(), |e| e.armor_type.to_owned())
+    }
+
+    fn get_profession(&self) -> u8
+    {
+        self.profession
+    }
+
+    fn get_skills(&self) -> &[SkillData]
+    {
+        &self.skills
     }
 }
 
@@ -631,14 +647,14 @@ mod tests
             equipment_id_generator: 0,
         };
 
-        entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 1 });
-        entity.add_inventory_item(super::InventoryItem { item_id: 1, equipped: 0, amount: 2 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, amount: 1 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 1, amount: 2 });
 
         assert!(entity.inventory.len() == 1);
 
         let item = entity.inventory.iter().next().unwrap();
         assert!(item.amount == 3);
-        entity.add_inventory_item(super::InventoryItem { item_id: 2, equipped: 1, amount: 2 });
+        entity.add_inventory_item(super::InventoryItem { item_id: 2, amount: 2 });
         assert!(entity.inventory.len() == 2);
         cli_log::info!("{:?}", entity.inventory);
     }
@@ -647,7 +663,7 @@ mod tests
     fn test_encode_inventory_item()
     {
 
-        let item = super::InventoryItem { item_id: 1, equipped: 1, amount: 1 };
+        let item = super::InventoryItem { item_id: 1, amount: 1 };
         let buffer = item.to_bytes();
 
         assert!(buffer.len() == HERO_INVENTORY_ITEM_SIZE);

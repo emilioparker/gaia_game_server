@@ -584,7 +584,7 @@ pub async fn move_character(
 
     let current_time_in_seconds = (current_time / 1000) as u32;
 
-    cli_log::info!("move {} vertex id {}", player_id, vertex_id);
+    cli_log::info!("move {player_id} from pos {pos} to {second_pos} vertex id {vertex_id} with path {path:?}");
     if let Some(hero_entity) = hero_option
     {
         let updated_hero_entity = HeroEntity
